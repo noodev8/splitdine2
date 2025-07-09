@@ -1,0 +1,86 @@
+Title:
+SplitDine – Collaborative Restaurant Bill Splitting App
+
+Overview:
+SplitDine is a mobile app that makes it easy, fair, and fast for groups to split a restaurant bill. Instead of the usual confusion at the end of a meal, participants can collaboratively assign what they ordered, see the evolving split in real time, and even handle payment in-app.
+
+Key Goals:
+Make splitting a bill fair, quick, and easy.
+Support real-life group dynamics at the table.
+Remove arguments over service charges, tips, and shared items.
+
+Allow flexible user flows:
+Organiser handles everything
+Guests join and pick their own items
+
+Collaborative, real-time updates
+High-Level Features:
+✅ Scan and digitise receipts via OCR
+✅ Parse messy text into structured line items
+✅ Invite participants via code / link
+✅ Real-time shared session:
+
+
+Assign to self or others
+View evolving split
+✅ Handle service charges / tips fairly
+✅ Optional payment integration:
+
+One person pays venue
+Others pay them back in-app
+
+Core User Flows:
+Organiser:
+Opens new session (can be done before arriving at restaurant)
+Shares join code via WhatsApp or QR
+Scans receipt at the table
+Reviews and edits parsed items
+Assigns items to participants, or allows them to choose
+Confirms final split
+Optionally handles payment
+
+Participants:
+Join session via code/link
+View shared receipt items
+Assign items to themselves
+See live updates as others choose
+Confirm their share
+Pay organiser if in-app payment is used
+
+Why It Matters:
+Prevents confusion and arguments over splitting
+Speeds up restaurant payment process
+Ensures everyone pays fairly
+Great for groups who often dine out
+
+Tech Stack (MVP):
+
+Frontend: Flutter (iOS & Android)
+OCR: Google Vision API
+Parsing & Chat: OpenAI GPT API
+Backend: Firebase
+Firestore (real-time database)
+Firebase Auth (user management)
+Firebase Functions (secure API calls to Vision/OpenAI)
+Optional Firebase Storage (receipt images)
+
+Payments: Stripe Connect
+Design Philosophy:
+Real-time, collaborative experience
+Mobile-first, intuitive UI
+Privacy-respecting (minimum data retention)
+Lean, scalable architecture
+
+Retention Strategy:
+Active sessions live in Firestore for real-time collaboration
+Old/closed sessions archived or deleted to reduce costs
+Optional premium features for saving history or advanced payment integration
+Future Roadmap Ideas (Post-MVP):
+Web app for viewing history
+Advanced payment splitting rules (percentage splits, custom shares)
+Premium subscription model
+Loyalty/reward integrations with restaurants
+
+Summary Sentence (Pitch):
+“SplitDine lets groups fairly and quickly split restaurant bills by scanning, assigning, and paying—all in real time on their phones.”
+
