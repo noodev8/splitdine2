@@ -35,16 +35,23 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
 
-  # Firebase packages will be added in Phase 2
-  # firebase_core: ^3.8.0
+  # Firebase Core
+  firebase_core: ^2.24.2
 
-  # Additional packages will be added in later phases
-  # provider: ^6.1.2
-  # http: ^1.2.2
-  # image_picker: ^1.1.2
+  # Firebase Services
+  firebase_auth: ^4.15.3
+  cloud_firestore: ^4.13.6
+
+  # State Management
+  provider: ^6.1.1
+
+  # Additional packages for later phases
+  # firebase_storage: ^11.6.0
+  # http: ^1.1.2
+  # image_picker: ^1.0.7
   # qr_flutter: ^4.1.0
   # qr_code_scanner: ^1.0.1
-  # flutter_svg: ^2.0.10+1
+  # flutter_svg: ^2.0.9
 
 dev_dependencies:
   flutter_test:

@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
-// TODO: Add Firebase configuration in Phase 2
-// import 'package:firebase_core/firebase_core.dart';
-// import 'firebase_options.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // TODO: Initialize Firebase in Phase 2
-  // await Firebase.initializeApp(
-  //   options: DefaultFirebaseOptions.currentPlatform,
-  // );
+
+  // Initialize Firebase for mobile platforms only
+  if (!kIsWeb) {
+    try {
+      await Firebase.initializeApp();
+      print('✅ Firebase initialized successfully');
+    } catch (e) {
+      print('❌ Firebase initialization failed: $e');
+      // Continue without Firebase for now
+    }
+  }
+
   runApp(const SplitDineApp());
 }
 
@@ -18,12 +25,12 @@ class SplitDineApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'SplitDine',
+      title: 'Split Dine',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
         useMaterial3: true,
       ),
-      home: const HomePage(title: 'SplitDine'),
+      home: const HomePage(title: 'Split Dine'),
     );
   }
 }
@@ -45,13 +52,18 @@ class HomePage extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             Text(
-              'Welcome to SplitDine!',
+              'Welcome to Split Dine!',
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 20),
             Text(
               'Your collaborative bill splitting app',
               style: TextStyle(fontSize: 16),
+            ),
+            SizedBox(height: 20),
+            Text(
+              '🔥 Firebase Ready!',
+              style: TextStyle(fontSize: 14, color: Colors.green),
             ),
           ],
         ),
