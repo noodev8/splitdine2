@@ -1,30 +1,39 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+// This is a basic Flutter widget test for SplitDine app.
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:splitdine2_flutter/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
+  testWidgets('SplitDine app smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(const SplitDineApp());
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    // Verify that the app loads and shows authentication screen
+    expect(find.text('Split Dine'), findsOneWidget);
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
+    // Check for authentication elements
+    expect(find.text('Email'), findsOneWidget);
+    expect(find.text('Password'), findsOneWidget);
+    expect(find.text('Sign In'), findsOneWidget);
+    expect(find.text('Continue as Guest'), findsOneWidget);
+  });
+
+  testWidgets('Authentication screen toggle test', (WidgetTester tester) async {
+    // Build our app and trigger a frame.
+    await tester.pumpWidget(const SplitDineApp());
+
+    // Initially should show Sign In
+    expect(find.text('Sign In'), findsOneWidget);
+    expect(find.text("Don't have an account? Sign up"), findsOneWidget);
+
+    // Tap the toggle button
+    await tester.tap(find.text("Don't have an account? Sign up"));
     await tester.pump();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Should now show Sign Up
+    expect(find.text('Sign Up'), findsOneWidget);
+    expect(find.text('Display Name'), findsOneWidget);
+    expect(find.text("Already have an account? Sign in"), findsOneWidget);
   });
 }

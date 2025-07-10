@@ -41,12 +41,12 @@ dependencies:
   # Firebase Services
   firebase_auth: ^4.15.3
   cloud_firestore: ^4.13.6
+  firebase_storage: ^11.6.0
 
   # State Management
   provider: ^6.1.1
 
   # Additional packages for later phases
-  # firebase_storage: ^11.6.0
   # http: ^1.1.2
   # image_picker: ^1.0.7
   # qr_flutter: ^4.1.0

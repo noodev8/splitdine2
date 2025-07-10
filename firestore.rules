@@ -1,0 +1,95 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isSessionParticipant(sessionId) {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/sessions/$(sessionId)) &&
+             get(/databases/$(database)/documents/sessions/$(sessionId)).data.participants[request.auth.uid] != null;
+    }
+    
+    function isSessionOrganizer(sessionId) {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/sessions/$(sessionId)) &&
+             get(/databases/$(database)/documents/sessions/$(sessionId)).data.organizerId == request.auth.uid;
+    }
+
+    // Users collection
+    match /users/{userId} {
+      // Users can only read and write their own document
+      allow read, write: if isOwner(userId);
+      
+      // Allow reading basic user info for session participants
+      allow read: if isAuthenticated() && 
+                     resource.data.keys().hasAny(['displayName', 'isAnonymous']);
+    }
+
+    // Sessions collection
+    match /sessions/{sessionId} {
+      // Anyone can read sessions they're participants in
+      allow read: if isSessionParticipant(sessionId);
+      
+      // Only organizers can create sessions
+      allow create: if isAuthenticated() && 
+                       request.resource.data.organizerId == request.auth.uid;
+      
+      // Organizers can update session data
+      allow update: if isSessionOrganizer(sessionId);
+      
+      // Participants can update their own participant data and assignments
+      allow update: if isSessionParticipant(sessionId) && 
+                       (
+                         // Can update own participant confirmation
+                         (request.resource.data.diff(resource.data).affectedKeys()
+                          .hasOnly(['participants', 'updatedAt']) &&
+                          request.resource.data.participants.diff(resource.data.participants)
+                          .affectedKeys().hasOnly([request.auth.uid]) &&
+                          request.resource.data.participants[request.auth.uid]
+                          .diff(resource.data.participants[request.auth.uid])
+                          .affectedKeys().hasOnly(['confirmed'])) ||
+                         
+                         // Can update assignments (for item assignment)
+                         (request.resource.data.diff(resource.data).affectedKeys()
+                          .hasOnly(['assignments', 'updatedAt'])) ||
+                         
+                         // Can update final split for themselves
+                         (request.resource.data.diff(resource.data).affectedKeys()
+                          .hasOnly(['finalSplit', 'updatedAt']) &&
+                          request.resource.data.finalSplit.diff(resource.data.finalSplit)
+                          .affectedKeys().hasOnly([request.auth.uid]))
+                       );
+      
+      // Organizers can delete sessions
+      allow delete: if isSessionOrganizer(sessionId);
+    }
+
+    // Receipt items collection
+    match /receiptItems/{itemId} {
+      // Participants can read items for their sessions
+      allow read: if isAuthenticated() && 
+                     isSessionParticipant(resource.data.sessionId);
+      
+      // Only organizers can create, update, and delete receipt items
+      allow create, update, delete: if isAuthenticated() && 
+                                       isSessionOrganizer(resource.data.sessionId);
+      
+      // Allow creation if the user is the organizer of the session being created
+      allow create: if isAuthenticated() && 
+                       isSessionOrganizer(request.resource.data.sessionId);
+    }
+
+    // Deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
