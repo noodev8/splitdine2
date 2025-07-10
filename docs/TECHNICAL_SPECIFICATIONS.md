@@ -2,15 +2,22 @@
 
 ## Database Schema (PostgreSQL)
 
+### Design Philosophy
+- **Database as Data Storage Only** - No business logic in database
+- **API-Level Validation** - All constraints and validation handled in application code
+- **Simple Schema** - Clean, straightforward table design without complex constraints
+- **Performance Focus** - Strategic indexes for query optimization
+- **Flexibility** - Schema can evolve easily without rigid database constraints
+
 ### Table Structure
 
-#### `users` Table
+#### `app_user` Table
 ```sql
-CREATE TABLE users (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  email VARCHAR(255) UNIQUE,
+CREATE TABLE app_user (
+  id SERIAL PRIMARY KEY,
+  email VARCHAR(255),
   phone VARCHAR(20),
-  display_name VARCHAR(100) NOT NULL,
+  display_name VARCHAR(100),
   password_hash VARCHAR(255),
   is_anonymous BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -18,6 +25,10 @@ CREATE TABLE users (
   default_tip_percentage DECIMAL(5,2) DEFAULT 15.00,
   notifications_enabled BOOLEAN DEFAULT TRUE
 );
+
+-- Indexes for app_user table
+CREATE INDEX idx_app_user_email ON app_user(email);
+CREATE INDEX idx_app_user_last_active ON app_user(last_active_at);
 ```
 
 #### `sessions` Table
@@ -30,13 +41,43 @@ CREATE TABLE sessions (
   restaurant_name VARCHAR(255),
   receipt_image_url TEXT,
   receipt_ocr_text TEXT,
+  receipt_processed BOOLEAN DEFAULT FALSE,
   total_amount DECIMAL(10,2) DEFAULT 0.00,
   tax_amount DECIMAL(10,2) DEFAULT 0.00,
   tip_amount DECIMAL(10,2) DEFAULT 0.00,
   service_charge DECIMAL(10,2) DEFAULT 0.00,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+
+  -- Constraints
+  CONSTRAINT sessions_amounts_check CHECK (
+    total_amount >= 0 AND
+    tax_amount >= 0 AND
+    tip_amount >= 0 AND
+    service_charge >= 0
+  )
 );
+
+-- Indexes for sessions table
+CREATE UNIQUE INDEX idx_sessions_join_code ON sessions(join_code);
+CREATE INDEX idx_sessions_organizer ON sessions(organizer_id);
+CREATE INDEX idx_sessions_status ON sessions(status);
+CREATE INDEX idx_sessions_created_at ON sessions(created_at);
+
+-- Function to generate unique join codes
+CREATE OR REPLACE FUNCTION generate_join_code() RETURNS VARCHAR(6) AS $$
+DECLARE
+  code VARCHAR(6);
+  exists_check INTEGER;
+BEGIN
+  LOOP
+    code := LPAD(FLOOR(RANDOM() * 1000000)::TEXT, 6, '0');
+    SELECT COUNT(*) INTO exists_check FROM sessions WHERE join_code = code AND status = 'active';
+    EXIT WHEN exists_check = 0;
+  END LOOP;
+  RETURN code;
+END;
+$$ LANGUAGE plpgsql;
 ```
 
 #### `session_participants` Table
@@ -48,8 +89,15 @@ CREATE TABLE session_participants (
   role VARCHAR(20) DEFAULT 'participant' CHECK (role IN ('organizer', 'participant')),
   confirmed BOOLEAN DEFAULT FALSE,
   joined_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  left_at TIMESTAMP WITH TIME ZONE,
+
   UNIQUE(session_id, user_id)
 );
+
+-- Indexes for session_participants table
+CREATE INDEX idx_session_participants_session ON session_participants(session_id);
+CREATE INDEX idx_session_participants_user ON session_participants(user_id);
+CREATE INDEX idx_session_participants_role ON session_participants(session_id, role);
 ```
 
 #### `receipt_items` Table
@@ -64,8 +112,20 @@ CREATE TABLE receipt_items (
   description TEXT,
   parsed_confidence DECIMAL(3,2) DEFAULT 0.00,
   manually_edited BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  is_shared BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+
+  -- Constraints
+  CONSTRAINT receipt_items_price_check CHECK (price >= 0),
+  CONSTRAINT receipt_items_quantity_check CHECK (quantity > 0),
+  CONSTRAINT receipt_items_confidence_check CHECK (parsed_confidence >= 0 AND parsed_confidence <= 1)
 );
+
+-- Indexes for receipt_items table
+CREATE INDEX idx_receipt_items_session ON receipt_items(session_id);
+CREATE INDEX idx_receipt_items_category ON receipt_items(category);
+CREATE INDEX idx_receipt_items_shared ON receipt_items(is_shared);
 ```
 
 #### `item_assignments` Table
@@ -75,11 +135,30 @@ CREATE TABLE item_assignments (
   session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
   item_id UUID NOT NULL REFERENCES receipt_items(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  split_type VARCHAR(20) DEFAULT 'equal' CHECK (split_type IN ('equal', 'custom')),
+  split_type VARCHAR(20) DEFAULT 'equal' CHECK (split_type IN ('equal', 'custom', 'percentage')),
   custom_amount DECIMAL(10,2),
+  percentage_share DECIMAL(5,2),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  UNIQUE(item_id, user_id)
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+
+  UNIQUE(item_id, user_id),
+
+  -- Constraints
+  CONSTRAINT item_assignments_custom_amount_check CHECK (
+    (split_type = 'custom' AND custom_amount IS NOT NULL AND custom_amount >= 0) OR
+    (split_type != 'custom' AND custom_amount IS NULL)
+  ),
+  CONSTRAINT item_assignments_percentage_check CHECK (
+    (split_type = 'percentage' AND percentage_share IS NOT NULL AND percentage_share >= 0 AND percentage_share <= 100) OR
+    (split_type != 'percentage' AND percentage_share IS NULL)
+  )
 );
+
+-- Indexes for item_assignments table
+CREATE INDEX idx_item_assignments_session ON item_assignments(session_id);
+CREATE INDEX idx_item_assignments_item ON item_assignments(item_id);
+CREATE INDEX idx_item_assignments_user ON item_assignments(user_id);
+CREATE INDEX idx_item_assignments_split_type ON item_assignments(split_type);
 ```
 
 #### `final_splits` Table
@@ -88,13 +167,55 @@ CREATE TABLE final_splits (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  subtotal_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  tax_share DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  tip_share DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  service_charge_share DECIMAL(10,2) NOT NULL DEFAULT 0.00,
   total_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
   confirmed BOOLEAN DEFAULT FALSE,
   paid BOOLEAN DEFAULT FALSE,
+  payment_method VARCHAR(50),
+  payment_reference VARCHAR(255),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  UNIQUE(session_id, user_id)
+
+  UNIQUE(session_id, user_id),
+
+  -- Constraints
+  CONSTRAINT final_splits_amounts_check CHECK (
+    subtotal_amount >= 0 AND
+    tax_share >= 0 AND
+    tip_share >= 0 AND
+    service_charge_share >= 0 AND
+    total_amount >= 0
+  )
 );
+
+-- Indexes for final_splits table
+CREATE INDEX idx_final_splits_session ON final_splits(session_id);
+CREATE INDEX idx_final_splits_user ON final_splits(user_id);
+CREATE INDEX idx_final_splits_confirmed ON final_splits(confirmed);
+CREATE INDEX idx_final_splits_paid ON final_splits(paid);
+```
+
+#### Additional Tables for Enhanced Functionality
+
+#### `session_activity_log` Table
+```sql
+CREATE TABLE session_activity_log (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  action_type VARCHAR(50) NOT NULL,
+  action_details JSONB,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Indexes for session_activity_log table
+CREATE INDEX idx_session_activity_session ON session_activity_log(session_id);
+CREATE INDEX idx_session_activity_user ON session_activity_log(user_id);
+CREATE INDEX idx_session_activity_type ON session_activity_log(action_type);
+CREATE INDEX idx_session_activity_created ON session_activity_log(created_at);
 ```
 
 ## API Endpoints (Express/Node.js)
