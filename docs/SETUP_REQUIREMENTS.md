@@ -21,6 +21,22 @@
   - Download: https://git-scm.com/downloads
   - For code versioning and collaboration
 
+### Backend Development Tools
+- [ ] **Node.js** (v18+ LTS)
+  - Download: https://nodejs.org/
+  - Required for Express.js backend server
+  - Includes npm package manager
+
+- [ ] **PostgreSQL** (v14+)
+  - Download: https://www.postgresql.org/download/
+  - Alternative: Docker PostgreSQL container
+  - Required for database storage
+
+- [ ] **Docker** (Optional but recommended)
+  - Download: https://www.docker.com/products/docker-desktop
+  - For containerized development environment
+  - Simplifies PostgreSQL setup
+
 ### Mobile Development Tools
 - [x] **Android SDK** (via Android Studio)
   - API Level 21+ (Android 5.0+)
@@ -36,18 +52,24 @@
   - Extensions needed:
     - Flutter
     - Dart
-    - Firebase
+    - PostgreSQL
+    - REST Client
     - GitLens
 
 ## Required Service Registrations
 
-### Core Backend Services
-- [ ] **Firebase Account** (Google)
-  - URL: https://firebase.google.com/
+### External API Services
+- [ ] **Google Cloud Platform Account**
+  - URL: https://console.cloud.google.com/
   - Services needed:
-    - Firestore Database
-    - Authentication
-    - Cloud Functions
+    - Vision API (for OCR)
+    - Enable billing for API usage
+    - Generate API credentials
+
+- [ ] **OpenAI Account**
+  - URL: https://platform.openai.com/
+  - Required for GPT-powered receipt parsing
+  - Generate API key for backend integration
     - Cloud Storage
     - Hosting (optional)
   - Pricing: Free tier available, pay-as-you-go

@@ -1,132 +1,178 @@
 # SplitDine Technical Specifications
 
-## Database Schema (Firestore)
+## Database Schema (PostgreSQL)
 
-### Collections Structure
+### Table Structure
 
-#### `/sessions/{sessionId}`
-```json
-{
-  "id": "string",
-  "organizerId": "string",
-  "joinCode": "string (6-digit)",
-  "status": "active|completed|cancelled",
-  "createdAt": "timestamp",
-  "updatedAt": "timestamp",
-  "restaurantName": "string?",
-  "receiptData": {
-    "imageUrl": "string?",
-    "ocrText": "string?",
-    "parsedItems": "array",
-    "totalAmount": "number",
-    "tax": "number",
-    "tip": "number",
-    "serviceCharge": "number"
-  },
-  "participants": {
-    "userId": {
-      "name": "string",
-      "joinedAt": "timestamp",
-      "role": "organizer|participant",
-      "confirmed": "boolean"
-    }
-  },
-  "assignments": {
-    "itemId": {
-      "assignedTo": "array<userId>",
-      "splitType": "equal|custom",
-      "customSplits": "object?"
-    }
-  },
-  "finalSplit": {
-    "userId": {
-      "amount": "number",
-      "items": "array<itemId>",
-      "confirmed": "boolean",
-      "paid": "boolean"
-    }
-  }
-}
+#### `users` Table
+```sql
+CREATE TABLE users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email VARCHAR(255) UNIQUE,
+  phone VARCHAR(20),
+  display_name VARCHAR(100) NOT NULL,
+  password_hash VARCHAR(255),
+  is_anonymous BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  last_active_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  default_tip_percentage DECIMAL(5,2) DEFAULT 15.00,
+  notifications_enabled BOOLEAN DEFAULT TRUE
+);
 ```
 
-#### `/users/{userId}`
-```json
-{
-  "id": "string",
-  "email": "string?",
-  "phone": "string?",
-  "displayName": "string",
-  "isAnonymous": "boolean",
-  "createdAt": "timestamp",
-  "lastActiveAt": "timestamp",
-  "paymentMethods": "array?",
-  "preferences": {
-    "defaultTipPercentage": "number",
-    "notifications": "boolean"
-  }
-}
+#### `sessions` Table
+```sql
+CREATE TABLE sessions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organizer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  join_code VARCHAR(6) UNIQUE NOT NULL,
+  status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'completed', 'cancelled')),
+  restaurant_name VARCHAR(255),
+  receipt_image_url TEXT,
+  receipt_ocr_text TEXT,
+  total_amount DECIMAL(10,2) DEFAULT 0.00,
+  tax_amount DECIMAL(10,2) DEFAULT 0.00,
+  tip_amount DECIMAL(10,2) DEFAULT 0.00,
+  service_charge DECIMAL(10,2) DEFAULT 0.00,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 ```
 
-#### `/receiptItems/{itemId}`
-```json
-{
-  "id": "string",
-  "sessionId": "string",
-  "name": "string",
-  "price": "number",
-  "quantity": "number",
-  "category": "food|drink|service|other",
-  "description": "string?",
-  "parsedConfidence": "number",
-  "manuallyEdited": "boolean"
-}
+#### `session_participants` Table
+```sql
+CREATE TABLE session_participants (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  role VARCHAR(20) DEFAULT 'participant' CHECK (role IN ('organizer', 'participant')),
+  confirmed BOOLEAN DEFAULT FALSE,
+  joined_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(session_id, user_id)
+);
 ```
 
-## API Endpoints (Firebase Functions)
+#### `receipt_items` Table
+```sql
+CREATE TABLE receipt_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+  name VARCHAR(255) NOT NULL,
+  price DECIMAL(10,2) NOT NULL,
+  quantity INTEGER DEFAULT 1,
+  category VARCHAR(20) DEFAULT 'food' CHECK (category IN ('food', 'drink', 'service', 'other')),
+  description TEXT,
+  parsed_confidence DECIMAL(3,2) DEFAULT 0.00,
+  manually_edited BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
 
-### Receipt Processing
-- `POST /processReceipt` - OCR and AI parsing
-- `POST /validateReceipt` - Validate parsed data
-- `PUT /updateReceiptItem` - Manual item editing
+#### `item_assignments` Table
+```sql
+CREATE TABLE item_assignments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+  item_id UUID NOT NULL REFERENCES receipt_items(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  split_type VARCHAR(20) DEFAULT 'equal' CHECK (split_type IN ('equal', 'custom')),
+  custom_amount DECIMAL(10,2),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(item_id, user_id)
+);
+```
+
+#### `final_splits` Table
+```sql
+CREATE TABLE final_splits (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  total_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  confirmed BOOLEAN DEFAULT FALSE,
+  paid BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(session_id, user_id)
+);
+```
+
+## API Endpoints (Express/Node.js)
+
+### Authentication
+- `POST /api/auth/register` - User registration
+- `POST /api/auth/login` - User login
+- `POST /api/auth/logout` - User logout
+- `POST /api/auth/refresh` - Refresh JWT token
+- `GET /api/auth/me` - Get current user info
 
 ### Session Management
-- `POST /createSession` - Create new session
-- `POST /joinSession` - Join existing session
-- `PUT /updateSession` - Update session data
-- `DELETE /leaveSession` - Leave session
+- `POST /api/sessions` - Create new session
+- `GET /api/sessions/:id` - Get session details
+- `POST /api/sessions/join` - Join session by code
+- `PUT /api/sessions/:id` - Update session
+- `DELETE /api/sessions/:id/leave` - Leave session
+- `GET /api/sessions/user/:userId` - Get user's sessions
+
+### Receipt Processing
+- `POST /api/receipts/upload` - Upload receipt image
+- `POST /api/receipts/process` - OCR and AI parsing
+- `PUT /api/receipts/items/:id` - Update receipt item
+- `DELETE /api/receipts/items/:id` - Delete receipt item
+
+### Item Assignments
+- `POST /api/assignments` - Assign item to users
+- `PUT /api/assignments/:id` - Update assignment
+- `DELETE /api/assignments/:id` - Remove assignment
+- `GET /api/sessions/:id/assignments` - Get session assignments
 
 ### Payment Processing
-- `POST /createPaymentIntent` - Stripe payment setup
-- `POST /processPayment` - Handle payment
-- `GET /paymentStatus` - Check payment status
+- `POST /api/payments/intent` - Create Stripe payment intent
+- `POST /api/payments/process` - Process payment
+- `GET /api/payments/status/:id` - Check payment status
 
 ## Real-time Data Flow
 
-### Session Updates
-1. User action triggers Firestore write
-2. Firestore listeners notify all participants
-3. UI updates optimistically with conflict resolution
-4. Server-side validation ensures data consistency
+### WebSocket Connections
+1. Client connects to WebSocket server on session join
+2. Server maintains session rooms for participants
+3. User actions trigger database updates and WebSocket broadcasts
+4. All participants receive real-time updates via WebSocket
+5. Client-side optimistic updates with server reconciliation
+
+### Session Update Flow
+1. User performs action (assign item, update split, etc.)
+2. Client sends optimistic update to UI
+3. Client sends API request to server
+4. Server validates and updates PostgreSQL database
+5. Server broadcasts update to all session participants via WebSocket
+6. Clients receive update and reconcile with local state
 
 ### Conflict Resolution
-- Last-write-wins for simple fields
-- Merge strategies for complex objects
+- Server-side validation prevents invalid states
+- Last-write-wins for simple fields with timestamps
+- Optimistic locking for critical operations
 - User notification for conflicts requiring manual resolution
 
-## Security Rules (Firestore)
+## Security & Authentication
 
-### Sessions
-```javascript
-// Users can read sessions they're participants in
-// Only organizers can write to session data
-// Participants can write to their own assignments
-```
+### JWT Authentication
+- JWT tokens for API authentication
+- Refresh token rotation for security
+- Role-based access control (organizer vs participant)
+- Session-based permissions
 
-### Users
-```javascript
-// Users can only read/write their own user document
-// Public fields available for session participants
-```
+### API Security
+- Input validation and sanitization
+- Rate limiting on all endpoints
+- CORS configuration for web clients
+- SQL injection prevention with parameterized queries
+
+### Database Security
+- Row-level security policies
+- User can only access their own data
+- Session participants can only access their session data
+- Organizers have additional permissions for their sessions
 
 ## External API Integration
 

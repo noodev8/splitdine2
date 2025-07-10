@@ -47,11 +47,80 @@ Each feature should contain:
 - Implement proper loading and error states
 - Use immutable data models
 
-### Firebase Integration
-- Use Firebase SDK best practices
-- Implement proper offline handling
-- Use security rules effectively
-- Monitor usage and costs
+### Backend API Integration (PostgreSQL + Express.js)
+- Use proper error handling for all API operations
+- Implement offline support where applicable
+- Use JWT tokens for authentication
+- Follow RESTful API design principles
+- Cache frequently accessed data
+
+## API Development Standards
+
+### Routes Coding Rules
+- **All routes use POST method** - Consistent HTTP method for all endpoints
+- **Always use/return simplified JSON** - Keep response structures simple and consistent
+- **All routes return "return_code"** - Every response must include a machine-readable "return_code" field that is either "SUCCESS" or an error type
+- **Additional parameters allowed** - Routes can return any other parameters but must always include "return_code"
+- **Never change existing JSON fields** - If changes are needed to existing fields, create new variations to ensure backward compatibility with client app
+
+### Authentication Standards
+- **Use JWT Authentication** - JSON Web Tokens for secure authentication
+- **Token-based authentication** - Stateless authentication using JWT tokens
+- **Middleware location** - Use authentication middleware from "C:\noovos\noovos_server\middleware\auth.js"
+- **Token validation** - All protected routes must validate JWT tokens
+- **Secure token storage** - Store tokens securely on client side using secure storage
+- **Token expiration** - Implement appropriate token expiration and refresh mechanisms
+- **Authorization headers** - Send tokens in Authorization header: "Bearer <token>"
+
+### File Naming Conventions
+- **Always use lowercase** - All new files must use lowercase filenames
+- **Use underscores** - Separate words with underscores (e.g., user_profile.js)
+- **Descriptive names** - File names should clearly indicate their purpose
+
+## Documentation Standards
+
+### Screen Documentation
+- **Brief description required** - All screens must display a brief description at the top explaining what the screen does
+- **Purpose clarity** - Description should clearly state the screen's main function
+- **User context** - Explain what the user can accomplish on this screen
+
+### API Route Documentation
+- **Header format required** - All API route files must include a standardized header
+- **Complete specification** - Include method, purpose, request payload, success response, and return codes
+- **Example format**:
+```
+=======================================================================================================================================
+API Route: login_user
+=======================================================================================================================================
+Method: POST
+Purpose: Authenticates a user using their email and password. Returns a token and basic user details upon success.
+=======================================================================================================================================
+Request Payload:
+{
+  "email": "user@example.com",         // string, required
+  "password": "securepassword123"      // string, required
+}
+
+Success Response:
+{
+  "return_code": "SUCCESS"
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...", // string, JWT token for auth
+  "user": {
+    "id": 123,                         // integer, unique user ID
+    "name": "Andreas",                 // string, user's name
+    "email": "user@example.com",       // string, user's email
+    "account_level": "standard"        // string, e.g. 'standard', 'premium', 'admin'
+  }
+}
+=======================================================================================================================================
+Return Codes:
+"SUCCESS"
+"MISSING_FIELDS"
+"INVALID_CREDENTIALS"
+"SERVER_ERROR"
+=======================================================================================================================================
+*/
+```
 
 ## Git Workflow
 

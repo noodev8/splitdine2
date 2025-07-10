@@ -48,14 +48,15 @@ The project is divided into 6 main phases:
 - Documentation structure in place
 - Version control setup
 
-### Phase 2: Backend Infrastructure  
+### Phase 2: Backend Infrastructure
 **Duration**: 2-3 weeks
 **Prerequisites**: Phase 1 complete
 **Deliverables**:
-- Firestore database schema implemented
-- Authentication system working
-- Real-time synchronization functional
-- Security rules configured
+- PostgreSQL database schema implemented
+- JWT-based authentication system working
+- Express.js API server functional
+- WebSocket real-time synchronization
+- Database migrations and seeding
 
 ### Phase 3: OCR & Receipt Processing
 **Duration**: 2-3 weeks  

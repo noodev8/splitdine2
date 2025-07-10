@@ -5,29 +5,35 @@ SplitDine is a collaborative restaurant bill splitting app that makes it easy, f
 
 ## Tech Stack
 - **Frontend**: Flutter (iOS & Android)
-- **Backend**: Firebase (Firestore, Auth, Functions, Storage)
+- **Backend**: Node.js/Express API server
+- **Database**: PostgreSQL with real-time subscriptions
+- **Authentication**: JWT-based authentication
+- **File Storage**: AWS S3 or local storage for receipt images
 - **OCR**: Google Vision API
 - **AI Parsing**: OpenAI GPT API
 - **Payments**: Stripe Connect
-- **Real-time**: Firestore real-time listeners
+- **Real-time**: WebSocket connections for live collaboration
+- **Deployment**: Docker containers with PostgreSQL
 
 ## Development Phases
 
 ### Phase 1: Project Setup & Foundation
 **Goal**: Establish development environment and project structure
 - Set up Flutter development environment
-- Initialize Firebase project with all required services
+- Set up Node.js/Express backend development environment
+- Initialize PostgreSQL database
 - Create comprehensive documentation structure
 - Configure version control and basic CI/CD
 - Establish coding standards and development workflows
 
 ### Phase 2: Backend Infrastructure
 **Goal**: Build robust, scalable backend foundation
-- Design and implement Firestore database schema
-- Set up Firebase Authentication (email/phone + anonymous)
-- Create Firebase Functions for secure API calls
-- Implement real-time session management
-- Configure comprehensive security rules
+- Design and implement PostgreSQL database schema
+- Set up JWT-based authentication system
+- Create Express API endpoints for core functionality
+- Implement real-time WebSocket connections
+- Set up database migrations and seeding
+- Configure API security and validation
 
 ### Phase 3: OCR & Receipt Processing
 **Goal**: Enable intelligent receipt scanning and parsing

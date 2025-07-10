@@ -1,24 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:provider/provider.dart';
-import 'firebase_options.dart';
-import 'screens/auth_wrapper.dart';
-import 'services/auth_service.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  // Initialize Firebase for all platforms
-  try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-    debugPrint('✅ Firebase initialized successfully');
-  } catch (e) {
-    debugPrint('❌ Firebase initialization failed: $e');
-    // Continue without Firebase for now
-  }
-
+void main() {
   runApp(const SplitDineApp());
 }
 
@@ -27,20 +9,56 @@ class SplitDineApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        Provider<AuthService>(
-          create: (_) => AuthService(),
+    return MaterialApp(
+      title: 'Split Dine',
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
+        useMaterial3: true,
+      ),
+      home: const HomePage(),
+      debugShowCheckedModeBanner: false,
+    );
+  }
+}
+
+class HomePage extends StatelessWidget {
+  const HomePage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Split Dine'),
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+      ),
+      body: const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'Welcome to Split Dine!',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.green,
+              ),
+            ),
+            SizedBox(height: 20),
+            Text(
+              'Your collaborative bill splitting app',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey,
+              ),
+            ),
+            SizedBox(height: 40),
+            Icon(
+              Icons.restaurant,
+              size: 80,
+              color: Colors.green,
+            ),
+          ],
         ),
-      ],
-      child: MaterialApp(
-        title: 'Split Dine',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
-          useMaterial3: true,
-        ),
-        home: const AuthWrapper(),
-        debugShowCheckedModeBanner: false,
       ),
     );
   }
