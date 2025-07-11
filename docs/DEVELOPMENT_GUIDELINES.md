@@ -53,6 +53,13 @@ Each feature should contain:
 - Use JWT tokens for authentication
 - Follow RESTful API design principles
 - Cache frequently accessed data
+- **Use direct SQL queries only** - No ORM or model wrappers for maximum PostgreSQL performance
+
+### Frontend Screen Organization
+- **Each screen in separate file** - Keep all UI components in individual screen files
+- **No shared UI components initially** - Build functionality first, refactor UI later
+- **Basic Material Design components only** - Focus on functionality over styling
+- **Screen-specific state management** - Keep state logic close to where it's used
 
 ## API Development Standards
 

@@ -1,0 +1,143 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+
+class AuthService {
+  static const String baseUrl = 'http://localhost:3000/api';
+  static const String tokenKey = 'jwt_token';
+  static const String userKey = 'user_data';
+
+  // Login with email and password
+  Future<Map<String, dynamic>> login(String email, String password) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email,
+          'password': password,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (data['return_code'] == 'SUCCESS') {
+        // Store token and user data
+        await _storeAuthData(data['token'], data['user']);
+        return {'success': true, 'user': data['user']};
+      } else {
+        return {'success': false, 'message': data['message']};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  // Register new user
+  Future<Map<String, dynamic>> register(String email, String displayName, String password) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/register'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email,
+          'display_name': displayName,
+          'password': password,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (data['return_code'] == 'SUCCESS') {
+        // Store token and user data
+        await _storeAuthData(data['token'], data['user']);
+        return {'success': true, 'user': data['user']};
+      } else {
+        return {'success': false, 'message': data['message']};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  // Create anonymous user (guest)
+  Future<Map<String, dynamic>> createAnonymousUser(String displayName) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/anonymous'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'display_name': displayName,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (data['return_code'] == 'SUCCESS') {
+        // Store token and user data
+        await _storeAuthData(data['token'], data['user']);
+        return {'success': true, 'user': data['user']};
+      } else {
+        return {'success': false, 'message': data['message']};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  // Check if user is logged in
+  Future<bool> isLoggedIn() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString(tokenKey);
+    return token != null && token.isNotEmpty;
+  }
+
+  // Get stored user data
+  Future<Map<String, dynamic>?> getStoredUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userJson = prefs.getString(userKey);
+    if (userJson != null) {
+      return jsonDecode(userJson);
+    }
+    return null;
+  }
+
+  // Get stored token
+  Future<String?> getStoredToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(tokenKey);
+  }
+
+  // Logout
+  Future<void> logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(tokenKey);
+    await prefs.remove(userKey);
+  }
+
+  // Store authentication data
+  Future<void> _storeAuthData(String token, Map<String, dynamic> user) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(tokenKey, token);
+    await prefs.setString(userKey, jsonEncode(user));
+  }
+
+  // Validate token with server
+  Future<bool> validateToken() async {
+    try {
+      final token = await getStoredToken();
+      if (token == null) return false;
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/validate'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'token': token}),
+      );
+
+      final data = jsonDecode(response.body);
+      return data['return_code'] == 'SUCCESS';
+    } catch (e) {
+      return false;
+    }
+  }
+}
