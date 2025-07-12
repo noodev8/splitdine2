@@ -35,6 +35,12 @@ class SessionProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  // Clear error message
+  void clearError() {
+    _errorMessage = null;
+    notifyListeners();
+  }
+
   // Load user's sessions
   Future<void> loadSessions() async {
     _setLoading(true);

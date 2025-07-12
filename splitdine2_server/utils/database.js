@@ -42,6 +42,45 @@ const userQueries = {
       'UPDATE app_user SET last_active_at = NOW() WHERE id = $1',
       [userId]
     );
+  },
+
+  // Update user display name
+  updateDisplayName: async (userId, displayName) => {
+    const result = await query(
+      'UPDATE app_user SET display_name = $1 WHERE id = $2 RETURNING id, email, display_name, is_anonymous, created_at',
+      [displayName, userId]
+    );
+    return result.rows[0];
+  },
+
+  // Delete user and all related data
+  deleteUser: async (userId) => {
+    // Delete in order to respect foreign key constraints
+    // Delete item assignments
+    await query('DELETE FROM item_assignments WHERE user_id = $1', [userId]);
+
+    // Delete session participants
+    await query('DELETE FROM session_participants WHERE user_id = $1', [userId]);
+
+    // Delete final splits
+    await query('DELETE FROM final_splits WHERE user_id = $1', [userId]);
+
+    // Delete sessions organized by this user (and their related data)
+    const userSessions = await query('SELECT id FROM sessions WHERE organizer_id = $1', [userId]);
+    for (const session of userSessions.rows) {
+      // Delete session-related data
+      await query('DELETE FROM item_assignments WHERE session_id = $1', [session.id]);
+      await query('DELETE FROM receipt_items WHERE session_id = $1', [session.id]);
+      await query('DELETE FROM session_participants WHERE session_id = $1', [session.id]);
+      await query('DELETE FROM final_splits WHERE session_id = $1', [session.id]);
+      await query('DELETE FROM session_activity_log WHERE session_id = $1', [session.id]);
+    }
+
+    // Delete sessions organized by this user
+    await query('DELETE FROM sessions WHERE organizer_id = $1', [userId]);
+
+    // Finally delete the user
+    await query('DELETE FROM app_user WHERE id = $1', [userId]);
   }
 };
 

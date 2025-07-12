@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:splitdine2_flutter/services/auth_provider.dart';
 import 'package:splitdine2_flutter/screens/login_screen.dart';
+import 'package:splitdine2_flutter/screens/profile_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -9,12 +10,18 @@ class DashboardScreen extends StatelessWidget {
   Future<void> _handleLogout(BuildContext context) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     await authProvider.logout();
-    
+
     if (context.mounted) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const LoginScreen()),
       );
     }
+  }
+
+  void _navigateToProfile(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => const ProfileScreen()),
+    );
   }
 
   @override
@@ -25,6 +32,11 @@ class DashboardScreen extends StatelessWidget {
         backgroundColor: Colors.blue.shade700,
         foregroundColor: Colors.white,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.person),
+            onPressed: () => _navigateToProfile(context),
+            tooltip: 'Profile',
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () => _handleLogout(context),

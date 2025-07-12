@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { userQueries } = require('../utils/database');
 const { hashPassword, verifyPassword, validatePassword } = require('../utils/password');
-const { generateToken } = require('../middleware/auth');
+const { generateToken, authenticateToken } = require('../middleware/auth');
 
 /**
  * Authentication Routes
@@ -244,6 +244,79 @@ router.post('/validate', async (req, res) => {
     res.status(401).json({
       return_code: 'INVALID_TOKEN',
       message: 'Invalid or expired token',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Update Profile
+router.post('/update-profile', authenticateToken, async (req, res) => {
+  try {
+    const { display_name } = req.body;
+
+    // Validate required fields
+    if (!display_name || display_name.trim().length === 0) {
+      return res.status(400).json({
+        return_code: 'MISSING_FIELDS',
+        message: 'Display name is required',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Update user display name
+    const updatedUser = await userQueries.updateDisplayName(req.user.id, display_name.trim());
+
+    if (!updatedUser) {
+      return res.status(404).json({
+        return_code: 'USER_NOT_FOUND',
+        message: 'User not found',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    res.json({
+      return_code: 'SUCCESS',
+      message: 'Profile updated successfully',
+      user: updatedUser,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Update profile error:', error.message);
+    res.status(500).json({
+      return_code: 'SERVER_ERROR',
+      message: 'Failed to update profile',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Delete Account
+router.post('/delete-account', authenticateToken, async (req, res) => {
+  try {
+    // Only allow registered users to delete their account
+    if (req.user.is_anonymous) {
+      return res.status(400).json({
+        return_code: 'INVALID_REQUEST',
+        message: 'Guest users cannot delete their account',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Delete user and all related data
+    await userQueries.deleteUser(req.user.id);
+
+    res.json({
+      return_code: 'SUCCESS',
+      message: 'Account deleted successfully',
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Delete account error:', error.message);
+    res.status(500).json({
+      return_code: 'SERVER_ERROR',
+      message: 'Failed to delete account',
       timestamp: new Date().toISOString()
     });
   }

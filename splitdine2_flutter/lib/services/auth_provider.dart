@@ -119,6 +119,54 @@ class AuthProvider with ChangeNotifier {
     _setLoading(false);
   }
 
+  // Update user profile
+  Future<bool> updateProfile(String displayName) async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final result = await _authService.updateProfile(displayName);
+
+      if (result['success']) {
+        _user = User.fromJson(result['user']);
+        _setLoading(false);
+        return true;
+      } else {
+        _setError(result['message']);
+        _setLoading(false);
+        return false;
+      }
+    } catch (e) {
+      _setError('Update profile failed: $e');
+      _setLoading(false);
+      return false;
+    }
+  }
+
+  // Delete user account
+  Future<bool> deleteAccount() async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final result = await _authService.deleteAccount();
+
+      if (result['success']) {
+        _user = null;
+        _setLoading(false);
+        return true;
+      } else {
+        _setError(result['message']);
+        _setLoading(false);
+        return false;
+      }
+    } catch (e) {
+      _setError('Delete account failed: $e');
+      _setLoading(false);
+      return false;
+    }
+  }
+
   // Helper methods
   void _setLoading(bool loading) {
     _isLoading = loading;

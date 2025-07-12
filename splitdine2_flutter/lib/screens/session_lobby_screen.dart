@@ -6,6 +6,7 @@ import '../models/session.dart';
 import 'create_session_screen.dart';
 import 'login_screen.dart';
 import 'session_details_screen.dart';
+import 'profile_screen.dart';
 
 class SessionLobbyScreen extends StatefulWidget {
   const SessionLobbyScreen({super.key});
@@ -45,14 +46,32 @@ class _SessionLobbyScreenState extends State<SessionLobbyScreen> {
           ),
           PopupMenuButton<String>(
             onSelected: (value) {
-              if (value == 'logout') {
+              if (value == 'profile') {
+                _navigateToProfile();
+              } else if (value == 'logout') {
                 _handleLogout();
               }
             },
             itemBuilder: (BuildContext context) => [
               const PopupMenuItem<String>(
+                value: 'profile',
+                child: Row(
+                  children: [
+                    Icon(Icons.person),
+                    SizedBox(width: 8),
+                    Text('Profile'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem<String>(
                 value: 'logout',
-                child: Text('Logout'),
+                child: Row(
+                  children: [
+                    Icon(Icons.logout),
+                    SizedBox(width: 8),
+                    Text('Logout'),
+                  ],
+                ),
               ),
             ],
           ),
@@ -380,11 +399,24 @@ class _SessionLobbyScreenState extends State<SessionLobbyScreen> {
   }
 
   void _handleJoinSession() {
+    final sessionProvider = Provider.of<SessionProvider>(context, listen: false);
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return _JoinSessionDialog();
       },
+    ).then((_) {
+      // Clear any error messages when dialog is closed
+      if (mounted) {
+        sessionProvider.clearError();
+      }
+    });
+  }
+
+  void _navigateToProfile() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => const ProfileScreen()),
     );
   }
 
@@ -434,7 +466,7 @@ class _JoinSessionDialogState extends State<_JoinSessionDialog> {
 
     if (code.length != 6) {
       setState(() {
-        _errorMessage = 'Session code must be 6 characters';
+        _errorMessage = 'Session code must be 6 digits';
       });
       return;
     }
@@ -498,7 +530,7 @@ class _JoinSessionDialogState extends State<_JoinSessionDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Enter the 6-character session code to join:',
+            'Enter the 6-digit session code to join:',
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 16),
@@ -506,12 +538,12 @@ class _JoinSessionDialogState extends State<_JoinSessionDialog> {
             controller: _codeController,
             decoration: InputDecoration(
               labelText: 'Session Code',
-              hintText: 'e.g., ABC123',
+              hintText: 'e.g., 123456',
               prefixIcon: const Icon(Icons.vpn_key),
               border: const OutlineInputBorder(),
               errorText: _errorMessage,
             ),
-            textCapitalization: TextCapitalization.characters,
+            keyboardType: TextInputType.number,
             maxLength: 6,
             onChanged: (value) {
               if (_errorMessage != null) {

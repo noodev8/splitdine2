@@ -42,6 +42,7 @@ dependencies:
   provider: ^6.1.1
   shared_preferences: ^2.5.3
   intl: ^0.20.2
+  url_launcher: ^6.2.4
 
   # Additional packages for later phases
   # image_picker: ^1.0.7
