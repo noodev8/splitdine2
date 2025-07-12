@@ -380,9 +380,11 @@ class _SessionLobbyScreenState extends State<SessionLobbyScreen> {
   }
 
   void _handleJoinSession() {
-    // TODO: Implement join session dialog
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Join Session - Coming Soon!')),
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return _JoinSessionDialog();
+      },
     );
   }
 
@@ -401,5 +403,150 @@ class _SessionLobbyScreenState extends State<SessionLobbyScreen> {
         MaterialPageRoute(builder: (context) => const LoginScreen()),
       );
     }
+  }
+}
+
+class _JoinSessionDialog extends StatefulWidget {
+  @override
+  State<_JoinSessionDialog> createState() => _JoinSessionDialogState();
+}
+
+class _JoinSessionDialogState extends State<_JoinSessionDialog> {
+  final TextEditingController _codeController = TextEditingController();
+  bool _isLoading = false;
+  String? _errorMessage;
+
+  @override
+  void dispose() {
+    _codeController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _joinSession() async {
+    final code = _codeController.text.trim().toUpperCase();
+
+    if (code.isEmpty) {
+      setState(() {
+        _errorMessage = 'Please enter a session code';
+      });
+      return;
+    }
+
+    if (code.length != 6) {
+      setState(() {
+        _errorMessage = 'Session code must be 6 characters';
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final sessionProvider = Provider.of<SessionProvider>(context, listen: false);
+      final success = await sessionProvider.joinSession(code);
+
+      if (mounted) {
+        if (success) {
+          Navigator.of(context).pop(); // Close dialog
+
+          // Refresh sessions to get the updated list
+          await sessionProvider.refreshSessions();
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Successfully joined session with code $code'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        } else {
+          setState(() {
+            _errorMessage = sessionProvider.errorMessage ?? 'Failed to join session';
+            _isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Network error. Please try again.';
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Row(
+        children: [
+          Icon(
+            Icons.qr_code_scanner,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+          const SizedBox(width: 8),
+          const Text('Join Session'),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Enter the 6-character session code to join:',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _codeController,
+            decoration: InputDecoration(
+              labelText: 'Session Code',
+              hintText: 'e.g., ABC123',
+              prefixIcon: const Icon(Icons.vpn_key),
+              border: const OutlineInputBorder(),
+              errorText: _errorMessage,
+            ),
+            textCapitalization: TextCapitalization.characters,
+            maxLength: 6,
+            onChanged: (value) {
+              if (_errorMessage != null) {
+                setState(() {
+                  _errorMessage = null;
+                });
+              }
+            },
+            onSubmitted: (_) => _joinSession(),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Ask the session organizer for the code',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Colors.grey.shade600,
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: _isLoading ? null : _joinSession,
+          child: _isLoading
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Join'),
+        ),
+      ],
+    );
   }
 }

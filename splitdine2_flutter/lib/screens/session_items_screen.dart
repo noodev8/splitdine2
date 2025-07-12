@@ -2,17 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/session.dart';
 import '../models/receipt_item.dart';
+import '../models/participant.dart';
 import '../services/receipt_provider.dart';
 import '../services/assignment_provider.dart';
 import '../services/auth_provider.dart';
+import '../services/session_service.dart';
 import 'add_item_screen.dart';
 
 class SessionItemsScreen extends StatefulWidget {
   final Session session;
+  final String? initialFilter;
 
   const SessionItemsScreen({
     super.key,
     required this.session,
+    this.initialFilter,
   });
 
   @override
@@ -20,22 +24,53 @@ class SessionItemsScreen extends StatefulWidget {
 }
 
 class _SessionItemsScreenState extends State<SessionItemsScreen> {
+  final SessionService _sessionService = SessionService();
+  List<Participant> _participants = [];
+  String? _selectedParticipant; // Filter by specific participant
+  bool _participantsLoaded = false;
   @override
   void initState() {
     super.initState();
+    // Set initial filter if provided
+    if (widget.initialFilter != null) {
+      _selectedParticipant = widget.initialFilter;
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadItems();
+      _loadData();
     });
   }
 
-  Future<void> _loadItems() async {
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+  Future<void> _loadData() async {
     final receiptProvider = Provider.of<ReceiptProvider>(context, listen: false);
     final assignmentProvider = Provider.of<AssignmentProvider>(context, listen: false);
 
     await Future.wait([
       receiptProvider.loadItems(widget.session.id),
       assignmentProvider.loadSessionAssignments(widget.session.id),
+      _loadParticipants(),
     ]);
+  }
+
+  Future<void> _loadParticipants() async {
+    try {
+      final result = await _sessionService.getSessionParticipants(widget.session.id);
+      if (result['success']) {
+        setState(() {
+          _participants = result['participants'] as List<Participant>;
+          _participantsLoaded = true;
+        });
+      }
+    } catch (e) {
+      // Handle error silently for now
+      setState(() {
+        _participantsLoaded = true;
+      });
+    }
   }
 
   @override
@@ -50,7 +85,7 @@ class _SessionItemsScreenState extends State<SessionItemsScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: _loadItems,
+            onPressed: _loadData,
             tooltip: 'Refresh items',
           ),
         ],
@@ -84,7 +119,7 @@ class _SessionItemsScreenState extends State<SessionItemsScreen> {
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: _loadItems,
+                    onPressed: _loadData,
                     child: const Text('Retry'),
                   ),
                 ],
@@ -96,70 +131,65 @@ class _SessionItemsScreenState extends State<SessionItemsScreen> {
 
           return Column(
             children: [
-              // Summary Card
-              Consumer<AssignmentProvider>(
-                builder: (context, assignmentProvider, child) {
-                  final allocatedAmount = assignmentProvider.getTotalAllocatedAmount(receiptProvider.items);
-                  final unallocatedItems = assignmentProvider.getUnallocatedItems(receiptProvider.items);
+
+              // Personal Allocation Summary Card
+              Consumer2<AssignmentProvider, AuthProvider>(
+                builder: (context, assignmentProvider, authProvider, child) {
+                  final currentUserId = authProvider.user?.id ?? 0;
+                  final userTotal = assignmentProvider.getUserAssignedTotal(currentUserId, receiptProvider.items);
+                  final userAssignments = assignmentProvider.getUserAssignments(currentUserId);
 
                   return Card(
-                    margin: const EdgeInsets.all(16),
+                    margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
                     child: Padding(
                       padding: const EdgeInsets.all(16),
-                      child: Column(
+                      child: Row(
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          Icon(
+                            Icons.person,
+                            color: Theme.of(context).colorScheme.primary,
+                            size: 24,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            'My Allocation',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                          const Spacer(),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
-                              _buildSummaryItem(
-                                context,
-                                icon: Icons.receipt_long,
-                                label: 'Items',
-                                value: '${receiptProvider.uniqueItemCount}',
+                              Text(
+                                '£${userTotal.toStringAsFixed(2)}',
+                                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: userTotal > 0 ? Theme.of(context).colorScheme.primary : Colors.grey,
+                                ),
                               ),
-                              _buildSummaryItem(
-                                context,
-                                icon: Icons.shopping_cart,
-                                label: 'Quantity',
-                                value: '${receiptProvider.totalItemCount}',
-                              ),
-                              _buildSummaryItem(
-                                context,
-                                icon: Icons.attach_money,
-                                label: 'Total',
-                                value: '£${receiptProvider.subtotal.toStringAsFixed(2)}',
+                              Text(
+                                '${userAssignments.length} item${userAssignments.length == 1 ? '' : 's'}',
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Colors.grey.shade600,
+                                ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 16),
-                          const Divider(),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            children: [
-                              _buildSummaryItem(
-                                context,
-                                icon: Icons.check_circle,
-                                label: 'Allocated',
-                                value: '£${allocatedAmount.toStringAsFixed(2)}',
-                                valueColor: Colors.green,
+                          if (canEdit) ...[
+                            const SizedBox(width: 12),
+                            IconButton(
+                              onPressed: () => _navigateToAddItem(context),
+                              icon: Icon(
+                                Icons.add_circle,
+                                color: Theme.of(context).colorScheme.primary,
+                                size: 28,
                               ),
-                              _buildSummaryItem(
-                                context,
-                                icon: Icons.pending,
-                                label: 'Unallocated',
-                                value: '${unallocatedItems.length} items',
-                                valueColor: unallocatedItems.isEmpty ? Colors.green : Colors.orange,
-                              ),
-                              _buildSummaryItem(
-                                context,
-                                icon: Icons.account_balance_wallet,
-                                label: 'Remaining',
-                                value: '£${(receiptProvider.subtotal - allocatedAmount).toStringAsFixed(2)}',
-                                valueColor: (receiptProvider.subtotal - allocatedAmount) == 0 ? Colors.green : Colors.red,
-                              ),
-                            ],
-                          ),
+                              tooltip: 'Add Item',
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -167,92 +197,191 @@ class _SessionItemsScreenState extends State<SessionItemsScreen> {
                 },
               ),
 
+              // Participant Filter
+              if (_participantsLoaded && _participants.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey.shade300),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _selectedParticipant,
+                              hint: Row(
+                                children: [
+                                  Icon(Icons.filter_list, color: Colors.grey.shade600),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Filter by participant...',
+                                    style: TextStyle(color: Colors.grey.shade600),
+                                  ),
+                                ],
+                              ),
+                              isExpanded: true,
+                              items: [
+                                const DropdownMenuItem<String>(
+                                  value: null,
+                                  child: Text('Show all items'),
+                                ),
+                                ..._participants.map((participant) {
+                                  return DropdownMenuItem<String>(
+                                    value: participant.displayName,
+                                    child: Row(
+                                      children: [
+                                        CircleAvatar(
+                                          radius: 12,
+                                          backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                                          child: Text(
+                                            participant.displayName.isNotEmpty
+                                                ? participant.displayName[0].toUpperCase()
+                                                : '?',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Theme.of(context).colorScheme.primary,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(participant.displayName),
+                                        ),
+                                        if (participant.userId == widget.session.organizerId)
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: Colors.amber,
+                                              borderRadius: BorderRadius.circular(6),
+                                            ),
+                                            child: const Text(
+                                              'HOST',
+                                              style: TextStyle(
+                                                fontSize: 8,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.black87,
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  );
+                                }),
+                              ],
+                              onChanged: (String? value) {
+                                setState(() {
+                                  _selectedParticipant = value;
+                                });
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (_selectedParticipant != null) ...[
+                        const SizedBox(width: 8),
+                        IconButton(
+                          onPressed: () {
+                            setState(() {
+                              _selectedParticipant = null;
+                            });
+                          },
+                          icon: const Icon(Icons.clear),
+                          tooltip: 'Clear filter',
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+
               // Items List
               Expanded(
-                child: items.isEmpty
-                    ? _buildEmptyState(context, canEdit)
-                    : ListView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: items.length,
-                        itemBuilder: (context, index) {
-                          final item = items[index];
-                          return _buildItemCard(context, item, canEdit);
-                        },
-                      ),
+                child: Consumer<AssignmentProvider>(
+                  builder: (context, assignmentProvider, child) {
+                    // Filter items based on selected participant
+                    List<ReceiptItem> filteredItems = items;
+
+                    if (_selectedParticipant != null) {
+                      // Filter by participant assignments
+                      filteredItems = items.where((item) {
+                        final assignments = assignmentProvider.getItemAssignments(item.id);
+                        return assignments.any((assignment) =>
+                            assignment.userName.toLowerCase() == _selectedParticipant!.toLowerCase());
+                      }).toList();
+                    }
+
+                    return filteredItems.isEmpty
+                        ? _buildEmptyState(context, canEdit, isFiltered: _selectedParticipant != null)
+                        : ListView.builder(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            itemCount: filteredItems.length,
+                            itemBuilder: (context, index) {
+                              final item = filteredItems[index];
+                              return _buildItemCard(context, item, canEdit);
+                            },
+                          );
+                  },
+                ),
               ),
             ],
           );
         },
       ),
-      floatingActionButton: canEdit
-          ? FloatingActionButton(
-              onPressed: () => _navigateToAddItem(context),
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              child: const Icon(Icons.add, color: Colors.white),
-            )
-          : null,
     );
   }
 
-  Widget _buildSummaryItem(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required String value,
-    Color? valueColor,
-  }) {
-    return Column(
-      children: [
-        Icon(icon, size: 24, color: Theme.of(context).colorScheme.primary),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: valueColor,
-          ),
-        ),
-        Text(
-          label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Colors.grey.shade600,
-          ),
-        ),
-      ],
-    );
-  }
 
-  Widget _buildEmptyState(BuildContext context, bool canEdit) {
+
+
+  Widget _buildEmptyState(BuildContext context, bool canEdit, {bool isFiltered = false}) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.receipt_long_outlined,
+            isFiltered ? Icons.search_off : Icons.receipt_long_outlined,
             size: 64,
             color: Colors.grey.shade300,
           ),
           const SizedBox(height: 16),
           Text(
-            'No items yet',
+            isFiltered ? 'No matching items' : 'No items yet',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
               color: Colors.grey.shade600,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            canEdit
-                ? 'Tap the + button to add your first item'
-                : 'No items have been added to this session',
+            isFiltered
+                ? 'Try adjusting your search or filter'
+                : canEdit
+                    ? 'Tap the + button to add your first item'
+                    : 'No items have been added to this session',
             style: TextStyle(color: Colors.grey.shade500),
             textAlign: TextAlign.center,
           ),
-          if (canEdit) ...[
+          if (!isFiltered && canEdit) ...[
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: () => _navigateToAddItem(context),
               icon: const Icon(Icons.add),
               label: const Text('Add First Item'),
+            ),
+          ],
+          if (isFiltered) ...[
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () {
+                setState(() {
+                  _selectedParticipant = null;
+                });
+              },
+              icon: const Icon(Icons.clear),
+              label: const Text('Clear Filter'),
             ),
           ],
         ],
@@ -419,7 +548,7 @@ class _SessionItemsScreenState extends State<SessionItemsScreen> {
       ),
     ).then((_) {
       // Refresh items when returning from add item screen
-      _loadItems();
+      _loadData();
     });
   }
 
@@ -433,7 +562,7 @@ class _SessionItemsScreenState extends State<SessionItemsScreen> {
       ),
     ).then((_) {
       // Refresh items when returning from edit item screen
-      _loadItems();
+      _loadData();
     });
   }
 
@@ -499,12 +628,252 @@ class _SessionItemsScreenState extends State<SessionItemsScreen> {
   }
 
   void _showAssignmentDialog(BuildContext context, ReceiptItem item) {
-    // TODO: Implement assignment dialog for organizers to assign to others
-    // For now, just show a simple message
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Assignment dialog coming soon!'),
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return _AssignmentDialog(
+          item: item,
+          session: widget.session,
+        );
+      },
+    );
+  }
+}
+
+class _AssignmentDialog extends StatefulWidget {
+  final ReceiptItem item;
+  final Session session;
+
+  const _AssignmentDialog({
+    required this.item,
+    required this.session,
+  });
+
+  @override
+  State<_AssignmentDialog> createState() => _AssignmentDialogState();
+}
+
+class _AssignmentDialogState extends State<_AssignmentDialog> {
+  final SessionService _sessionService = SessionService();
+  List<Participant> _participants = [];
+  Set<int> _selectedUserIds = {};
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadParticipants();
+    _loadCurrentAssignments();
+  }
+
+  Future<void> _loadParticipants() async {
+    try {
+      final result = await _sessionService.getSessionParticipants(widget.session.id);
+      if (result['success']) {
+        setState(() {
+          _participants = result['participants'] as List<Participant>;
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _errorMessage = result['message'];
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Failed to load participants: $e';
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _loadCurrentAssignments() {
+    final assignmentProvider = Provider.of<AssignmentProvider>(context, listen: false);
+    final currentAssignments = assignmentProvider.getItemAssignments(widget.item.id);
+    setState(() {
+      _selectedUserIds = currentAssignments.map((a) => a.userId).toSet();
+    });
+  }
+
+  Future<void> _saveAssignments() async {
+    final assignmentProvider = Provider.of<AssignmentProvider>(context, listen: false);
+    final currentAssignments = assignmentProvider.getItemAssignments(widget.item.id);
+    final currentUserIds = currentAssignments.map((a) => a.userId).toSet();
+
+    // Users to add
+    final usersToAdd = _selectedUserIds.difference(currentUserIds);
+    // Users to remove
+    final usersToRemove = currentUserIds.difference(_selectedUserIds);
+
+    bool success = true;
+    String? errorMessage;
+
+    // Add new assignments
+    for (final userId in usersToAdd) {
+      final result = await assignmentProvider.assignItem(widget.session.id, widget.item.id, userId);
+      if (!result) {
+        success = false;
+        errorMessage = assignmentProvider.errorMessage;
+        break;
+      }
+    }
+
+    // Remove assignments
+    for (final userId in usersToRemove) {
+      final result = await assignmentProvider.unassignItem(widget.session.id, widget.item.id, userId);
+      if (!result) {
+        success = false;
+        errorMessage = assignmentProvider.errorMessage;
+        break;
+      }
+    }
+
+    if (mounted) {
+      if (success) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Assignments updated successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update assignments: ${errorMessage ?? 'Unknown error'}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('Assign "${widget.item.itemName}"'),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: _isLoading
+            ? const Center(
+                child: CircularProgressIndicator(),
+              )
+            : _errorMessage != null
+                ? Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        color: Colors.red,
+                        size: 48,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        _errorMessage!,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ],
+                  )
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Select participants to assign this item to:',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        constraints: BoxConstraints(
+                          maxHeight: MediaQuery.of(context).size.height * 0.4,
+                        ),
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: _participants.length,
+                          itemBuilder: (context, index) {
+                            final participant = _participants[index];
+                            final isSelected = _selectedUserIds.contains(participant.userId);
+                            final isOrganizer = participant.userId == widget.session.organizerId;
+                            final wasAddedByOrganizer = widget.item.addedByUserId == widget.session.organizerId;
+
+                            return CheckboxListTile(
+                              title: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      participant.displayName,
+                                      style: TextStyle(
+                                        fontWeight: isOrganizer ? FontWeight.bold : FontWeight.normal,
+                                      ),
+                                    ),
+                                  ),
+                                  if (isOrganizer)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.amber,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: const Text(
+                                        'HOST',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    participant.email != null
+                                        ? participant.email!
+                                        : 'Guest user',
+                                  ),
+                                  if (wasAddedByOrganizer && isOrganizer)
+                                    Text(
+                                      'Added this item',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.blue.shade600,
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              value: isSelected,
+                              onChanged: (bool? value) {
+                                setState(() {
+                                  if (value == true) {
+                                    _selectedUserIds.add(participant.userId);
+                                  } else {
+                                    _selectedUserIds.remove(participant.userId);
+                                  }
+                                });
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
       ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        if (!_isLoading && _errorMessage == null)
+          ElevatedButton(
+            onPressed: _saveAssignments,
+            child: const Text('Save'),
+          ),
+      ],
     );
   }
 }

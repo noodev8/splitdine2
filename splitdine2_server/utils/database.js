@@ -68,6 +68,15 @@ const sessionQueries = {
     return result.rows[0];
   },
 
+  // Find current session by code (not expired)
+  findCurrentByCode: async (sessionCode) => {
+    const result = await query(
+      'SELECT * FROM sessions WHERE join_code = $1 AND session_date >= CURRENT_DATE',
+      [sessionCode]
+    );
+    return result.rows[0];
+  },
+
   // Find session by ID
   findById: async (sessionId) => {
     const result = await query(
@@ -119,7 +128,8 @@ const participantQueries = {
       `SELECT sp.*, u.display_name, u.email
        FROM session_participants sp
        JOIN app_user u ON sp.user_id = u.id
-       WHERE sp.session_id = $1`,
+       WHERE sp.session_id = $1 AND sp.left_at IS NULL
+       ORDER BY sp.joined_at`,
       [sessionId]
     );
     return result.rows;
@@ -128,10 +138,22 @@ const participantQueries = {
   // Check if user is participant
   isParticipant: async (sessionId, userId) => {
     const result = await query(
-      'SELECT id FROM session_participants WHERE session_id = $1 AND user_id = $2',
+      'SELECT id FROM session_participants WHERE session_id = $1 AND user_id = $2 AND left_at IS NULL',
       [sessionId, userId]
     );
     return result.rows.length > 0;
+  },
+
+  // Leave session (set left_at timestamp)
+  leave: async (sessionId, userId) => {
+    const result = await query(
+      `UPDATE session_participants
+       SET left_at = NOW()
+       WHERE session_id = $1 AND user_id = $2 AND left_at IS NULL
+       RETURNING *`,
+      [sessionId, userId]
+    );
+    return result.rows[0];
   }
 };
 

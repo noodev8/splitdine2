@@ -161,4 +161,100 @@ class SessionProvider with ChangeNotifier {
     _sessions.removeWhere((session) => session.id == sessionId);
     notifyListeners();
   }
+
+  // Leave session
+  Future<bool> leaveSession(int sessionId) async {
+    _setLoading(true);
+    _setError(null);
+
+    try {
+      final result = await _sessionService.leaveSession(sessionId);
+
+      if (result['success']) {
+        // Remove session from local list
+        removeSession(sessionId);
+        return true;
+      } else {
+        _setError(result['message']);
+        return false;
+      }
+    } catch (e) {
+      _setError('Failed to leave session: $e');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  // Remove participant from session (organizer only)
+  Future<bool> removeParticipant(int sessionId, int userId) async {
+    _setLoading(true);
+    _setError(null);
+
+    try {
+      final result = await _sessionService.removeParticipant(sessionId, userId);
+
+      if (result['success']) {
+        // Optionally refresh sessions to get updated participant list
+        await refreshSessions();
+        return true;
+      } else {
+        _setError(result['message']);
+        return false;
+      }
+    } catch (e) {
+      _setError('Failed to remove participant: $e');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  // Transfer host privileges to another participant
+  Future<bool> transferHost(int sessionId, int newHostUserId) async {
+    _setLoading(true);
+    _setError(null);
+
+    try {
+      final result = await _sessionService.transferHost(sessionId, newHostUserId);
+
+      if (result['success']) {
+        // Refresh sessions to get updated host status
+        await refreshSessions();
+        return true;
+      } else {
+        _setError(result['message']);
+        return false;
+      }
+    } catch (e) {
+      _setError('Failed to transfer host privileges: $e');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  // Delete/cancel session (host only)
+  Future<bool> deleteSession(int sessionId) async {
+    _setLoading(true);
+    _setError(null);
+
+    try {
+      final result = await _sessionService.deleteSession(sessionId);
+
+      if (result['success']) {
+        // Remove session from local list
+        removeSession(sessionId);
+        return true;
+      } else {
+        _setError(result['message']);
+        return false;
+      }
+    } catch (e) {
+      _setError('Failed to delete session: $e');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
 }

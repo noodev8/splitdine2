@@ -8,9 +8,9 @@ const { authenticateToken, requireSessionHost, requireSessionParticipant } = req
  * All routes use POST method and return standardized JSON responses
  */
 
-// Generate random session code
+// Generate random 6-digit session code
 const generateSessionCode = () => {
-  return Math.random().toString(36).substring(2, 8).toUpperCase();
+  return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
 // Create new session
@@ -40,12 +40,12 @@ router.post('/create', authenticateToken, async (req, res) => {
       });
     }
 
-    // Generate unique session code
+    // Generate unique session code (check only current/future sessions)
     let session_code;
     let existingSession;
     do {
       session_code = generateSessionCode();
-      existingSession = await sessionQueries.findByCode(session_code);
+      existingSession = await sessionQueries.findCurrentByCode(session_code);
     } while (existingSession);
 
     // Create session
@@ -305,6 +305,299 @@ router.post('/my-sessions', authenticateToken, async (req, res) => {
     res.status(500).json({
       return_code: 'SERVER_ERROR',
       message: 'Failed to get user sessions',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Leave session
+router.post('/leave', authenticateToken, async (req, res) => {
+  try {
+    const { session_id } = req.body;
+
+    // Validate required fields
+    if (!session_id) {
+      return res.status(400).json({
+        return_code: 'MISSING_FIELDS',
+        message: 'Session ID is required',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Find session
+    const session = await sessionQueries.findById(session_id);
+    if (!session) {
+      return res.status(404).json({
+        return_code: 'SESSION_NOT_FOUND',
+        message: 'Session not found',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Check if user is the host (hosts cannot leave their own session unless they transfer first)
+    if (session.organizer_id === req.user.id) {
+      return res.status(400).json({
+        return_code: 'HOST_CANNOT_LEAVE',
+        message: 'Session host must transfer host privileges before leaving',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Check if user is a participant
+    const isParticipant = await participantQueries.isParticipant(session_id, req.user.id);
+    if (!isParticipant) {
+      return res.status(400).json({
+        return_code: 'NOT_PARTICIPANT',
+        message: 'You are not a participant in this session',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Remove user from session participants (set left_at timestamp)
+    await participantQueries.leave(session_id, req.user.id);
+
+    // Also remove all item assignments for this user in this session
+    const { query } = require('../config/database');
+    await query(`
+      DELETE FROM item_assignments
+      WHERE session_id = $1 AND user_id = $2
+    `, [session_id, req.user.id]);
+
+    res.json({
+      return_code: 'SUCCESS',
+      message: 'Successfully left session',
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Leave session error:', error);
+    res.status(500).json({
+      return_code: 'SERVER_ERROR',
+      message: 'Failed to leave session',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Remove participant from session (host only)
+router.post('/remove-participant', authenticateToken, async (req, res) => {
+  try {
+    const { session_id, user_id } = req.body;
+
+    // Validate required fields
+    if (!session_id || !user_id) {
+      return res.status(400).json({
+        return_code: 'MISSING_FIELDS',
+        message: 'Session ID and User ID are required',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Find session
+    const session = await sessionQueries.findById(session_id);
+    if (!session) {
+      return res.status(404).json({
+        return_code: 'SESSION_NOT_FOUND',
+        message: 'Session not found',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Check if current user is the host
+    if (session.organizer_id !== req.user.id) {
+      return res.status(403).json({
+        return_code: 'UNAUTHORIZED',
+        message: 'Only the session host can remove participants',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Cannot remove the host
+    if (user_id === session.organizer_id) {
+      return res.status(400).json({
+        return_code: 'CANNOT_REMOVE_HOST',
+        message: 'Cannot remove the session host',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Check if user is a participant
+    const isParticipant = await participantQueries.isParticipant(session_id, user_id);
+    if (!isParticipant) {
+      return res.status(400).json({
+        return_code: 'NOT_PARTICIPANT',
+        message: 'User is not a participant in this session',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Remove user from session participants (set left_at timestamp)
+    await participantQueries.leave(session_id, user_id);
+
+    // Also remove all item assignments for this user in this session
+    const { query } = require('../config/database');
+    await query(`
+      DELETE FROM item_assignments
+      WHERE session_id = $1 AND user_id = $2
+    `, [session_id, user_id]);
+
+    res.json({
+      return_code: 'SUCCESS',
+      message: 'Participant removed successfully',
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Remove participant error:', error);
+    res.status(500).json({
+      return_code: 'SERVER_ERROR',
+      message: 'Failed to remove participant',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Transfer host privileges to another participant
+router.post('/transfer-host', authenticateToken, async (req, res) => {
+  try {
+    const { session_id, new_host_user_id } = req.body;
+
+    // Validate required fields
+    if (!session_id || !new_host_user_id) {
+      return res.status(400).json({
+        return_code: 'MISSING_FIELDS',
+        message: 'Session ID and new host user ID are required',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Find session
+    const session = await sessionQueries.findById(session_id);
+    if (!session) {
+      return res.status(404).json({
+        return_code: 'SESSION_NOT_FOUND',
+        message: 'Session not found',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Check if current user is the host
+    if (session.organizer_id !== req.user.id) {
+      return res.status(403).json({
+        return_code: 'UNAUTHORIZED',
+        message: 'Only the session host can transfer host privileges',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Cannot transfer to self
+    if (new_host_user_id === req.user.id) {
+      return res.status(400).json({
+        return_code: 'INVALID_TRANSFER',
+        message: 'Cannot transfer host privileges to yourself',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Check if new host is a participant
+    const isParticipant = await participantQueries.isParticipant(session_id, new_host_user_id);
+    if (!isParticipant) {
+      return res.status(400).json({
+        return_code: 'NOT_PARTICIPANT',
+        message: 'New host must be a participant in the session',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Update session organizer
+    const { query } = require('../config/database');
+    await query(`
+      UPDATE sessions
+      SET organizer_id = $1, updated_at = NOW()
+      WHERE id = $2
+    `, [new_host_user_id, session_id]);
+
+    res.json({
+      return_code: 'SUCCESS',
+      message: 'Host privileges transferred successfully',
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Transfer host error:', error);
+    res.status(500).json({
+      return_code: 'SERVER_ERROR',
+      message: 'Failed to transfer host privileges',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Delete/cancel session (host only)
+router.post('/delete', authenticateToken, async (req, res) => {
+  try {
+    const { session_id } = req.body;
+
+    // Validate required fields
+    if (!session_id) {
+      return res.status(400).json({
+        return_code: 'MISSING_FIELDS',
+        message: 'Session ID is required',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Find session
+    const session = await sessionQueries.findById(session_id);
+    if (!session) {
+      return res.status(404).json({
+        return_code: 'SESSION_NOT_FOUND',
+        message: 'Session not found',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Check if current user is the host
+    if (session.organizer_id !== req.user.id) {
+      return res.status(403).json({
+        return_code: 'UNAUTHORIZED',
+        message: 'Only the session host can delete the session',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Delete all related data in correct order (due to foreign key constraints)
+    const { query } = require('../config/database');
+
+    // Delete item assignments
+    await query('DELETE FROM item_assignments WHERE session_id = $1', [session_id]);
+
+    // Delete receipt items
+    await query('DELETE FROM receipt_items WHERE session_id = $1', [session_id]);
+
+    // Delete session participants
+    await query('DELETE FROM session_participants WHERE session_id = $1', [session_id]);
+
+    // Delete final splits
+    await query('DELETE FROM final_splits WHERE session_id = $1', [session_id]);
+
+    // Delete session activity log
+    await query('DELETE FROM session_activity_log WHERE session_id = $1', [session_id]);
+
+    // Finally delete the session
+    await query('DELETE FROM sessions WHERE id = $1', [session_id]);
+
+    res.json({
+      return_code: 'SUCCESS',
+      message: 'Session deleted successfully',
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Delete session error:', error);
+    res.status(500).json({
+      return_code: 'SERVER_ERROR',
+      message: 'Failed to delete session',
       timestamp: new Date().toISOString()
     });
   }
