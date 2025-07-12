@@ -83,7 +83,6 @@ router.post('/register', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Registration error:', error);
     res.status(500).json({
       return_code: 'SERVER_ERROR',
       message: 'Registration failed',
@@ -146,7 +145,6 @@ router.post('/login', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Login error:', error);
     res.status(500).json({
       return_code: 'SERVER_ERROR',
       message: 'Login failed',
@@ -194,7 +192,6 @@ router.post('/anonymous', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Anonymous user creation error:', error);
     res.status(500).json({
       return_code: 'SERVER_ERROR',
       message: 'Failed to create anonymous user',

@@ -15,7 +15,7 @@ const verifyPassword = async (password, hashedPassword) => {
   return await bcrypt.compare(password, hashedPassword);
 };
 
-// Validate password strength
+// Validate password strength (simplified for MVP)
 const validatePassword = (password) => {
   const errors = [];
 
@@ -28,21 +28,8 @@ const validatePassword = (password) => {
     errors.push('Password must be at least 8 characters long');
   }
 
-  if (!/(?=.*[a-z])/.test(password)) {
-    errors.push('Password must contain at least one lowercase letter');
-  }
-
-  if (!/(?=.*[A-Z])/.test(password)) {
-    errors.push('Password must contain at least one uppercase letter');
-  }
-
-  if (!/(?=.*\d)/.test(password)) {
-    errors.push('Password must contain at least one number');
-  }
-
-  if (!/(?=.*[@$!%*?&])/.test(password)) {
-    errors.push('Password must contain at least one special character (@$!%*?&)');
-  }
+  // Simplified: just require 8+ characters for MVP
+  // Can be enhanced later for production
 
   return {
     isValid: errors.length === 0,

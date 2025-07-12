@@ -38,14 +38,10 @@ const testConnection = async () => {
 
 // Query helper function
 const query = async (text, params) => {
-  const start = Date.now();
   try {
     const res = await pool.query(text, params);
-    const duration = Date.now() - start;
-    console.log('Executed query', { text, duration, rows: res.rowCount });
     return res;
   } catch (err) {
-    console.error('Query error:', err.message);
     throw err;
   }
 };
@@ -70,9 +66,8 @@ const transaction = async (callback) => {
 const closePool = async () => {
   try {
     await pool.end();
-    console.log('Database pool closed');
   } catch (err) {
-    console.error('Error closing database pool:', err);
+    // Silent error handling for pool closure
   }
 };
 

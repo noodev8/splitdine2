@@ -59,7 +59,6 @@ router.post('/create', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Session creation error:', error);
     res.status(500).json({
       return_code: 'SERVER_ERROR',
       message: 'Failed to create session',
@@ -131,7 +130,6 @@ router.post('/join', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Session join error:', error);
     res.status(500).json({
       return_code: 'SERVER_ERROR',
       message: 'Failed to join session',
@@ -257,7 +255,6 @@ router.post('/my-sessions', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('My sessions error:', error);
     res.status(500).json({
       return_code: 'SERVER_ERROR',
       message: 'Failed to get user sessions',

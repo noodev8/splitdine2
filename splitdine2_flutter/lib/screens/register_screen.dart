@@ -100,11 +100,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
 
                 // Registration Form
-                Expanded(
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      children: [
+                Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
                         TextFormField(
                           controller: _emailController,
                           decoration: const InputDecoration(
@@ -150,6 +149,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             labelText: 'Password',
                             border: OutlineInputBorder(),
                             prefixIcon: Icon(Icons.lock),
+                            helperText: 'Must be at least 8 characters long',
                           ),
                           obscureText: true,
                           validator: (value) {
@@ -157,7 +157,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               return 'Please enter a password';
                             }
                             if (value.length < 8) {
-                              return 'Password must be at least 8 characters';
+                              return 'Password must be at least 8 characters long';
                             }
                             return null;
                           },
@@ -221,7 +221,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ],
                     ),
                   ),
-                ),
                 ],
               ),
             ),
