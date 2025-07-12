@@ -44,7 +44,6 @@ The project is divided into 6 main phases:
 **Prerequisites**: None
 **Deliverables**: 
 - Working development environment
-- Firebase project configured
 - Documentation structure in place
 - Version control setup
 

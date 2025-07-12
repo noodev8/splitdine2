@@ -128,6 +128,13 @@ Return Codes:
 =======================================================================================================================================
 */
 ```
+## Database Rules
+**Database as Data Storage Only**
+- Database used purely for data persistence
+- All business logic, validation, and constraints handled at API level
+- No database functions, triggers, or complex constraints
+- Simple, clean schema focused on performance and flexibility
+
 
 ## Git Workflow
 

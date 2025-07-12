@@ -151,11 +151,6 @@
 ### Flutter Packages (pubspec.yaml)
 ```yaml
 dependencies:
-  firebase_core: ^latest
-  firebase_auth: ^latest
-  cloud_firestore: ^latest
-  firebase_storage: ^latest
-  firebase_functions: ^latest
   google_ml_vision: ^latest
   http: ^latest
   provider: ^latest
@@ -178,7 +173,6 @@ dependencies:
 ## Setup Cost Estimates
 
 ### Free Tier Services
-- Firebase (generous free tier)
 - Google Cloud ($300 credit for new users)
 - GitHub (unlimited public/private repos)
 - Android development (free)
@@ -200,8 +194,6 @@ dependencies:
 2. Install Android Studio or VS Code
 3. Set up Android emulator
 4. Install Git
-5. Create Firebase project
-6. Configure Firebase for Flutter
 
 ### Phase 2: External Services
 1. Set up Google Cloud Platform
@@ -211,7 +203,6 @@ dependencies:
 5. Generate all API keys
 
 ### Phase 3: Advanced Setup
-1. Install Firebase CLI
 2. Set up CI/CD (GitHub Actions)
 3. Configure testing devices
 4. Set up monitoring and analytics
@@ -241,12 +232,10 @@ dependencies:
 ### Common Issues
 - **Flutter Doctor Issues**: https://flutter.dev/docs/get-started/install
 - **Android Setup**: https://developer.android.com/studio/troubleshoot
-- **Firebase Setup**: https://firebase.google.com/docs/flutter/setup
 - **API Integration**: Check respective service documentation
 
 ### Support Channels
 - Flutter: https://flutter.dev/community
-- Firebase: https://firebase.google.com/support
 - Stack Overflow for specific technical issues
 
 ## Next Steps After Setup

@@ -354,7 +354,6 @@ CREATE INDEX idx_session_activity_created ON session_activity_log(created_at);
 - Utility functions
 
 ### Integration Tests
-- Firebase operations
 - API integrations
 - Real-time synchronization
 
