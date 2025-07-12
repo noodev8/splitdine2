@@ -50,14 +50,21 @@ class Session {
   // Check if session is editable (date >= today)
   bool get isEditable => isUpcoming;
 
-  // Get formatted date string
+  // Get formatted date string with day name
   String get formattedDate {
-    return '${sessionDate.day}/${sessionDate.month}/${sessionDate.year}';
+    final weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final dayName = weekdays[sessionDate.weekday - 1];
+    return '$dayName, ${sessionDate.day}/${sessionDate.month}/${sessionDate.year}';
   }
 
-  // Get formatted time string
+  // Get formatted time string (without seconds)
   String get formattedTime {
     if (sessionTime == null) return '';
+    // Remove seconds if present (e.g., "14:30:00" -> "14:30")
+    final timeParts = sessionTime!.split(':');
+    if (timeParts.length >= 2) {
+      return '${timeParts[0]}:${timeParts[1]}';
+    }
     return sessionTime!;
   }
 

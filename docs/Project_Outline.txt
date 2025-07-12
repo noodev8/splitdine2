@@ -1,8 +1,8 @@
 Title:
-SplitDine – Collaborative Restaurant Bill Splitting App
+Split Dine – Collaborative Restaurant Bill Splitting App
 
 Overview:
-SplitDine is a mobile app that makes it easy, fair, and fast for groups to split a restaurant bill. Instead of the usual confusion at the end of a meal, participants can collaboratively assign what they ordered, see the evolving split in real time, and even handle payment in-app.
+Split Dine is a mobile app that makes it easy, fair, and fast for groups to split a restaurant bill. Instead of the usual confusion at the end of a meal, participants can collaboratively assign what they ordered, see the evolving split in real time, and even handle payment in-app.
 
 Key Goals:
 Make splitting a bill fair, quick, and easy.
@@ -13,7 +13,7 @@ Allow flexible user flows:
 Organiser handles everything
 Guests join and pick their own items
 
-Collaborative, real-time updates
+Collaborative refresh updates
 High-Level Features:
 ✅ Scan and digitise receipts via OCR
 ✅ Parse messy text into structured line items
@@ -82,5 +82,5 @@ Premium subscription model
 Loyalty/reward integrations with restaurants
 
 Summary Sentence (Pitch):
-“SplitDine lets groups fairly and quickly split restaurant bills by scanning, assigning, and paying—all in real time on their phones.”
+“Split Dine lets groups fairly and quickly split restaurant bills by scanning, assigning, and paying—all in real time on their phones.”
 

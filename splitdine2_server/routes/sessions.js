@@ -59,6 +59,9 @@ router.post('/create', authenticateToken, async (req, res) => {
       join_code: session_code
     });
 
+    // Automatically add the organizer as a session participant
+    await participantQueries.add(newSession.id, req.user.id);
+
     res.status(201).json({
       return_code: 'SUCCESS',
       message: 'Session created successfully',

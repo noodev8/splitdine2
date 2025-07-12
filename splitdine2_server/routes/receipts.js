@@ -54,12 +54,14 @@ router.post('/add-item', authenticateToken, requireSessionParticipant, async (re
       item: {
         id: newItem.id,
         session_id: newItem.session_id,
-        item_name: newItem.item_name,
+        item_name: newItem.name,
         price: newItem.price,
         quantity: newItem.quantity,
         total: newItem.price * newItem.quantity,
         added_by_user_id: newItem.added_by_user_id,
-        created_at: newItem.created_at
+        added_by_name: 'You', // Default for newly created items
+        created_at: newItem.created_at,
+        updated_at: newItem.updated_at || newItem.created_at
       },
       timestamp: new Date().toISOString()
     });
@@ -91,7 +93,7 @@ router.post('/get-items', authenticateToken, requireSessionParticipant, async (r
       items: items.map(item => ({
         id: item.id,
         session_id: item.session_id,
-        item_name: item.item_name,
+        item_name: item.name,
         price: item.price,
         quantity: item.quantity,
         total: item.price * item.quantity,
@@ -149,6 +151,25 @@ router.post('/update-item', authenticateToken, requireSessionParticipant, async 
       });
     }
 
+    // Get the item to check ownership
+    const existingItem = await receiptQueries.findById(item_id);
+    if (!existingItem) {
+      return res.status(404).json({
+        return_code: 'ITEM_NOT_FOUND',
+        message: 'Receipt item not found',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Check permissions: organizer can edit any item, guests can only edit their own
+    if (!req.isHost && existingItem.added_by_user_id !== req.user.id) {
+      return res.status(403).json({
+        return_code: 'UNAUTHORIZED',
+        message: 'You can only edit items you added',
+        timestamp: new Date().toISOString()
+      });
+    }
+
     // Update receipt item
     const updatedItem = await receiptQueries.update(item_id, {
       item_name: item_name.trim(),
@@ -170,7 +191,7 @@ router.post('/update-item', authenticateToken, requireSessionParticipant, async 
       item: {
         id: updatedItem.id,
         session_id: updatedItem.session_id,
-        item_name: updatedItem.item_name,
+        item_name: updatedItem.name,
         price: updatedItem.price,
         quantity: updatedItem.quantity,
         total: updatedItem.price * updatedItem.quantity,
@@ -199,6 +220,25 @@ router.post('/delete-item', authenticateToken, requireSessionParticipant, async 
       return res.status(400).json({
         return_code: 'MISSING_FIELDS',
         message: 'Item ID is required',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Get the item to check ownership
+    const existingItem = await receiptQueries.findById(item_id);
+    if (!existingItem) {
+      return res.status(404).json({
+        return_code: 'ITEM_NOT_FOUND',
+        message: 'Receipt item not found',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Check permissions: organizer can delete any item, guests can only delete their own
+    if (!req.isHost && existingItem.added_by_user_id !== req.user.id) {
+      return res.status(403).json({
+        return_code: 'UNAUTHORIZED',
+        message: 'You can only delete items you added',
         timestamp: new Date().toISOString()
       });
     }

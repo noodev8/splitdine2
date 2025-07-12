@@ -51,8 +51,12 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
+    // Show warning dialog first
+    final shouldContinue = await _showGuestWarningDialog();
+    if (!shouldContinue || !mounted) return;
+
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    
+
     final success = await authProvider.continueAsGuest(
       _guestNameController.text.trim(),
     );
@@ -62,6 +66,93 @@ class _LoginScreenState extends State<LoginScreen> {
         MaterialPageRoute(builder: (context) => const SessionLobbyScreen()),
       );
     }
+  }
+
+  Future<bool> _showGuestWarningDialog() async {
+    return await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          icon: Icon(
+            Icons.warning_amber_rounded,
+            color: Colors.orange.shade600,
+            size: 48,
+          ),
+          title: const Text(
+            'Continue as Guest?',
+            textAlign: TextAlign.center,
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'As a guest user:',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey.shade800,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.close, color: Colors.red.shade600, size: 20),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text('Your sessions will be lost if you log out'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.close, color: Colors.red.shade600, size: 20),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text('Data won\'t sync between devices'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.close, color: Colors.red.shade600, size: 20),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text('No history or backup available'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Consider creating an account to save your data permanently.',
+                style: TextStyle(
+                  color: Colors.blue.shade700,
+                  fontStyle: FontStyle.italic,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange.shade600,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Continue as Guest'),
+            ),
+          ],
+        );
+      },
+    ) ?? false;
   }
 
   void _navigateToRegister() {

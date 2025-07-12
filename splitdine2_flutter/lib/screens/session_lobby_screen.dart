@@ -5,6 +5,7 @@ import '../services/session_provider.dart';
 import '../models/session.dart';
 import 'create_session_screen.dart';
 import 'login_screen.dart';
+import 'session_details_screen.dart';
 
 class SessionLobbyScreen extends StatefulWidget {
   const SessionLobbyScreen({super.key});
@@ -197,32 +198,40 @@ class _SessionLobbyScreenState extends State<SessionLobbyScreen> {
     );
   }
 
+
+
   Widget _buildSessionsContent(SessionProvider sessionProvider) {
     final upcomingSessions = sessionProvider.upcomingSessions;
     final pastSessions = sessionProvider.pastSessions;
 
     if (upcomingSessions.isEmpty && pastSessions.isEmpty) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.restaurant_menu,
-              size: 64,
-              color: Colors.grey.shade300,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No sessions yet',
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Create a new session or join an existing one to get started!',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey.shade600),
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.restaurant_menu,
+                size: 64,
+                color: Colors.grey.shade300,
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'No sessions yet',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Create a new session or join an existing one to get started!',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -259,23 +268,26 @@ class _SessionLobbyScreenState extends State<SessionLobbyScreen> {
   Widget _buildSessionList(List<Session> sessions, {required bool isUpcoming}) {
     if (sessions.isEmpty) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              isUpcoming ? Icons.schedule : Icons.history,
-              size: 48,
-              color: Colors.grey.shade300,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              isUpcoming ? 'No upcoming sessions' : 'No past sessions',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey.shade600,
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                isUpcoming ? Icons.schedule : Icons.history,
+                size: 48,
+                color: Colors.grey.shade300,
               ),
-            ),
-          ],
+              const SizedBox(height: 16),
+              Text(
+                isUpcoming ? 'No upcoming sessions' : 'No past sessions',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -351,9 +363,10 @@ class _SessionLobbyScreenState extends State<SessionLobbyScreen> {
           ],
         ),
         onTap: () {
-          // TODO: Navigate to session details
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Session details for ${session.displayName} - Coming Soon!')),
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => SessionDetailsScreen(session: session),
+            ),
           );
         },
       ),

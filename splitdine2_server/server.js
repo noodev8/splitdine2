@@ -72,6 +72,7 @@ app.get('/health', (req, res) => {
 const authRoutes = require('./routes/auth');
 const sessionRoutes = require('./routes/sessions');
 const receiptRoutes = require('./routes/receipts');
+const assignmentRoutes = require('./routes/assignments');
 
 // Apply rate limiting to specific routes
 app.use('/api/auth', authLimiter);
@@ -81,6 +82,7 @@ app.use('/api/sessions/create', sessionLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/receipts', receiptRoutes);
+app.use('/api/assignments', assignmentRoutes);
 
 // 404 handler
 app.use('*', notFoundHandler);

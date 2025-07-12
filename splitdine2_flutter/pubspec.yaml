@@ -41,6 +41,7 @@ dependencies:
   # State Management
   provider: ^6.1.1
   shared_preferences: ^2.5.3
+  intl: ^0.20.2
 
   # Additional packages for later phases
   # image_picker: ^1.0.7

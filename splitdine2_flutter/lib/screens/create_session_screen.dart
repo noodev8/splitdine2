@@ -14,9 +14,10 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
   final _sessionNameController = TextEditingController();
   final _locationController = TextEditingController();
   final _descriptionController = TextEditingController();
-  
+  final _hoursController = TextEditingController();
+  final _minutesController = TextEditingController();
+
   DateTime? _selectedDate;
-  TimeOfDay? _selectedTime;
   bool _isLoading = false;
 
   @override
@@ -24,6 +25,8 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
     _sessionNameController.dispose();
     _locationController.dispose();
     _descriptionController.dispose();
+    _hoursController.dispose();
+    _minutesController.dispose();
     super.dispose();
   }
 
@@ -129,23 +132,54 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
               const SizedBox(height: 16),
               
               // Time (Optional)
-              InkWell(
-                onTap: _selectTime,
-                child: InputDecorator(
-                  decoration: const InputDecoration(
-                    labelText: 'Time (Optional)',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.access_time),
-                  ),
-                  child: Text(
-                    _selectedTime == null
-                        ? 'Select time'
-                        : _selectedTime!.format(context),
-                    style: TextStyle(
-                      color: _selectedTime == null ? Colors.grey.shade600 : null,
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _hoursController,
+                      decoration: const InputDecoration(
+                        labelText: 'Hours (Optional)',
+                        hintText: '14',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.access_time),
+                      ),
+                      keyboardType: TextInputType.number,
+                      maxLength: 2,
+                      validator: (value) {
+                        if (value != null && value.isNotEmpty) {
+                          final hour = int.tryParse(value);
+                          if (hour == null || hour < 0 || hour > 23) {
+                            return 'Enter 0-23';
+                          }
+                        }
+                        return null;
+                      },
                     ),
                   ),
-                ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _minutesController,
+                      decoration: const InputDecoration(
+                        labelText: 'Minutes (Optional)',
+                        hintText: '30',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.schedule),
+                      ),
+                      keyboardType: TextInputType.number,
+                      maxLength: 2,
+                      validator: (value) {
+                        if (value != null && value.isNotEmpty) {
+                          final minute = int.tryParse(value);
+                          if (minute == null || minute < 0 || minute > 59) {
+                            return 'Enter 0-59';
+                          }
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                ],
               ),
               
               const SizedBox(height: 16),
@@ -233,18 +267,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
     }
   }
 
-  Future<void> _selectTime() async {
-    final TimeOfDay? picked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
-    );
 
-    if (picked != null && picked != _selectedTime) {
-      setState(() {
-        _selectedTime = picked;
-      });
-    }
-  }
 
   Future<void> _handleCreateSession() async {
     if (!_formKey.currentState!.validate() || _selectedDate == null) {
@@ -263,10 +286,22 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
     try {
       final sessionProvider = Provider.of<SessionProvider>(context, listen: false);
 
-      // Format time as string if selected
+      // Format time as string if provided (24-hour format)
       String? timeString;
-      if (_selectedTime != null) {
-        timeString = _selectedTime!.format(context);
+      final hours = _hoursController.text.trim();
+      final minutes = _minutesController.text.trim();
+
+      if (hours.isNotEmpty && minutes.isNotEmpty) {
+        final hour = int.tryParse(hours);
+        final minute = int.tryParse(minutes);
+        if (hour != null && minute != null && hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) {
+          timeString = '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
+        }
+      } else if (hours.isNotEmpty) {
+        final hour = int.tryParse(hours);
+        if (hour != null && hour >= 0 && hour <= 23) {
+          timeString = '${hour.toString().padLeft(2, '0')}:00';
+        }
       }
 
       final success = await sessionProvider.createSession(
@@ -282,14 +317,18 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
       );
 
       if (success && mounted) {
-        // Show success message and navigate back
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Session created successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.of(context).pop();
+        // Get the created session to show join code
+        final sessions = sessionProvider.sessions;
+        final createdSession = sessions.isNotEmpty ? sessions.last : null;
+
+        if (createdSession != null) {
+          // Show success dialog with join code
+          await _showSuccessDialog(createdSession);
+        }
+
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
       } else if (mounted) {
         // Show error message
         final errorMessage = sessionProvider.errorMessage ?? 'Failed to create session';
@@ -316,5 +355,84 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
         });
       }
     }
+  }
+
+  Future<void> _showSuccessDialog(dynamic session) async {
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          icon: Icon(
+            Icons.check_circle,
+            color: Colors.green.shade600,
+            size: 48,
+          ),
+          title: const Text(
+            'Session Created!',
+            textAlign: TextAlign.center,
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Your session has been created successfully.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey.shade700),
+              ),
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      'Share this code with friends:',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue.shade800,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    SelectableText(
+                      session.joinCode ?? 'N/A',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue.shade700,
+                        letterSpacing: 2,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'They can use this code to join your session',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.blue.shade600,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green.shade600,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Got it!'),
+            ),
+          ],
+        );
+      },
+    );
   }
 }

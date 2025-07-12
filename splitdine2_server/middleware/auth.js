@@ -132,7 +132,7 @@ const requireSessionHost = async (req, res, next) => {
       });
     }
 
-    if (session.host_user_id !== req.user.id) {
+    if (session.organizer_id !== req.user.id) {
       return res.status(403).json({
         return_code: 'UNAUTHORIZED',
         message: 'Only session host can perform this action',
@@ -141,6 +141,7 @@ const requireSessionHost = async (req, res, next) => {
     }
 
     req.session = session;
+    req.sessionId = session.id;
     next();
   } catch (error) {
     console.error('Session host check error:', error.message);
@@ -177,7 +178,7 @@ const requireSessionParticipant = async (req, res, next) => {
     }
 
     // Check if user is host or participant
-    const isHost = session.host_user_id === req.user.id;
+    const isHost = session.organizer_id === req.user.id;
     const isParticipant = await participantQueries.isParticipant(sessionId, req.user.id);
 
     if (!isHost && !isParticipant) {
@@ -189,6 +190,7 @@ const requireSessionParticipant = async (req, res, next) => {
     }
 
     req.session = session;
+    req.sessionId = session.id;
     req.isHost = isHost;
     next();
   } catch (error) {

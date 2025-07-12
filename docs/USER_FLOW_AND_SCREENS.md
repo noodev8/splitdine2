@@ -96,7 +96,7 @@ It allows groups to:
 
 **User Actions**:
 - View *Upcoming* and *Past* sessions
-- Tap to open any session (always goes to **Session View**)
+- Tap to open any session (always goes to **Session Details Screen**)
 - Create New Session (Organiser)
 - Join Session (Guest)
 
@@ -151,69 +151,103 @@ It allows groups to:
 
 ---
 
-### **4. Session View (Single Interface for All Sessions)**
+### **4. Session Details Screen**
+
+**Purpose**:
+- Show comprehensive session information when user taps on a session from lobby
+- Gateway to item management functionality
 
 **Key Rule**:
-- **Same UI for Upcoming and Past**
+- **Same UI for Upcoming and Past sessions**
 - **Editable if date ≥ today**
 - **Read-only if date < today**
-
----
-
-#### **4.1. Session Overview Header**
 
 **Shows**:
 - Session Name
 - Location
 - Date/Time
 - Description
-- Session Code (with copy button)
-- Participants list (Organiser/Guests)
+- Session Code (with copy button for sharing)
+- Participants list (Organiser/Guests with roles)
+- Quick summary of current items and totals
+- "Manage Items" button (leads to Item Management Screen)
+
+**User Actions**:
+- View all session details
+- Copy join code to share with others
+- Navigate to Item Management Screen via "Manage Items" button
+- Back to Session Lobby
 
 **Permissions**:
-- Organiser can edit before date
-- Everyone read-only after date
+- All users can view session details
+- "Manage Items" button only enabled if date ≥ today
 
 ---
 
-#### **4.2. Receipt Entry (Scan / Manual)**
+### **5. Item Management Screen**
 
 **Purpose**:
-- Build the list of bill items
+- Central hub for viewing and managing all receipt items within a session
+- Shows current items, running totals, and provides access to add/edit/delete items
 
-**Features**:
-- Organiser:
-  - Scan receipt
-  - Trigger OCR
-  - Add manual items
-  - Delete any item
-- Guests:
-  - Add manual items
-  - Delete own items
+**Shows**:
+- List of all current items with:
+  - Item name
+  - Price per unit
+  - Quantity
+  - Total (price × quantity)
+  - Who added the item
+- Running subtotal of all items
+- Add Item button (floating action button)
+- Edit/Delete actions for each item
+
+**User Actions**:
+- View all current receipt items
+- Add new item (navigates to Add Item Screen)
+- Edit existing item (inline or separate screen)
+- Delete item (with confirmation)
+- Back to Session Details
 
 **Permissions**:
-- Entire section read-only after session date
+- **Organiser**: Can add, edit, delete any item
+- **Guests**: Can add new items, edit/delete only their own items
+- Entire screen read-only if session date < today
 
 ---
 
-#### **4.3. OCR Review & Edit**
+### **6. Add Item Screen**
 
 **Purpose**:
-- Clean up messy scanned items
-- Ensure accurate, usable line items
+- Form for manually adding new receipt items to the session
 
-**Features**:
-- Organiser:
-  - Edit/delete any item
-- Guests:
-  - Edit/delete own items
+**Data Collected**:
+- **Item Name** (required)
+- **Price** (required, positive number)
+- **Quantity** (required, positive integer, default: 1)
+
+**User Actions**:
+- Fill form fields
+- Tap "Add Item" to save
+- Cancel to return without saving
+
+**Validation**:
+- Item name cannot be empty
+- Price must be positive number
+- Quantity must be positive integer
+
+**Result**:
+- New item appears in Item Management Screen
+- Returns to Item Management Screen
 
 **Permissions**:
-- Read-only after session date
+- Available to all participants if session date ≥ today
+- Item is tagged with the user who added it
 
 ---
 
-#### **4.4. Item Assignment**
+---
+
+### **7. Item Assignment (Future Phase)**
 
 **Purpose**:
 - Assign items to participants
@@ -233,7 +267,7 @@ It allows groups to:
 
 ---
 
-#### **4.5. Split Summary**
+### **8. Split Summary (Future Phase)**
 
 **Purpose**:
 - Show calculated per-person totals
@@ -249,7 +283,7 @@ It allows groups to:
 
 ---
 
-#### **4.6. Mark as Paid**
+### **9. Mark as Paid (Future Phase)**
 
 **Purpose**:
 - Manual tracking of who has paid
