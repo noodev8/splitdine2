@@ -1,0 +1,154 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import '../models/session.dart';
+import '../config/app_config.dart';
+
+class SessionService {
+  static String get baseUrl => AppConfig.baseUrl;
+
+  // Get authorization header with stored token
+  Future<Map<String, String>> _getAuthHeaders() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('jwt_token'); // Match AuthService token key
+    
+    return {
+      'Content-Type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+  }
+
+  // Get user's sessions
+  Future<Map<String, dynamic>> getMySessions() async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.post(
+        Uri.parse('$baseUrl/sessions/my-sessions'),
+        headers: headers,
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (data['return_code'] == 'SUCCESS') {
+        final sessions = (data['sessions'] as List)
+            .map((sessionJson) => Session.fromJson(sessionJson))
+            .toList();
+        
+        return {'success': true, 'sessions': sessions};
+      } else {
+        return {'success': false, 'message': data['message']};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  // Create new session
+  Future<Map<String, dynamic>> createSession({
+    String? sessionName,
+    required String location,
+    required DateTime sessionDate,
+    String? sessionTime,
+    String? description,
+  }) async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.post(
+        Uri.parse('$baseUrl/sessions/create'),
+        headers: headers,
+        body: jsonEncode({
+          'session_name': sessionName,
+          'location': location,
+          'session_date': sessionDate.toIso8601String().split('T')[0], // Date only
+          'session_time': sessionTime,
+          'description': description,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (data['return_code'] == 'SUCCESS') {
+        final session = Session.fromJson(data['session']);
+        return {'success': true, 'session': session};
+      } else {
+        return {'success': false, 'message': data['message']};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  // Join session by code
+  Future<Map<String, dynamic>> joinSession(String sessionCode) async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.post(
+        Uri.parse('$baseUrl/sessions/join'),
+        headers: headers,
+        body: jsonEncode({
+          'session_code': sessionCode.toUpperCase(),
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (data['return_code'] == 'SUCCESS') {
+        final session = Session.fromJson(data['session']);
+        return {'success': true, 'session': session};
+      } else {
+        return {'success': false, 'message': data['message']};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  // Get session details
+  Future<Map<String, dynamic>> getSessionDetails(int sessionId) async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.post(
+        Uri.parse('$baseUrl/sessions/details'),
+        headers: headers,
+        body: jsonEncode({
+          'session_id': sessionId,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (data['return_code'] == 'SUCCESS') {
+        final session = Session.fromJson(data['session']);
+        return {'success': true, 'session': session};
+      } else {
+        return {'success': false, 'message': data['message']};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  // End session (host only)
+  Future<Map<String, dynamic>> endSession(int sessionId) async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.post(
+        Uri.parse('$baseUrl/sessions/end'),
+        headers: headers,
+        body: jsonEncode({
+          'session_id': sessionId,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (data['return_code'] == 'SUCCESS') {
+        return {'success': true, 'message': data['message']};
+      } else {
+        return {'success': false, 'message': data['message']};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+}

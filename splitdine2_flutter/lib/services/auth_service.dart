@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../config/app_config.dart';
 
 class AuthService {
-  static const String baseUrl = 'http://192.168.1.88:3000/api'; // Home
+  static String get baseUrl => AppConfig.baseUrl;
 
   static const String tokenKey = 'jwt_token';
   static const String userKey = 'user_data';

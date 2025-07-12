@@ -16,13 +16,26 @@ const generateSessionCode = () => {
 // Create new session
 router.post('/create', authenticateToken, async (req, res) => {
   try {
-    const { session_name, restaurant_name } = req.body;
+    const { session_name, location, session_date, session_time, description } = req.body;
 
     // Validate required fields
-    if (!session_name || !restaurant_name) {
+    if (!location || !session_date) {
       return res.status(400).json({
         return_code: 'MISSING_FIELDS',
-        message: 'Session name and restaurant name are required',
+        message: 'Location and session date are required',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Validate session date is not in the past
+    const sessionDate = new Date(session_date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (sessionDate < today) {
+      return res.status(400).json({
+        return_code: 'INVALID_DATE',
+        message: 'Cannot create session with a date in the past',
         timestamp: new Date().toISOString()
       });
     }
@@ -37,10 +50,13 @@ router.post('/create', authenticateToken, async (req, res) => {
 
     // Create session
     const newSession = await sessionQueries.create({
-      host_user_id: req.user.id,
+      organizer_id: req.user.id,
       session_name,
-      restaurant_name,
-      session_code
+      location,
+      session_date,
+      session_time,
+      description,
+      join_code: session_code
     });
 
     res.status(201).json({
@@ -48,12 +64,21 @@ router.post('/create', authenticateToken, async (req, res) => {
       message: 'Session created successfully',
       session: {
         id: newSession.id,
+        organizer_id: newSession.organizer_id,
         session_name: newSession.session_name,
-        restaurant_name: newSession.restaurant_name,
-        session_code: newSession.session_code,
-        status: newSession.status,
-        host_user_id: newSession.host_user_id,
-        created_at: newSession.created_at
+        location: newSession.location,
+        session_date: newSession.session_date,
+        session_time: newSession.session_time,
+        description: newSession.description,
+        join_code: newSession.join_code,
+        receipt_processed: newSession.receipt_processed,
+        total_amount: newSession.total_amount,
+        tax_amount: newSession.tax_amount,
+        tip_amount: newSession.tip_amount,
+        service_charge: newSession.service_charge,
+        created_at: newSession.created_at,
+        updated_at: newSession.updated_at,
+        is_host: true
       },
       timestamp: new Date().toISOString()
     });
@@ -91,18 +116,22 @@ router.post('/join', authenticateToken, async (req, res) => {
       });
     }
 
-    // Check if session is active
-    if (session.status !== 'active') {
+    // Check if session date is not in the past
+    const sessionDate = new Date(session.session_date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (sessionDate < today) {
       return res.status(400).json({
-        return_code: 'SESSION_INACTIVE',
-        message: 'This session is no longer active',
+        return_code: 'SESSION_EXPIRED',
+        message: 'Cannot join session with a date in the past',
         timestamp: new Date().toISOString()
       });
     }
 
     // Check if user is already a participant
     const isAlreadyParticipant = await participantQueries.isParticipant(session.id, req.user.id);
-    const isHost = session.host_user_id === req.user.id;
+    const isHost = session.organizer_id === req.user.id;
 
     if (!isAlreadyParticipant && !isHost) {
       // Add user as participant
@@ -117,15 +146,23 @@ router.post('/join', authenticateToken, async (req, res) => {
       message: 'Successfully joined session',
       session: {
         id: session.id,
+        organizer_id: session.organizer_id,
         session_name: session.session_name,
-        restaurant_name: session.restaurant_name,
-        session_code: session.session_code,
-        status: session.status,
-        host_user_id: session.host_user_id,
-        created_at: session.created_at
+        location: session.location,
+        session_date: session.session_date,
+        session_time: session.session_time,
+        description: session.description,
+        join_code: session.join_code,
+        receipt_processed: session.receipt_processed,
+        total_amount: session.total_amount,
+        tax_amount: session.tax_amount,
+        tip_amount: session.tip_amount,
+        service_charge: session.service_charge,
+        created_at: session.created_at,
+        updated_at: session.updated_at,
+        is_host: isHost
       },
       participants,
-      is_host: isHost,
       timestamp: new Date().toISOString()
     });
 
@@ -163,7 +200,7 @@ router.post('/details', authenticateToken, async (req, res) => {
     }
 
     // Check if user has access to this session
-    const isHost = session.host_user_id === req.user.id;
+    const isHost = session.organizer_id === req.user.id;
     const isParticipant = await participantQueries.isParticipant(session.id, req.user.id);
 
     if (!isHost && !isParticipant) {
@@ -181,16 +218,23 @@ router.post('/details', authenticateToken, async (req, res) => {
       return_code: 'SUCCESS',
       session: {
         id: session.id,
+        organizer_id: session.organizer_id,
         session_name: session.session_name,
-        restaurant_name: session.restaurant_name,
-        session_code: session.session_code,
-        status: session.status,
-        host_user_id: session.host_user_id,
+        location: session.location,
+        session_date: session.session_date,
+        session_time: session.session_time,
+        description: session.description,
+        join_code: session.join_code,
+        receipt_processed: session.receipt_processed,
+        total_amount: session.total_amount,
+        tax_amount: session.tax_amount,
+        tip_amount: session.tip_amount,
+        service_charge: session.service_charge,
         created_at: session.created_at,
-        updated_at: session.updated_at
+        updated_at: session.updated_at,
+        is_host: isHost
       },
       participants,
-      is_host: isHost,
       timestamp: new Date().toISOString()
     });
 
@@ -237,14 +281,14 @@ router.post('/end', authenticateToken, requireSessionHost, async (req, res) => {
 router.post('/my-sessions', authenticateToken, async (req, res) => {
   try {
     const { query } = require('../config/database');
-    
+
     // Get sessions where user is host or participant
     const result = await query(`
-      SELECT DISTINCT s.*, 
-             CASE WHEN s.host_user_id = $1 THEN true ELSE false END as is_host
-      FROM session s
-      LEFT JOIN session_participant sp ON s.id = sp.session_id
-      WHERE s.host_user_id = $1 OR sp.user_id = $1
+      SELECT DISTINCT s.*,
+             CASE WHEN s.organizer_id = $1 THEN true ELSE false END as is_host
+      FROM sessions s
+      LEFT JOIN session_participants sp ON s.id = sp.session_id
+      WHERE s.organizer_id = $1 OR sp.user_id = $1
       ORDER BY s.updated_at DESC
     `, [req.user.id]);
 

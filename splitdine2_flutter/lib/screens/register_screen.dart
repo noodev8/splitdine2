@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:splitdine2_flutter/services/auth_provider.dart';
-import 'package:splitdine2_flutter/screens/dashboard_screen.dart';
+import 'package:splitdine2_flutter/screens/session_lobby_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -38,7 +38,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       if (success && mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const DashboardScreen()),
+          MaterialPageRoute(builder: (context) => const SessionLobbyScreen()),
         );
       }
     }

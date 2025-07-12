@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:splitdine2_flutter/services/auth_provider.dart';
 import 'package:splitdine2_flutter/screens/register_screen.dart';
-import 'package:splitdine2_flutter/screens/dashboard_screen.dart';
+import 'package:splitdine2_flutter/screens/session_lobby_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -37,7 +37,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (success && mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const DashboardScreen()),
+          MaterialPageRoute(builder: (context) => const SessionLobbyScreen()),
         );
       }
     }
@@ -59,7 +59,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (success && mounted) {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const DashboardScreen()),
+        MaterialPageRoute(builder: (context) => const SessionLobbyScreen()),
       );
     }
   }

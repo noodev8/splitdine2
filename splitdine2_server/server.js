@@ -99,12 +99,13 @@ const startServer = async () => {
     }
 
     // Start server
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
       console.log('='.repeat(50));
       console.log(`🚀 SplitDine API Server Started`);
       console.log(`📍 Port: ${PORT}`);
       console.log(`🌍 Environment: ${config.server.env}`);
       console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+      console.log(`🔗 Network access: http://192.168.1.88:${PORT}/health`);
       console.log(`📚 API docs: http://localhost:${PORT}/api`);
       console.log('='.repeat(50));
     });

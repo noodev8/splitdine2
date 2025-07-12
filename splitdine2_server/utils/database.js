@@ -49,12 +49,12 @@ const userQueries = {
 const sessionQueries = {
   // Create new session
   create: async (sessionData) => {
-    const { host_user_id, session_name, restaurant_name, session_code } = sessionData;
+    const { organizer_id, session_name, location, session_date, session_time, description, join_code } = sessionData;
     const result = await query(
-      `INSERT INTO session (host_user_id, session_name, restaurant_name, session_code, status)
-       VALUES ($1, $2, $3, $4, 'active')
+      `INSERT INTO sessions (organizer_id, session_name, location, session_date, session_time, description, join_code)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-      [host_user_id, session_name, restaurant_name, session_code]
+      [organizer_id, session_name, location, session_date, session_time, description, join_code]
     );
     return result.rows[0];
   },
@@ -62,7 +62,7 @@ const sessionQueries = {
   // Find session by code
   findByCode: async (sessionCode) => {
     const result = await query(
-      'SELECT * FROM session WHERE session_code = $1',
+      'SELECT * FROM sessions WHERE join_code = $1',
       [sessionCode]
     );
     return result.rows[0];
@@ -71,17 +71,30 @@ const sessionQueries = {
   // Find session by ID
   findById: async (sessionId) => {
     const result = await query(
-      'SELECT * FROM session WHERE id = $1',
+      'SELECT * FROM sessions WHERE id = $1',
       [sessionId]
     );
     return result.rows[0];
   },
 
-  // Update session status
-  updateStatus: async (sessionId, status) => {
+  // Update session
+  update: async (sessionId, updateData) => {
+    const { session_name, location, session_date, session_time, description } = updateData;
     const result = await query(
-      'UPDATE session SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
-      [status, sessionId]
+      `UPDATE sessions
+       SET session_name = $1, location = $2, session_date = $3, session_time = $4, description = $5, updated_at = NOW()
+       WHERE id = $6
+       RETURNING *`,
+      [session_name, location, session_date, session_time, description, sessionId]
+    );
+    return result.rows[0];
+  },
+
+  // Delete session
+  delete: async (sessionId) => {
+    const result = await query(
+      'DELETE FROM sessions WHERE id = $1 RETURNING *',
+      [sessionId]
     );
     return result.rows[0];
   }
@@ -92,7 +105,7 @@ const participantQueries = {
   // Add participant to session
   add: async (sessionId, userId) => {
     const result = await query(
-      `INSERT INTO session_participant (session_id, user_id)
+      `INSERT INTO session_participants (session_id, user_id)
        VALUES ($1, $2)
        RETURNING *`,
       [sessionId, userId]
@@ -104,7 +117,7 @@ const participantQueries = {
   getBySession: async (sessionId) => {
     const result = await query(
       `SELECT sp.*, u.display_name, u.email
-       FROM session_participant sp
+       FROM session_participants sp
        JOIN app_user u ON sp.user_id = u.id
        WHERE sp.session_id = $1`,
       [sessionId]
@@ -115,7 +128,7 @@ const participantQueries = {
   // Check if user is participant
   isParticipant: async (sessionId, userId) => {
     const result = await query(
-      'SELECT id FROM session_participant WHERE session_id = $1 AND user_id = $2',
+      'SELECT id FROM session_participants WHERE session_id = $1 AND user_id = $2',
       [sessionId, userId]
     );
     return result.rows.length > 0;

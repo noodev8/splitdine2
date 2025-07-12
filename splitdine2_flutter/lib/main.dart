@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:splitdine2_flutter/services/auth_provider.dart';
+import 'package:splitdine2_flutter/services/session_provider.dart';
 import 'package:splitdine2_flutter/screens/splash_screen.dart';
+import 'package:splitdine2_flutter/config/app_config.dart';
 
 void main() {
+  // Print configuration on app start
+  AppConfig.printConfig();
   runApp(const SplitDineApp());
 }
 
@@ -12,16 +16,19 @@ class SplitDineApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => AuthProvider(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => AuthProvider()),
+        ChangeNotifierProvider(create: (context) => SessionProvider()),
+      ],
       child: MaterialApp(
-        title: 'Split Dine',
+        title: AppConfig.appName,
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
           useMaterial3: true,
         ),
         home: const SplashScreen(),
-        debugShowCheckedModeBanner: false,
+        debugShowCheckedModeBanner: AppConfig.isDebugMode,
       ),
     );
   }
