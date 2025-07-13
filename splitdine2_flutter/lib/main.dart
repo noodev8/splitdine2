@@ -4,6 +4,7 @@ import 'package:splitdine2_flutter/services/auth_provider.dart';
 import 'package:splitdine2_flutter/services/session_provider.dart';
 import 'package:splitdine2_flutter/services/receipt_provider.dart';
 import 'package:splitdine2_flutter/services/assignment_provider.dart';
+import 'package:splitdine2_flutter/services/split_item_provider.dart';
 import 'package:splitdine2_flutter/screens/splash_screen.dart';
 import 'package:splitdine2_flutter/config/app_config.dart';
 
@@ -24,6 +25,7 @@ class SplitDineApp extends StatelessWidget {
         ChangeNotifierProvider(create: (context) => SessionProvider()),
         ChangeNotifierProvider(create: (context) => ReceiptProvider()),
         ChangeNotifierProvider(create: (context) => AssignmentProvider()),
+        ChangeNotifierProvider(create: (context) => SplitItemProvider()),
       ],
       child: MaterialApp(
         title: AppConfig.appName,

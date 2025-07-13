@@ -289,8 +289,8 @@ router.post('/my-sessions', authenticateToken, async (req, res) => {
     const result = await query(`
       SELECT DISTINCT s.*,
              CASE WHEN s.organizer_id = $1 THEN true ELSE false END as is_host
-      FROM sessions s
-      LEFT JOIN session_participants sp ON s.id = sp.session_id
+      FROM session s
+      LEFT JOIN session_guest sp ON s.id = sp.session_id
       WHERE s.organizer_id = $1 OR sp.user_id = $1
       ORDER BY s.updated_at DESC
     `, [req.user.id]);
@@ -512,7 +512,7 @@ router.post('/transfer-host', authenticateToken, async (req, res) => {
     // Update session organizer
     const { query } = require('../config/database');
     await query(`
-      UPDATE sessions
+      UPDATE session
       SET organizer_id = $1, updated_at = NOW()
       WHERE id = $2
     `, [new_host_user_id, session_id]);
@@ -576,7 +576,7 @@ router.post('/delete', authenticateToken, async (req, res) => {
     await query('DELETE FROM receipt_items WHERE session_id = $1', [session_id]);
 
     // Delete session participants
-    await query('DELETE FROM session_participants WHERE session_id = $1', [session_id]);
+    await query('DELETE FROM session_guest WHERE session_id = $1', [session_id]);
 
     // Delete final splits
     await query('DELETE FROM final_splits WHERE session_id = $1', [session_id]);
@@ -585,7 +585,7 @@ router.post('/delete', authenticateToken, async (req, res) => {
     await query('DELETE FROM session_activity_log WHERE session_id = $1', [session_id]);
 
     // Finally delete the session
-    await query('DELETE FROM sessions WHERE id = $1', [session_id]);
+    await query('DELETE FROM session WHERE id = $1', [session_id]);
 
     res.json({
       return_code: 'SUCCESS',

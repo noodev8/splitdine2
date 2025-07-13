@@ -11,6 +11,7 @@ import 'payment_summary_screen.dart';
 import 'guest_management_screen.dart';
 import 'guest_items_screen.dart';
 import 'my_items_screen.dart';
+import 'split_items_screen.dart';
 
 class SessionDetailsScreen extends StatefulWidget {
   final Session session;
@@ -356,6 +357,20 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _navigateToSplitItems(context),
+                    icon: const Icon(Icons.call_split),
+                    label: const Text('Split Items'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: Colors.teal,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
 
                 if (!widget.session.isHost) ...[
                   const SizedBox(height: 12),
@@ -512,6 +527,14 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => GuestItemsScreen(session: widget.session),
+      ),
+    );
+  }
+
+  void _navigateToSplitItems(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => SplitItemsScreen(session: widget.session),
       ),
     );
   }

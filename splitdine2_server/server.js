@@ -73,6 +73,7 @@ const authRoutes = require('./routes/auth');
 const sessionRoutes = require('./routes/sessions');
 const receiptRoutes = require('./routes/receipts');
 const assignmentRoutes = require('./routes/assignments');
+const splitItemRoutes = require('./routes/split_items');
 
 // Apply rate limiting to specific routes
 app.use('/api/auth', authLimiter);
@@ -83,6 +84,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/receipts', receiptRoutes);
 app.use('/api/assignments', assignmentRoutes);
+app.use('/api/split-items', splitItemRoutes);
+
+
 
 // 404 handler
 app.use('*', notFoundHandler);

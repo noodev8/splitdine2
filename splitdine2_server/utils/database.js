@@ -60,24 +60,24 @@ const userQueries = {
     await query('DELETE FROM item_assignments WHERE user_id = $1', [userId]);
 
     // Delete session participants
-    await query('DELETE FROM session_participants WHERE user_id = $1', [userId]);
+    await query('DELETE FROM session_guest WHERE user_id = $1', [userId]);
 
     // Delete final splits
     await query('DELETE FROM final_splits WHERE user_id = $1', [userId]);
 
     // Delete sessions organized by this user (and their related data)
-    const userSessions = await query('SELECT id FROM sessions WHERE organizer_id = $1', [userId]);
+    const userSessions = await query('SELECT id FROM session WHERE organizer_id = $1', [userId]);
     for (const session of userSessions.rows) {
       // Delete session-related data
       await query('DELETE FROM item_assignments WHERE session_id = $1', [session.id]);
       await query('DELETE FROM receipt_items WHERE session_id = $1', [session.id]);
-      await query('DELETE FROM session_participants WHERE session_id = $1', [session.id]);
+      await query('DELETE FROM session_guest WHERE session_id = $1', [session.id]);
       await query('DELETE FROM final_splits WHERE session_id = $1', [session.id]);
       await query('DELETE FROM session_activity_log WHERE session_id = $1', [session.id]);
     }
 
     // Delete sessions organized by this user
-    await query('DELETE FROM sessions WHERE organizer_id = $1', [userId]);
+    await query('DELETE FROM session WHERE organizer_id = $1', [userId]);
 
     // Finally delete the user
     await query('DELETE FROM app_user WHERE id = $1', [userId]);
@@ -90,7 +90,7 @@ const sessionQueries = {
   create: async (sessionData) => {
     const { organizer_id, session_name, location, session_date, session_time, description, join_code } = sessionData;
     const result = await query(
-      `INSERT INTO sessions (organizer_id, session_name, location, session_date, session_time, description, join_code)
+      `INSERT INTO session (organizer_id, session_name, location, session_date, session_time, description, join_code)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
       [organizer_id, session_name, location, session_date, session_time, description, join_code]
@@ -101,7 +101,7 @@ const sessionQueries = {
   // Find session by code
   findByCode: async (sessionCode) => {
     const result = await query(
-      'SELECT * FROM sessions WHERE join_code = $1',
+      'SELECT * FROM session WHERE join_code = $1',
       [sessionCode]
     );
     return result.rows[0];
@@ -110,7 +110,7 @@ const sessionQueries = {
   // Find current session by code (not expired)
   findCurrentByCode: async (sessionCode) => {
     const result = await query(
-      'SELECT * FROM sessions WHERE join_code = $1 AND session_date >= CURRENT_DATE',
+      'SELECT * FROM session WHERE join_code = $1 AND session_date >= CURRENT_DATE',
       [sessionCode]
     );
     return result.rows[0];
@@ -119,7 +119,7 @@ const sessionQueries = {
   // Find session by ID
   findById: async (sessionId) => {
     const result = await query(
-      'SELECT * FROM sessions WHERE id = $1',
+      'SELECT * FROM session WHERE id = $1',
       [sessionId]
     );
     return result.rows[0];
@@ -129,7 +129,7 @@ const sessionQueries = {
   update: async (sessionId, updateData) => {
     const { session_name, location, session_date, session_time, description } = updateData;
     const result = await query(
-      `UPDATE sessions
+      `UPDATE session
        SET session_name = $1, location = $2, session_date = $3, session_time = $4, description = $5, updated_at = NOW()
        WHERE id = $6
        RETURNING *`,
@@ -141,7 +141,7 @@ const sessionQueries = {
   // Delete session
   delete: async (sessionId) => {
     const result = await query(
-      'DELETE FROM sessions WHERE id = $1 RETURNING *',
+      'DELETE FROM session WHERE id = $1 RETURNING *',
       [sessionId]
     );
     return result.rows[0];
@@ -153,7 +153,7 @@ const participantQueries = {
   // Add participant to session
   add: async (sessionId, userId) => {
     const result = await query(
-      `INSERT INTO session_participants (session_id, user_id)
+      `INSERT INTO session_guest (session_id, user_id)
        VALUES ($1, $2)
        RETURNING *`,
       [sessionId, userId]
@@ -165,7 +165,7 @@ const participantQueries = {
   getBySession: async (sessionId) => {
     const result = await query(
       `SELECT sp.*, u.display_name, u.email
-       FROM session_participants sp
+       FROM session_guest sp
        JOIN app_user u ON sp.user_id = u.id
        WHERE sp.session_id = $1 AND sp.left_at IS NULL
        ORDER BY sp.joined_at`,
@@ -177,7 +177,7 @@ const participantQueries = {
   // Check if user is participant
   isParticipant: async (sessionId, userId) => {
     const result = await query(
-      'SELECT id FROM session_participants WHERE session_id = $1 AND user_id = $2 AND left_at IS NULL',
+      'SELECT id FROM session_guest WHERE session_id = $1 AND user_id = $2 AND left_at IS NULL',
       [sessionId, userId]
     );
     return result.rows.length > 0;
@@ -186,7 +186,7 @@ const participantQueries = {
   // Leave session (set left_at timestamp)
   leave: async (sessionId, userId) => {
     const result = await query(
-      `UPDATE session_participants
+      `UPDATE session_guest
        SET left_at = NOW()
        WHERE session_id = $1 AND user_id = $2 AND left_at IS NULL
        RETURNING *`,
@@ -310,6 +310,19 @@ const assignmentQueries = {
     return result.rows;
   },
 
+  // Get split item participants (assignments with share = 'Y')
+  getSplitItemParticipants: async (itemId) => {
+    const result = await query(
+      `SELECT ia.*, u.display_name as user_name
+       FROM item_assignments ia
+       JOIN app_user u ON ia.user_id = u.id
+       WHERE ia.item_id = $1 AND ia.share = 'Y'
+       ORDER BY ia.created_at`,
+      [itemId]
+    );
+    return result.rows;
+  },
+
   // Delete assignment by item and user
   deleteByItemAndUser: async (itemId, userId) => {
     await query(
@@ -318,9 +331,25 @@ const assignmentQueries = {
     );
   },
 
+  // Delete split item assignment by item and user (only share = 'Y')
+  deleteSplitItemAssignment: async (itemId, userId) => {
+    await query(
+      'DELETE FROM item_assignments WHERE item_id = $1 AND user_id = $2 AND share = \'Y\'',
+      [itemId, userId]
+    );
+  },
+
   // Delete all assignments for an item
   deleteByItem: async (itemId) => {
     await query('DELETE FROM item_assignments WHERE item_id = $1', [itemId]);
+  },
+
+  // Delete all split item assignments for an item (only share = 'Y')
+  deleteSplitItemAssignments: async (itemId) => {
+    await query(
+      'DELETE FROM item_assignments WHERE item_id = $1 AND share = \'Y\'',
+      [itemId]
+    );
   },
 
   // Get user assignments for a session
@@ -337,10 +366,141 @@ const assignmentQueries = {
   }
 };
 
+// Split item operations
+const splitItemQueries = {
+  // Create split item
+  create: async (itemData) => {
+    const { session_id, name, price, description, added_by_user_id } = itemData;
+    const result = await query(
+      `INSERT INTO split_items (session_id, name, price, description, added_by_user_id)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING *`,
+      [session_id, name, price, description, added_by_user_id]
+    );
+    return result.rows[0];
+  },
+
+  // Get split items by session
+  getBySession: async (sessionId) => {
+    const result = await query(
+      `SELECT si.*, u.display_name as added_by_name
+       FROM split_items si
+       JOIN app_user u ON si.added_by_user_id = u.id
+       WHERE si.session_id = $1
+       ORDER BY si.created_at DESC`,
+      [sessionId]
+    );
+    return result.rows;
+  },
+
+  // Find split item by ID
+  findById: async (itemId) => {
+    const result = await query(
+      'SELECT * FROM split_items WHERE id = $1',
+      [itemId]
+    );
+    return result.rows[0];
+  },
+
+  // Update split item
+  update: async (itemId, updateData) => {
+    const { name, price, description } = updateData;
+    const result = await query(
+      `UPDATE split_items
+       SET name = $1, price = $2, description = $3, updated_at = NOW()
+       WHERE id = $4
+       RETURNING *`,
+      [name, price, description, itemId]
+    );
+    return result.rows[0];
+  },
+
+  // Delete split item
+  delete: async (itemId) => {
+    await query('DELETE FROM split_items WHERE id = $1', [itemId]);
+  },
+
+  // Add participant to split item
+  addParticipant: async (itemId, userId) => {
+    const result = await query(
+      `UPDATE split_items SET guest_id = $1 WHERE id = $2 RETURNING *`,
+      [userId, itemId]
+    );
+    return result.rows[0];
+  },
+
+  // Remove participant from split item
+  removeParticipant: async (itemId) => {
+    const result = await query(
+      `UPDATE split_items SET guest_id = NULL WHERE id = $1 RETURNING *`,
+      [itemId]
+    );
+    return result.rows[0];
+  }
+};
+
+// Participant Choice Queries (for split item assignments)
+const participantChoiceQueries = {
+  // Create a participant choice for a split item
+  create: async (choiceData) => {
+    const { session_id, name, price, description, user_id, split_item } = choiceData;
+    const result = await query(
+      `INSERT INTO guest_choice (session_id, name, price, description, user_id, split_item, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+       RETURNING *`,
+      [session_id, name, price, description, user_id, split_item]
+    );
+    return result.rows[0];
+  },
+
+  // Get participants for a split item
+  getSplitItemParticipants: async (sessionId, splitItemName) => {
+    const result = await query(
+      `SELECT pc.*, u.display_name as user_name
+       FROM guest_choice pc
+       JOIN app_user u ON pc.user_id = u.id
+       WHERE pc.session_id = $1 AND pc.name = $2 AND pc.split_item = true
+       ORDER BY pc.created_at`,
+      [sessionId, splitItemName]
+    );
+    return result.rows;
+  },
+
+  // Remove participant from split item
+  removeSplitItemParticipant: async (sessionId, splitItemName, userId) => {
+    await query(
+      `DELETE FROM guest_choice
+       WHERE session_id = $1 AND name = $2 AND user_id = $3 AND split_item = true`,
+      [sessionId, splitItemName, userId]
+    );
+  },
+
+  // Check if user is already assigned to split item
+  findSplitItemAssignment: async (sessionId, splitItemName, userId) => {
+    const result = await query(
+      `SELECT * FROM guest_choice
+       WHERE session_id = $1 AND name = $2 AND user_id = $3 AND split_item = true`,
+      [sessionId, splitItemName, userId]
+    );
+    return result.rows[0];
+  },
+
+  // Delete all participant choices for a split item
+  deleteBySplitItem: async (sessionId, splitItemName) => {
+    await query(
+      `DELETE FROM guest_choice
+       WHERE session_id = $1 AND name = $2 AND split_item = true`,
+      [sessionId, splitItemName]
+    );
+  }
+};
+
 module.exports = {
   userQueries,
   sessionQueries,
   participantQueries,
   receiptQueries,
-  assignmentQueries
+  assignmentQueries,
+  splitItemQueries,
+  participantChoiceQueries
 };
