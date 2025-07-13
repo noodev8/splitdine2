@@ -70,6 +70,9 @@ class _MyItemsScreenState extends State<MyItemsScreen> {
             }
           }
 
+          // Sort items by creation date, latest first
+          myItems.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
           final userTotal = assignmentProvider.getUserAssignedTotal(currentUserId, allItems);
 
           return Stack(
@@ -106,7 +109,7 @@ class _MyItemsScreenState extends State<MyItemsScreen> {
                             child: Text(
                               'My Items',
                               style: TextStyle(
-                                fontFamily: 'Poppins',
+                                fontFamily: 'GoogleSans',
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
                                 color: Color(0xFF4E4B47), // Warm Gray-700
@@ -142,8 +145,8 @@ class _MyItemsScreenState extends State<MyItemsScreen> {
                           const Text(
                             'Your Total',
                             style: TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 16,
+                              fontFamily: 'Nunito',
+                              fontSize: 18,
                               fontWeight: FontWeight.w500,
                               color: Color(0xFF4E4B47), // Warm Gray-700
                               letterSpacing: -0.02,
@@ -153,7 +156,7 @@ class _MyItemsScreenState extends State<MyItemsScreen> {
                           Text(
                             '£${userTotal.toStringAsFixed(2)}',
                             style: const TextStyle(
-                              fontFamily: 'Poppins',
+                              fontFamily: 'Nunito',
                               fontSize: 36,
                               fontWeight: FontWeight.bold,
                               color: Color(0xFF4E4B47), // Warm Gray-700
@@ -165,8 +168,8 @@ class _MyItemsScreenState extends State<MyItemsScreen> {
                           Text(
                             '${myItems.length} item${myItems.length != 1 ? 's' : ''}',
                             style: TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 16,
+                              fontFamily: 'Nunito',
+                              fontSize: 18,
                               color: const Color(0xFF4E4B47).withValues(alpha: 0.7),
                               height: 1.3, // 130% line height
                             ),
@@ -193,7 +196,7 @@ class _MyItemsScreenState extends State<MyItemsScreen> {
                                   const Text(
                                     'No items assigned to you yet',
                                     style: TextStyle(
-                                      fontFamily: 'Poppins',
+                                      fontFamily: 'Nunito',
                                       fontSize: 18,
                                       fontWeight: FontWeight.w500,
                                       color: Color(0xFF4E4B47),
@@ -203,8 +206,8 @@ class _MyItemsScreenState extends State<MyItemsScreen> {
                                   Text(
                                     'Items you\'re assigned to will appear here',
                                     style: TextStyle(
-                                      fontFamily: 'Poppins',
-                                      fontSize: 16,
+                                      fontFamily: 'Nunito',
+                                      fontSize: 18,
                                       color: const Color(0xFF4E4B47).withValues(alpha: 0.7),
                                       height: 1.3, // 130% line height
                                     ),
@@ -234,8 +237,8 @@ class _MyItemsScreenState extends State<MyItemsScreen> {
                                   title: Text(
                                     item.itemName,
                                     style: const TextStyle(
-                                      fontFamily: 'Poppins',
-                                      fontSize: 16,
+                                      fontFamily: 'Nunito',
+                                      fontSize: 18,
                                       fontWeight: FontWeight.w500,
                                       color: Color(0xFF4E4B47),
                                       height: 1.3, // 130% line height
@@ -245,8 +248,8 @@ class _MyItemsScreenState extends State<MyItemsScreen> {
                                       ? Text(
                                           'Shared with ${shareCount - 1} other${shareCount > 2 ? 's' : ''}',
                                           style: TextStyle(
-                                            fontFamily: 'Poppins',
-                                            fontSize: 14,
+                                            fontFamily: 'Nunito',
+                                            fontSize: 16,
                                             color: const Color(0xFF4E4B47).withValues(alpha: 0.6),
                                             height: 1.3, // 130% line height
                                           ),
@@ -255,13 +258,14 @@ class _MyItemsScreenState extends State<MyItemsScreen> {
                                   trailing: Text(
                                     '£${myShare.toStringAsFixed(2)}',
                                     style: const TextStyle(
-                                      fontFamily: 'Poppins',
-                                      fontSize: 16,
+                                      fontFamily: 'Nunito',
+                                      fontSize: 18,
                                       fontWeight: FontWeight.w600,
                                       color: Color(0xFF4E4B47),
                                       fontFeatures: [FontFeature.tabularFigures()],
                                     ),
                                   ),
+                                  onTap: () => _navigateToEditItem(context, item),
                                 );
                               },
                             ),
@@ -279,12 +283,12 @@ class _MyItemsScreenState extends State<MyItemsScreen> {
         selectedItemColor: const Color(0xFFFFC629), // Sunshine Yellow
         unselectedItemColor: const Color(0xFF4E4B47).withValues(alpha: 0.6),
         selectedLabelStyle: const TextStyle(
-          fontFamily: 'Poppins',
+          fontFamily: 'Nunito',
           fontSize: 12,
           fontWeight: FontWeight.w600,
         ),
         unselectedLabelStyle: const TextStyle(
-          fontFamily: 'Poppins',
+          fontFamily: 'Nunito',
           fontSize: 12,
           fontWeight: FontWeight.w500,
         ),
@@ -324,6 +328,7 @@ class _MyItemsScreenState extends State<MyItemsScreen> {
   void _navigateToAddItem(BuildContext context) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final assignmentProvider = Provider.of<AssignmentProvider>(context, listen: false);
+    final receiptProvider = Provider.of<ReceiptProvider>(context, listen: false);
 
     final result = await Navigator.of(context).push(
       MaterialPageRoute(
@@ -331,24 +336,48 @@ class _MyItemsScreenState extends State<MyItemsScreen> {
       ),
     );
 
-    // If an item was added (result contains the item ID), automatically assign it to the current user
+    // If an item was added (result contains the last item ID), automatically assign all new items to the current user
     if (result != null && result is int && mounted) {
       final currentUserId = authProvider.user?.id;
       if (currentUserId != null) {
-        // Assign the newly added item to the current user
-        final success = await assignmentProvider.assignItem(
-          widget.session.id,
-          result, // This is the item ID returned from AddItemScreen
-          currentUserId
-        );
+        // Refresh items first to get all the newly added items
+        await receiptProvider.loadItems(widget.session.id);
 
-        if (success) {
-          // Refresh data to show the updated assignments
-          await _loadData();
+        // Find all items that are not yet assigned to anyone
+        final allItems = receiptProvider.items;
+        final unassignedItems = assignmentProvider.getUnallocatedItems(allItems);
+
+        // Assign all unassigned items to the current user
+        // (These should be the items we just added)
+        for (final item in unassignedItems) {
+          await assignmentProvider.assignItem(
+            widget.session.id,
+            item.id,
+            currentUserId
+          );
         }
+
+        // Refresh data to show the updated assignments
+        await _loadData();
       }
     } else if (result != null) {
       // Item was edited or other action, just refresh
+      await _loadData();
+    }
+  }
+
+  void _navigateToEditItem(BuildContext context, ReceiptItem item) async {
+    final result = await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => AddItemScreen(
+          session: widget.session,
+          editItem: item,
+        ),
+      ),
+    );
+
+    // Refresh data when returning from edit screen
+    if (result != null) {
       await _loadData();
     }
   }

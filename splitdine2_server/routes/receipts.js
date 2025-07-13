@@ -22,11 +22,11 @@ router.post('/add-item', authenticateToken, requireSessionParticipant, async (re
       });
     }
 
-    // Validate price and quantity
-    if (isNaN(price) || price <= 0) {
+    // Validate price and quantity (allow price = 0 for shareable items)
+    if (isNaN(price) || price < 0) {
       return res.status(400).json({
         return_code: 'INVALID_PRICE',
-        message: 'Price must be a positive number',
+        message: 'Price must be a non-negative number',
         timestamp: new Date().toISOString()
       });
     }
@@ -121,7 +121,7 @@ router.post('/get-items', authenticateToken, requireSessionParticipant, async (r
 });
 
 // Update receipt item
-router.post('/update-item', authenticateToken, requireSessionParticipant, async (req, res) => {
+router.post('/update-item', authenticateToken, async (req, res) => {
   try {
     const { item_id, item_name, price, quantity } = req.body;
 
@@ -134,11 +134,11 @@ router.post('/update-item', authenticateToken, requireSessionParticipant, async 
       });
     }
 
-    // Validate price and quantity
-    if (isNaN(price) || price <= 0) {
+    // Validate price and quantity (allow price = 0 for shareable items)
+    if (isNaN(price) || price < 0) {
       return res.status(400).json({
         return_code: 'INVALID_PRICE',
-        message: 'Price must be a positive number',
+        message: 'Price must be a non-negative number',
         timestamp: new Date().toISOString()
       });
     }
@@ -151,7 +151,7 @@ router.post('/update-item', authenticateToken, requireSessionParticipant, async 
       });
     }
 
-    // Get the item to check ownership
+    // Get the item to check ownership and get session info
     const existingItem = await receiptQueries.findById(item_id);
     if (!existingItem) {
       return res.status(404).json({
@@ -161,8 +161,32 @@ router.post('/update-item', authenticateToken, requireSessionParticipant, async 
       });
     }
 
+    // Get session to check if user is participant
+    const { sessionQueries, participantQueries } = require('../utils/database');
+    const session = await sessionQueries.findById(existingItem.session_id);
+
+    if (!session) {
+      return res.status(404).json({
+        return_code: 'SESSION_NOT_FOUND',
+        message: 'Session not found',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Check if user is host or participant
+    const isHost = session.organizer_id === req.user.id;
+    const isParticipant = await participantQueries.isParticipant(existingItem.session_id, req.user.id);
+
+    if (!isHost && !isParticipant) {
+      return res.status(403).json({
+        return_code: 'UNAUTHORIZED',
+        message: 'You are not a participant in this session',
+        timestamp: new Date().toISOString()
+      });
+    }
+
     // Check permissions: organizer can edit any item, guests can only edit their own
-    if (!req.isHost && existingItem.added_by_user_id !== req.user.id) {
+    if (!isHost && existingItem.added_by_user_id !== req.user.id) {
       return res.status(403).json({
         return_code: 'UNAUTHORIZED',
         message: 'You can only edit items you added',
@@ -185,6 +209,10 @@ router.post('/update-item', authenticateToken, requireSessionParticipant, async 
       });
     }
 
+    // Get the updated item with user info for proper response
+    const itemWithUser = await receiptQueries.getBySession(existingItem.session_id);
+    const updatedItemWithUser = itemWithUser.find(item => item.id === updatedItem.id);
+
     res.json({
       return_code: 'SUCCESS',
       message: 'Receipt item updated successfully',
@@ -194,8 +222,11 @@ router.post('/update-item', authenticateToken, requireSessionParticipant, async 
         item_name: updatedItem.name,
         price: updatedItem.price,
         quantity: updatedItem.quantity,
-        total: updatedItem.price * updatedItem.quantity,
-        updated_at: updatedItem.updated_at
+        added_by_user_id: updatedItem.added_by_user_id,
+        added_by_name: updatedItemWithUser?.added_by_name || 'Unknown',
+        created_at: updatedItem.created_at,
+        updated_at: updatedItem.updated_at,
+        total: updatedItem.price * updatedItem.quantity
       },
       timestamp: new Date().toISOString()
     });
@@ -211,7 +242,7 @@ router.post('/update-item', authenticateToken, requireSessionParticipant, async 
 });
 
 // Delete receipt item
-router.post('/delete-item', authenticateToken, requireSessionParticipant, async (req, res) => {
+router.post('/delete-item', authenticateToken, async (req, res) => {
   try {
     const { item_id } = req.body;
 
@@ -224,7 +255,7 @@ router.post('/delete-item', authenticateToken, requireSessionParticipant, async 
       });
     }
 
-    // Get the item to check ownership
+    // Get the item to check ownership and get session info
     const existingItem = await receiptQueries.findById(item_id);
     if (!existingItem) {
       return res.status(404).json({
@@ -234,8 +265,32 @@ router.post('/delete-item', authenticateToken, requireSessionParticipant, async 
       });
     }
 
+    // Get session to check if user is participant
+    const { sessionQueries, participantQueries } = require('../utils/database');
+    const session = await sessionQueries.findById(existingItem.session_id);
+
+    if (!session) {
+      return res.status(404).json({
+        return_code: 'SESSION_NOT_FOUND',
+        message: 'Session not found',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Check if user is host or participant
+    const isHost = session.organizer_id === req.user.id;
+    const isParticipant = await participantQueries.isParticipant(existingItem.session_id, req.user.id);
+
+    if (!isHost && !isParticipant) {
+      return res.status(403).json({
+        return_code: 'UNAUTHORIZED',
+        message: 'You are not a participant in this session',
+        timestamp: new Date().toISOString()
+      });
+    }
+
     // Check permissions: organizer can delete any item, guests can only delete their own
-    if (!req.isHost && existingItem.added_by_user_id !== req.user.id) {
+    if (!isHost && existingItem.added_by_user_id !== req.user.id) {
       return res.status(403).json({
         return_code: 'UNAUTHORIZED',
         message: 'You can only delete items you added',

@@ -1,6 +1,9 @@
+Can we now work on the Add New Item screen and design
+
+- Design Rules
 - Use Material 3 theming.
 - Use Google Sans Rounded Bold for headings.
-- Use Nunito Regular 16pt for body text.
+- Use Nunito Regular 24pt for body text.
 - Set these brand colors:
   - Primary: #FFC629 (Sunshine Yellow)
   - Secondary: #F04438 (Tomato Red)
@@ -11,3 +14,17 @@
   - OnSecondary: #FFFFFF
   - OnBackground: #4E4B47
   - OnSurface: #4E4B47
+
+Use the same style for the top as we do in the "My Items" screen. ie. Header yellow coming down and overlapping the "Add New Item" Text. Remove teh smaller "Enter the item details below"
+
+No need to use * for compulsary fields
+Keep Item Name
+Replace $ in price with £
+For QTY have a neat feature with a number (default 1) and a + and - to easily increas/decrease
+
+Remove Total Preview block all together
+
+Keep Add Item and Cancel but adjust to the design above and material 3
+
+Functionality Change
+ALWAYS use quantity 1 in the database now. So for example, if they request 2 items, have 2 rows in the database. It will be easier for us later on when removing one from a group.
