@@ -9,6 +9,7 @@ import '../services/session_provider.dart';
 import 'session_items_screen.dart';
 import 'payment_summary_screen.dart';
 import 'guest_management_screen.dart';
+import 'guest_items_screen.dart';
 import 'my_items_screen.dart';
 
 class SessionDetailsScreen extends StatefulWidget {
@@ -343,9 +344,9 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: () => _navigateToGuestManagement(context),
+                        onPressed: () => _navigateToGuestItems(context),
                         icon: const Icon(Icons.people),
-                        label: const Text('Guests'),
+                        label: const Text('Guest Items'),
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           backgroundColor: Colors.orange,
@@ -503,6 +504,14 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => MyItemsScreen(session: widget.session),
+      ),
+    );
+  }
+
+  void _navigateToGuestItems(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => GuestItemsScreen(session: widget.session),
       ),
     );
   }

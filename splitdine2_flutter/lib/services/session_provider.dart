@@ -1,15 +1,18 @@
 import 'package:flutter/foundation.dart';
 import '../models/session.dart';
+import '../models/participant.dart';
 import 'session_service.dart';
 
 class SessionProvider with ChangeNotifier {
   final SessionService _sessionService = SessionService();
   
   List<Session> _sessions = [];
+  List<Participant> _participants = [];
   bool _isLoading = false;
   String? _errorMessage;
 
   List<Session> get sessions => _sessions;
+  List<Participant> get participants => _participants;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
@@ -259,6 +262,27 @@ class SessionProvider with ChangeNotifier {
     } catch (e) {
       _setError('Failed to delete session: $e');
       return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  // Load participants for a session
+  Future<void> loadParticipants(int sessionId) async {
+    _setLoading(true);
+    _setError(null);
+
+    try {
+      final result = await _sessionService.getSessionParticipants(sessionId);
+
+      if (result['success']) {
+        _participants = result['participants'] as List<Participant>;
+        notifyListeners();
+      } else {
+        _setError(result['message']);
+      }
+    } catch (e) {
+      _setError('Failed to load participants: $e');
     } finally {
       _setLoading(false);
     }

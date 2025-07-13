@@ -1,7 +1,20 @@
-If invalid token or token expired, can we naigate straight back to the login page please
+Manage Share
+Next we need to manage shared items, poppadoms, shared set meals etc etc
 
-Guest Screen
-Let's apply these styles to the guest screen too. Keep all styles and code i the single file.
+Lets have a new screen called "Shared Items"
+
+Very similiar to adding individual items for a session, except we are adding only shared items. Not sure we need a separate screen for the add, just have the fields at the top and then they are added to the list below
+
+We want the item name, cost and then a way of assigning who is sharing
+
+The list will auto populate with any already set shared items. We know this by the receipt_items table having a share column. "Unknown" is in the list. "All" is in he list and has all the guests in it's list on the screen.
+ 
+Lets just do this for now and then add more functionality later, just to see how it feels and if we will use it going forward. The idea is to add an item that is shared and allocate guests to it but im not sure yet of all the details until we start working with it.
+
+Lets add a button on session lobby to get to it.
+
+
+Let's apply these styles to the manage share screen too. Keep all styles and code in the single file.
 
 - Design Rules
 - Use Material 3 theming.
@@ -18,9 +31,6 @@ Let's apply these styles to the guest screen too. Keep all styles and code i the
   - OnBackground: #4E4B47
   - OnSurface: #4E4B47
 
-
-The intention of the guest screen has changed slightly. I want it to be a place where we can see the total of their selected items, and the items themselves.
-Each guest will have a header with total and below, with the items. All displayed on the same screen
 
 
 
