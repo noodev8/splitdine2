@@ -1,0 +1,13 @@
+- Use Material 3 theming.
+- Use Google Sans Rounded Bold for headings.
+- Use Nunito Regular 16pt for body text.
+- Set these brand colors:
+  - Primary: #FFC629 (Sunshine Yellow)
+  - Secondary: #F04438 (Tomato Red)
+  - Background: #FFFFFF
+  - Surface: #ECE9E6
+  - Error: #F04438
+  - OnPrimary: #000000
+  - OnSecondary: #FFFFFF
+  - OnBackground: #4E4B47
+  - OnSurface: #4E4B47

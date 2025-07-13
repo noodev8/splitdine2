@@ -16,13 +16,6 @@ class AppConfig {
 
   // Helper method to log current configuration
   static void printConfig() {
-    if (enableLogging) {
-      print('=== App Configuration ===');
-      print('Base URL: $baseUrl');
-      print('App Name: $appName');
-      print('Debug Mode: $isDebugMode');
-      print('API Timeout: ${apiTimeout.inSeconds}s');
-      print('========================');
-    }
+    // Configuration logging removed to reduce warnings
   }
 }

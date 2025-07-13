@@ -9,6 +9,7 @@ import '../services/session_provider.dart';
 import 'session_items_screen.dart';
 import 'payment_summary_screen.dart';
 import 'guest_management_screen.dart';
+import 'my_items_screen.dart';
 
 class SessionDetailsScreen extends StatefulWidget {
   final Session session;
@@ -312,6 +313,23 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton.icon(
+                        onPressed: () => _navigateToMyItems(context),
+                        icon: const Icon(Icons.person),
+                        label: const Text('My Items'),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          backgroundColor: Colors.purple,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
                         onPressed: () => _navigateToPaymentSummary(context),
                         icon: const Icon(Icons.receipt_long),
                         label: const Text('Payment Summary'),
@@ -322,22 +340,22 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                         ),
                       ),
                     ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _navigateToGuestManagement(context),
+                        icon: const Icon(Icons.people),
+                        label: const Text('Guests'),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          backgroundColor: Colors.orange,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () => _navigateToGuestManagement(context),
-                    icon: const Icon(Icons.people),
-                    label: const Text('Guests'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: Colors.orange,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ),
+
                 if (!widget.session.isHost) ...[
                   const SizedBox(height: 12),
                   SizedBox(
@@ -477,6 +495,14 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => PaymentSummaryScreen(session: widget.session),
+      ),
+    );
+  }
+
+  void _navigateToMyItems(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => MyItemsScreen(session: widget.session),
       ),
     );
   }

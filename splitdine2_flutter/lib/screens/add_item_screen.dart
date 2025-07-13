@@ -302,13 +302,19 @@ class _AddItemScreenState extends State<AddItemScreen> {
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(_isEditing 
-                  ? 'Item updated successfully' 
+              content: Text(_isEditing
+                  ? 'Item updated successfully'
                   : 'Item added successfully'),
               backgroundColor: Colors.green,
             ),
           );
-          Navigator.of(context).pop();
+          // Return the newly added item ID for assignment purposes
+          if (!_isEditing && receiptProvider.items.isNotEmpty) {
+            final newestItem = receiptProvider.items.last;
+            Navigator.of(context).pop(newestItem.id);
+          } else {
+            Navigator.of(context).pop();
+          }
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
