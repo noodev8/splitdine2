@@ -24,18 +24,30 @@ class ReceiptService {
     required String itemName,
     required double price,
     required int quantity,
+    String? share,
   }) async {
     try {
       final headers = await _getAuthHeaders();
+
+      final requestBody = {
+        'session_id': sessionId,
+        'item_name': itemName,
+        'price': price,
+        'quantity': quantity,
+        if (share != null) 'share': share,
+      };
+
+      // DEBUG: Log the request being sent
+      print('=== FLUTTER ADD ITEM DEBUG ===');
+      print('Request URL: $baseUrl/receipts/add-item');
+      print('Request body: ${jsonEncode(requestBody)}');
+      print('Headers: $headers');
+      print('===============================');
+
       final response = await http.post(
         Uri.parse('$baseUrl/receipts/add-item'),
         headers: headers,
-        body: jsonEncode({
-          'session_id': sessionId,
-          'item_name': itemName,
-          'price': price,
-          'quantity': quantity,
-        }),
+        body: jsonEncode(requestBody),
       );
 
       final data = jsonDecode(response.body);
@@ -89,18 +101,30 @@ class ReceiptService {
     required String itemName,
     required double price,
     required int quantity,
+    String? share,
   }) async {
     try {
       final headers = await _getAuthHeaders();
+
+      final requestBody = {
+        'item_id': itemId,
+        'item_name': itemName,
+        'price': price,
+        'quantity': quantity,
+        if (share != null) 'share': share,
+      };
+
+      // DEBUG: Log the request being sent
+      print('=== FLUTTER UPDATE ITEM DEBUG ===');
+      print('Request URL: $baseUrl/receipts/update-item');
+      print('Request body: ${jsonEncode(requestBody)}');
+      print('Headers: $headers');
+      print('==================================');
+
       final response = await http.post(
         Uri.parse('$baseUrl/receipts/update-item'),
         headers: headers,
-        body: jsonEncode({
-          'item_id': itemId,
-          'item_name': itemName,
-          'price': price,
-          'quantity': quantity,
-        }),
+        body: jsonEncode(requestBody),
       );
 
       final data = jsonDecode(response.body);

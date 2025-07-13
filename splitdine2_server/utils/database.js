@@ -200,12 +200,12 @@ const participantQueries = {
 const receiptQueries = {
   // Create receipt item
   create: async (itemData) => {
-    const { session_id, item_name, price, quantity, added_by_user_id } = itemData;
+    const { session_id, item_name, price, quantity, added_by_user_id, share } = itemData;
     const result = await query(
-      `INSERT INTO receipt_items (session_id, name, price, quantity, added_by_user_id)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO receipt_items (session_id, name, price, quantity, added_by_user_id, share)
+       VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
-      [session_id, item_name, price, quantity, added_by_user_id]
+      [session_id, item_name, price, quantity, added_by_user_id, share]
     );
     return result.rows[0];
   },
@@ -234,13 +234,13 @@ const receiptQueries = {
 
   // Update receipt item
   update: async (itemId, updateData) => {
-    const { item_name, price, quantity } = updateData;
+    const { item_name, price, quantity, share } = updateData;
     const result = await query(
       `UPDATE receipt_items
-       SET name = $1, price = $2, quantity = $3, updated_at = NOW()
-       WHERE id = $4
+       SET name = $1, price = $2, quantity = $3, share = $4, updated_at = NOW()
+       WHERE id = $5
        RETURNING *`,
-      [item_name, price, quantity, itemId]
+      [item_name, price, quantity, share, itemId]
     );
     return result.rows[0];
   },

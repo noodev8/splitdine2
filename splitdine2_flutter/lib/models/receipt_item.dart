@@ -6,6 +6,7 @@ class ReceiptItem {
   final int quantity;
   final int addedByUserId;
   final String addedByName;
+  final String? share;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -17,6 +18,7 @@ class ReceiptItem {
     required this.quantity,
     required this.addedByUserId,
     required this.addedByName,
+    this.share,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -32,6 +34,7 @@ class ReceiptItem {
       quantity: json['quantity'] as int,
       addedByUserId: json['added_by_user_id'] as int,
       addedByName: json['added_by_name'] as String,
+      share: json['share'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
@@ -46,6 +49,7 @@ class ReceiptItem {
       'quantity': quantity,
       'added_by_user_id': addedByUserId,
       'added_by_name': addedByName,
+      'share': share,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
@@ -59,6 +63,7 @@ class ReceiptItem {
     int? quantity,
     int? addedByUserId,
     String? addedByName,
+    String? share,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -70,6 +75,7 @@ class ReceiptItem {
       quantity: quantity ?? this.quantity,
       addedByUserId: addedByUserId ?? this.addedByUserId,
       addedByName: addedByName ?? this.addedByName,
+      share: share ?? this.share,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

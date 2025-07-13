@@ -60,6 +60,7 @@ class ReceiptProvider with ChangeNotifier {
     required String itemName,
     required double price,
     required int quantity,
+    String? share,
   }) async {
     _setLoading(true);
     _setError(null);
@@ -70,6 +71,7 @@ class ReceiptProvider with ChangeNotifier {
         itemName: itemName,
         price: price,
         quantity: quantity,
+        share: share,
       );
 
       if (result['success']) {
@@ -96,6 +98,7 @@ class ReceiptProvider with ChangeNotifier {
     required String itemName,
     required double price,
     required int quantity,
+    String? share,
   }) async {
     _setLoading(true);
     _setError(null);
@@ -106,6 +109,7 @@ class ReceiptProvider with ChangeNotifier {
         itemName: itemName,
         price: price,
         quantity: quantity,
+        share: share,
       );
 
       if (result['success']) {

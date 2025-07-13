@@ -28,6 +28,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
   bool _isLoading = false;
   bool _isShareable = false;
+  String _shareOption = 'All'; // Default to 'All'
   bool get _isEditing => widget.editItem != null;
 
   @override
@@ -37,6 +38,14 @@ class _AddItemScreenState extends State<AddItemScreen> {
       _itemNameController.text = widget.editItem!.itemName;
       _priceController.text = widget.editItem!.price.toStringAsFixed(2);
       _quantityController.text = widget.editItem!.quantity.toString();
+
+      // Initialize share settings from existing item
+      if (widget.editItem!.share != null && widget.editItem!.share!.isNotEmpty) {
+        _isShareable = true;
+        _shareOption = widget.editItem!.share!;
+        _priceController.text = '0.00';
+        _quantityController.text = '1';
+      }
     } else {
       _quantityController.text = '1'; // Default quantity
       _shareCountController.text = '2'; // Default share count
@@ -265,9 +274,130 @@ class _AddItemScreenState extends State<AddItemScreen> {
                             ],
                           ),
                           if (_isShareable) ...[
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 16),
                             Text(
-                              'You\'ll pay a % of the total price',
+                              'How many people will share this item?',
+                              style: const TextStyle(
+                                fontFamily: 'Nunito',
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF4E4B47),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+
+                            // Share options
+                            Column(
+                              children: [
+                                RadioListTile<String>(
+                                  title: const Text(
+                                    'All participants',
+                                    style: TextStyle(
+                                      fontFamily: 'Nunito',
+                                      fontSize: 16,
+                                      color: Color(0xFF4E4B47),
+                                    ),
+                                  ),
+                                  value: 'All',
+                                  groupValue: _shareOption,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _shareOption = value!;
+                                    });
+                                  },
+                                  activeColor: const Color(0xFFFFC629),
+                                ),
+                                RadioListTile<String>(
+                                  title: const Text(
+                                    'Do not know yet',
+                                    style: TextStyle(
+                                      fontFamily: 'Nunito',
+                                      fontSize: 16,
+                                      color: Color(0xFF4E4B47),
+                                    ),
+                                  ),
+                                  value: 'Unknown',
+                                  groupValue: _shareOption,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _shareOption = value!;
+                                    });
+                                  },
+                                  activeColor: const Color(0xFFFFC629),
+                                ),
+                                // Custom number option
+                                RadioListTile<String>(
+                                  title: Row(
+                                    children: [
+                                      const Text(
+                                        'Specific number: ',
+                                        style: TextStyle(
+                                          fontFamily: 'Nunito',
+                                          fontSize: 16,
+                                          color: Color(0xFF4E4B47),
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: TextFormField(
+                                          controller: _shareCountController,
+                                          enabled: _shareOption.contains(RegExp(r'^\d+$')) || _shareOption == _shareCountController.text,
+                                          style: const TextStyle(
+                                            fontFamily: 'Nunito',
+                                            fontSize: 16,
+                                            color: Color(0xFF4E4B47),
+                                          ),
+                                          decoration: const InputDecoration(
+                                            hintText: '2-20',
+                                            border: OutlineInputBorder(),
+                                            contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                          ),
+                                          keyboardType: TextInputType.number,
+                                          inputFormatters: [
+                                            FilteringTextInputFormatter.digitsOnly,
+                                          ],
+                                          validator: (value) {
+                                            if (_isShareable && (_shareOption.contains(RegExp(r'^\d+$')) || _shareOption == value)) {
+                                              if (value == null || value.trim().isEmpty) {
+                                                return 'Required';
+                                              }
+                                              final number = int.tryParse(value.trim());
+                                              if (number == null || number < 2 || number > 20) {
+                                                return '2-20';
+                                              }
+                                            }
+                                            return null;
+                                          },
+                                          onChanged: (value) {
+                                            if (value.isNotEmpty) {
+                                              setState(() {
+                                                _shareOption = value;
+                                              });
+                                            }
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  value: _shareCountController.text.isNotEmpty && _shareCountController.text.contains(RegExp(r'^\d+$'))
+                                      ? _shareCountController.text
+                                      : 'custom',
+                                  groupValue: _shareOption,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      if (_shareCountController.text.isNotEmpty) {
+                                        _shareOption = _shareCountController.text;
+                                      } else {
+                                        _shareOption = 'custom';
+                                      }
+                                    });
+                                  },
+                                  activeColor: const Color(0xFFFFC629),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'You\'ll pay a portion of the total price',
                               style: TextStyle(
                                 fontFamily: 'Nunito',
                                 fontSize: 12,
@@ -564,14 +694,36 @@ class _AddItemScreenState extends State<AddItemScreen> {
       // Handle shareable items: use price 0 and quantity 1
       final double price;
       final int quantity;
+      final String? share;
 
       if (_isShareable) {
         price = 0.0;
         quantity = 1;
+        // Determine share value
+        if (_shareOption == 'All' || _shareOption == 'Unknown') {
+          share = _shareOption;
+        } else {
+          // Custom number
+          final customNumber = _shareCountController.text.trim();
+          share = customNumber.isNotEmpty ? customNumber : _shareOption;
+        }
       } else {
         price = double.parse(_priceController.text.trim());
         quantity = int.parse(_quantityController.text.trim());
+        share = null;
       }
+
+      // DEBUG: Log what we're about to send
+      print('=== FLUTTER SAVE ITEM DEBUG ===');
+      print('Item Name: $itemName');
+      print('Price: $price');
+      print('Quantity: $quantity');
+      print('Share: $share');
+      print('Is Shareable: $_isShareable');
+      print('Share Option: $_shareOption');
+      print('Session ID: ${widget.session.id}');
+      print('Is Editing: $_isEditing');
+      print('===============================');
 
       bool success = false;
       int? lastItemId;
@@ -582,6 +734,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
           itemName: itemName,
           price: price,
           quantity: 1, // Always use quantity 1 in database
+          share: share,
         );
       } else {
         // Add multiple items with quantity 1 each
@@ -592,6 +745,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
             itemName: itemName,
             price: price,
             quantity: 1, // Always use quantity 1 in database
+            share: share,
           );
 
           if (itemSuccess) {

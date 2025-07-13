@@ -11,10 +11,22 @@ const { authenticateToken, requireSessionParticipant } = require('../middleware/
 // Add receipt item
 router.post('/add-item', authenticateToken, requireSessionParticipant, async (req, res) => {
   try {
-    const { session_id, item_name, price, quantity } = req.body;
+    const { session_id, item_name, price, quantity, share } = req.body;
+
+    // DEBUG: Log all received parameters
+    console.log('=== ADD ITEM DEBUG ===');
+    console.log('Received request body:', JSON.stringify(req.body, null, 2));
+    console.log('session_id:', session_id, 'type:', typeof session_id);
+    console.log('item_name:', item_name, 'type:', typeof item_name);
+    console.log('price:', price, 'type:', typeof price);
+    console.log('quantity:', quantity, 'type:', typeof quantity);
+    console.log('share:', share, 'type:', typeof share);
+    console.log('User ID:', req.user?.id);
+    console.log('======================');
 
     // Validate required fields
-    if (!session_id || !item_name || !price || !quantity) {
+    if (!session_id || !item_name || price === undefined || price === null || !quantity) {
+      console.log('VALIDATION FAILED - Missing fields');
       return res.status(400).json({
         return_code: 'MISSING_FIELDS',
         message: 'Session ID, item name, price, and quantity are required',
@@ -40,13 +52,19 @@ router.post('/add-item', authenticateToken, requireSessionParticipant, async (re
     }
 
     // Create receipt item
-    const newItem = await receiptQueries.create({
+    const itemData = {
       session_id,
       item_name: item_name.trim(),
       price: parseFloat(price),
       quantity: parseInt(quantity),
-      added_by_user_id: req.user.id
-    });
+      added_by_user_id: req.user.id,
+      share: share || null
+    };
+
+    console.log('Creating item with data:', JSON.stringify(itemData, null, 2));
+    const newItem = await receiptQueries.create(itemData);
+
+    console.log('Item created successfully:', JSON.stringify(newItem, null, 2));
 
     res.status(201).json({
       return_code: 'SUCCESS',
@@ -57,6 +75,7 @@ router.post('/add-item', authenticateToken, requireSessionParticipant, async (re
         item_name: newItem.name,
         price: newItem.price,
         quantity: newItem.quantity,
+        share: newItem.share,
         total: newItem.price * newItem.quantity,
         added_by_user_id: newItem.added_by_user_id,
         added_by_name: 'You', // Default for newly created items
@@ -123,10 +142,22 @@ router.post('/get-items', authenticateToken, requireSessionParticipant, async (r
 // Update receipt item
 router.post('/update-item', authenticateToken, async (req, res) => {
   try {
-    const { item_id, item_name, price, quantity } = req.body;
+    const { item_id, item_name, price, quantity, share } = req.body;
+
+    // DEBUG: Log all received parameters
+    console.log('=== UPDATE ITEM DEBUG ===');
+    console.log('Received request body:', JSON.stringify(req.body, null, 2));
+    console.log('item_id:', item_id, 'type:', typeof item_id);
+    console.log('item_name:', item_name, 'type:', typeof item_name);
+    console.log('price:', price, 'type:', typeof price);
+    console.log('quantity:', quantity, 'type:', typeof quantity);
+    console.log('share:', share, 'type:', typeof share);
+    console.log('User ID:', req.user?.id);
+    console.log('=========================');
 
     // Validate required fields
-    if (!item_id || !item_name || !price || !quantity) {
+    if (!item_id || !item_name || price === undefined || price === null || !quantity) {
+      console.log('VALIDATION FAILED - Missing fields');
       return res.status(400).json({
         return_code: 'MISSING_FIELDS',
         message: 'Item ID, item name, price, and quantity are required',
@@ -195,11 +226,15 @@ router.post('/update-item', authenticateToken, async (req, res) => {
     }
 
     // Update receipt item
-    const updatedItem = await receiptQueries.update(item_id, {
+    const updateData = {
       item_name: item_name.trim(),
       price: parseFloat(price),
-      quantity: parseInt(quantity)
-    });
+      quantity: parseInt(quantity),
+      share: share || null
+    };
+
+    console.log('Updating item with data:', JSON.stringify(updateData, null, 2));
+    const updatedItem = await receiptQueries.update(item_id, updateData);
 
     if (!updatedItem) {
       return res.status(404).json({
@@ -213,6 +248,8 @@ router.post('/update-item', authenticateToken, async (req, res) => {
     const itemWithUser = await receiptQueries.getBySession(existingItem.session_id);
     const updatedItemWithUser = itemWithUser.find(item => item.id === updatedItem.id);
 
+    console.log('Item updated successfully:', JSON.stringify(updatedItem, null, 2));
+
     res.json({
       return_code: 'SUCCESS',
       message: 'Receipt item updated successfully',
@@ -222,6 +259,7 @@ router.post('/update-item', authenticateToken, async (req, res) => {
         item_name: updatedItem.name,
         price: updatedItem.price,
         quantity: updatedItem.quantity,
+        share: updatedItem.share,
         added_by_user_id: updatedItem.added_by_user_id,
         added_by_name: updatedItemWithUser?.added_by_name || 'Unknown',
         created_at: updatedItem.created_at,
