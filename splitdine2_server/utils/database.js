@@ -270,7 +270,7 @@ const receiptQueries = {
 
   // Update receipt item
   update: async (itemId, updateData) => {
-    const { item_name, price, quantity, share } = updateData;
+    const { item_name, price, share } = updateData;
     const result = await query(
       `UPDATE guest_choice
        SET name = $1, price = $2, description = $3, updated_at = NOW()

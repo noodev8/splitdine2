@@ -64,6 +64,7 @@ router.post('/add-item', authenticateToken, requireSessionParticipant, async (re
         session_id: newItem.session_id,
         item_name: newItem.item_name,
         price: newItem.price,
+        quantity: 1, // Always 1 in new structure (no quantity column)
         share: newItem.share,
         added_by_user_id: newItem.added_by_user_id,
         added_by_name: 'You', // Default for newly created items
@@ -229,6 +230,7 @@ router.post('/update-item', authenticateToken, async (req, res) => {
         session_id: updatedItem.session_id,
         item_name: updatedItem.item_name,
         price: updatedItem.price,
+        quantity: 1, // Always 1 in new structure (no quantity column)
         share: updatedItem.share,
         added_by_user_id: updatedItem.added_by_user_id,
         added_by_name: updatedItemWithUser?.added_by_name || 'Unknown',
