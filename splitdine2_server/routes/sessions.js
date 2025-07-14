@@ -356,10 +356,10 @@ router.post('/leave', authenticateToken, async (req, res) => {
     // Remove user from session participants (set left_at timestamp)
     await participantQueries.leave(session_id, req.user.id);
 
-    // Also remove all item assignments for this user in this session
+    // Also remove all items for this user in this session
     const { query } = require('../config/database');
     await query(`
-      DELETE FROM item_assignments
+      DELETE FROM guest_choice
       WHERE session_id = $1 AND user_id = $2
     `, [session_id, req.user.id]);
 
@@ -434,10 +434,10 @@ router.post('/remove-participant', authenticateToken, async (req, res) => {
     // Remove user from session participants (set left_at timestamp)
     await participantQueries.leave(session_id, user_id);
 
-    // Also remove all item assignments for this user in this session
+    // Also remove all items for this user in this session
     const { query } = require('../config/database');
     await query(`
-      DELETE FROM item_assignments
+      DELETE FROM guest_choice
       WHERE session_id = $1 AND user_id = $2
     `, [session_id, user_id]);
 
@@ -569,11 +569,11 @@ router.post('/delete', authenticateToken, async (req, res) => {
     // Delete all related data in correct order (due to foreign key constraints)
     const { query } = require('../config/database');
 
-    // Delete item assignments
-    await query('DELETE FROM item_assignments WHERE session_id = $1', [session_id]);
+    // Delete guest choices (items and split item assignments)
+    await query('DELETE FROM guest_choice WHERE session_id = $1', [session_id]);
 
-    // Delete receipt items
-    await query('DELETE FROM receipt_items WHERE session_id = $1', [session_id]);
+    // Delete split items
+    await query('DELETE FROM split_items WHERE session_id = $1', [session_id]);
 
     // Delete session participants
     await query('DELETE FROM session_guest WHERE session_id = $1', [session_id]);

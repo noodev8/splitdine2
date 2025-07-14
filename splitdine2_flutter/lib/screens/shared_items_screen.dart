@@ -105,7 +105,6 @@ class _SharedItemsScreenState extends State<SharedItemsScreen> {
         sessionId: widget.session.id,
         itemName: _itemNameController.text.trim(),
         price: double.parse(_priceController.text),
-        quantity: 1,
         share: shareString,
       );
 

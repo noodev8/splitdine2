@@ -25,7 +25,6 @@ class ReceiptService {
     required int sessionId,
     required String itemName,
     required double price,
-    required int quantity,
     String? share,
   }) async {
     try {
@@ -35,16 +34,10 @@ class ReceiptService {
         'session_id': sessionId,
         'item_name': itemName,
         'price': price,
-        'quantity': quantity,
         if (share != null) 'share': share,
       };
 
-      // DEBUG: Log the request being sent
-      print('=== FLUTTER ADD ITEM DEBUG ===');
-      print('Request URL: $baseUrl/receipts/add-item');
-      print('Request body: ${jsonEncode(requestBody)}');
-      print('Headers: $headers');
-      print('===============================');
+
 
       final response = await http.post(
         Uri.parse('$baseUrl/receipts/add-item'),
@@ -102,7 +95,6 @@ class ReceiptService {
     required int itemId,
     required String itemName,
     required double price,
-    required int quantity,
     String? share,
   }) async {
     try {
@@ -112,22 +104,16 @@ class ReceiptService {
         'item_id': itemId,
         'item_name': itemName,
         'price': price,
-        'quantity': quantity,
         if (share != null) 'share': share,
       };
 
-      // DEBUG: Log the request being sent
-      print('=== FLUTTER UPDATE ITEM DEBUG ===');
-      print('Request URL: $baseUrl/receipts/update-item');
-      print('Request body: ${jsonEncode(requestBody)}');
-      print('Headers: $headers');
-      print('==================================');
+
 
       final response = await http.post(
         Uri.parse('$baseUrl/receipts/update-item'),
         headers: headers,
         body: jsonEncode(requestBody),
-      );
+      ).timeout(const Duration(seconds: 10));
 
       final data = jsonDecode(response.body);
 

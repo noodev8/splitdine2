@@ -59,7 +59,6 @@ class ReceiptProvider with ChangeNotifier {
     required int sessionId,
     required String itemName,
     required double price,
-    required int quantity,
     String? share,
   }) async {
     _setLoading(true);
@@ -70,7 +69,6 @@ class ReceiptProvider with ChangeNotifier {
         sessionId: sessionId,
         itemName: itemName,
         price: price,
-        quantity: quantity,
         share: share,
       );
 
@@ -97,7 +95,6 @@ class ReceiptProvider with ChangeNotifier {
     required int itemId,
     required String itemName,
     required double price,
-    required int quantity,
     String? share,
   }) async {
     _setLoading(true);
@@ -108,7 +105,6 @@ class ReceiptProvider with ChangeNotifier {
         itemId: itemId,
         itemName: itemName,
         price: price,
-        quantity: quantity,
         share: share,
       );
 

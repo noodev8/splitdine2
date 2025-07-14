@@ -56,8 +56,8 @@ const userQueries = {
   // Delete user and all related data
   deleteUser: async (userId) => {
     // Delete in order to respect foreign key constraints
-    // Delete item assignments
-    await query('DELETE FROM item_assignments WHERE user_id = $1', [userId]);
+    // Delete guest choices (items)
+    await query('DELETE FROM guest_choice WHERE user_id = $1', [userId]);
 
     // Delete session participants
     await query('DELETE FROM session_guest WHERE user_id = $1', [userId]);
@@ -69,8 +69,8 @@ const userQueries = {
     const userSessions = await query('SELECT id FROM session WHERE organizer_id = $1', [userId]);
     for (const session of userSessions.rows) {
       // Delete session-related data
-      await query('DELETE FROM item_assignments WHERE session_id = $1', [session.id]);
-      await query('DELETE FROM receipt_items WHERE session_id = $1', [session.id]);
+      await query('DELETE FROM guest_choice WHERE session_id = $1', [session.id]);
+      await query('DELETE FROM split_items WHERE session_id = $1', [session.id]);
       await query('DELETE FROM session_guest WHERE session_id = $1', [session.id]);
       await query('DELETE FROM final_splits WHERE session_id = $1', [session.id]);
       await query('DELETE FROM session_activity_log WHERE session_id = $1', [session.id]);
@@ -196,37 +196,73 @@ const participantQueries = {
   }
 };
 
-// Receipt item operations
+// Receipt item operations (now using guest_choice table)
 const receiptQueries = {
   // Create receipt item
   create: async (itemData) => {
-    const { session_id, item_name, price, quantity, added_by_user_id, share } = itemData;
+    const { session_id, item_name, price, added_by_user_id, share } = itemData;
+
+    // Create a single item (no quantity - multiple items are separate rows)
     const result = await query(
-      `INSERT INTO receipt_items (session_id, name, price, quantity, added_by_user_id, share)
+      `INSERT INTO guest_choice (session_id, name, price, description, user_id, split_item)
        VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
-      [session_id, item_name, price, quantity, added_by_user_id, share]
+      [session_id, item_name, price, share, added_by_user_id, false]
     );
-    return result.rows[0];
+
+    const newItem = result.rows[0];
+
+    // Get the user name for the response
+    const userResult = await query('SELECT display_name FROM app_user WHERE id = $1', [added_by_user_id]);
+    const addedByName = userResult.rows[0]?.display_name || 'Unknown User';
+
+    // Return the item with correct field names for Flutter
+    return {
+      id: newItem.id,
+      session_id: newItem.session_id,
+      item_name: newItem.name,
+      price: newItem.price,
+      added_by_user_id: newItem.user_id,
+      added_by_name: addedByName,
+      share: newItem.description,
+      created_at: newItem.created_at,
+      updated_at: newItem.updated_at
+    };
   },
 
   // Get items by session
   getBySession: async (sessionId) => {
     const result = await query(
-      `SELECT ri.*, u.display_name as added_by_name
-       FROM receipt_items ri
-       JOIN app_user u ON ri.added_by_user_id = u.id
-       WHERE ri.session_id = $1
-       ORDER BY ri.created_at DESC`,
+      `SELECT gc.id, gc.session_id, gc.name as item_name, gc.price, gc.description as share,
+              gc.user_id as added_by_user_id, u.display_name as added_by_name,
+              gc.created_at, gc.updated_at
+       FROM guest_choice gc
+       JOIN app_user u ON gc.user_id = u.id
+       WHERE gc.session_id = $1 AND (gc.split_item = false OR gc.split_item IS NULL)
+       ORDER BY gc.created_at DESC`,
       [sessionId]
     );
-    return result.rows;
+
+    // Group items by name and user to calculate quantities
+    const itemGroups = {};
+    result.rows.forEach(item => {
+      const key = `${item.item_name}_${item.added_by_user_id}_${item.price}`;
+      if (!itemGroups[key]) {
+        itemGroups[key] = {
+          ...item,
+          quantity: 0
+        };
+      }
+      itemGroups[key].quantity += 1;
+    });
+
+    return Object.values(itemGroups);
   },
 
   // Find receipt item by ID
   findById: async (itemId) => {
     const result = await query(
-      'SELECT * FROM receipt_items WHERE id = $1',
+      'SELECT * FROM guest_choice WHERE id = $1 AND (split_item = false OR split_item IS NULL)',
       [itemId]
     );
     return result.rows[0];
@@ -236,133 +272,73 @@ const receiptQueries = {
   update: async (itemId, updateData) => {
     const { item_name, price, quantity, share } = updateData;
     const result = await query(
-      `UPDATE receipt_items
-       SET name = $1, price = $2, quantity = $3, share = $4, updated_at = NOW()
-       WHERE id = $5
+      `UPDATE guest_choice
+       SET name = $1, price = $2, description = $3, updated_at = NOW()
+       WHERE id = $4
        RETURNING *`,
-      [item_name, price, quantity, share, itemId]
+      [item_name, price, share, itemId]
     );
-    return result.rows[0];
+
+    // Get the user name for the response
+    const item = result.rows[0];
+    const userResult = await query('SELECT display_name FROM app_user WHERE id = $1', [item.user_id]);
+    const addedByName = userResult.rows[0]?.display_name || 'Unknown User';
+
+    // Return with correct field names for Flutter
+    return {
+      id: item.id,
+      session_id: item.session_id,
+      item_name: item.name,
+      price: item.price,
+      quantity: 1, // Always 1 in new structure
+      added_by_user_id: item.user_id,
+      added_by_name: addedByName,
+      share: item.description,
+      created_at: item.created_at,
+      updated_at: item.updated_at
+    };
   },
 
   // Delete receipt item
   delete: async (itemId) => {
-    await query('DELETE FROM receipt_items WHERE id = $1', [itemId]);
+    await query('DELETE FROM guest_choice WHERE id = $1', [itemId]);
   }
 };
 
-// Assignment queries
+// Assignment queries - now simplified since items are stored directly in guest_choice
 const assignmentQueries = {
-  // Create assignment
-  create: async (assignmentData) => {
-    const { session_id, item_id, user_id } = assignmentData;
+  // Get user items for a session (from guest_choice)
+  getByUserAndSession: async (userId, sessionId) => {
     const result = await query(
-      `INSERT INTO item_assignments (session_id, item_id, user_id)
-       VALUES ($1, $2, $3)
-       RETURNING id, session_id, item_id, user_id, created_at, updated_at`,
-      [session_id, item_id, user_id]
+      `SELECT gc.*, gc.name as item_name, 1 as quantity
+       FROM guest_choice gc
+       WHERE gc.user_id = $1 AND gc.session_id = $2 AND (gc.split_item = false OR gc.split_item IS NULL)
+       ORDER BY gc.created_at`,
+      [userId, sessionId]
     );
-
-    // Get the assignment with user name
-    const assignmentWithUser = await query(
-      `SELECT ia.*, u.display_name as user_name
-       FROM item_assignments ia
-       JOIN app_user u ON ia.user_id = u.id
-       WHERE ia.id = $1`,
-      [result.rows[0].id]
-    );
-
-    return assignmentWithUser.rows[0];
+    return result.rows;
   },
 
-  // Find assignment by item and user
-  findByItemAndUser: async (itemId, userId) => {
-    const result = await query(
-      'SELECT * FROM item_assignments WHERE item_id = $1 AND user_id = $2',
-      [itemId, userId]
-    );
-    return result.rows[0];
-  },
-
-  // Get assignments by session
+  // Get all assignments for a session (compatibility function)
   getBySession: async (sessionId) => {
     const result = await query(
-      `SELECT ia.*, u.display_name as user_name
-       FROM item_assignments ia
-       JOIN app_user u ON ia.user_id = u.id
-       WHERE ia.session_id = $1
-       ORDER BY ia.created_at`,
+      `SELECT gc.id, gc.session_id, gc.id as item_id, gc.user_id, u.display_name as user_name, gc.created_at
+       FROM guest_choice gc
+       JOIN app_user u ON gc.user_id = u.id
+       WHERE gc.session_id = $1 AND (gc.split_item = false OR gc.split_item IS NULL)
+       ORDER BY gc.created_at`,
       [sessionId]
     );
     return result.rows;
   },
 
-  // Get assignments by item
-  getByItem: async (itemId) => {
+  // Find assignment by item and user (compatibility function)
+  findByItemAndUser: async (itemId, userId) => {
     const result = await query(
-      `SELECT ia.*, u.display_name as user_name
-       FROM item_assignments ia
-       JOIN app_user u ON ia.user_id = u.id
-       WHERE ia.item_id = $1
-       ORDER BY ia.created_at`,
-      [itemId]
-    );
-    return result.rows;
-  },
-
-  // Get split item participants (assignments with share = 'Y')
-  getSplitItemParticipants: async (itemId) => {
-    const result = await query(
-      `SELECT ia.*, u.display_name as user_name
-       FROM item_assignments ia
-       JOIN app_user u ON ia.user_id = u.id
-       WHERE ia.item_id = $1 AND ia.share = 'Y'
-       ORDER BY ia.created_at`,
-      [itemId]
-    );
-    return result.rows;
-  },
-
-  // Delete assignment by item and user
-  deleteByItemAndUser: async (itemId, userId) => {
-    await query(
-      'DELETE FROM item_assignments WHERE item_id = $1 AND user_id = $2',
+      'SELECT * FROM guest_choice WHERE id = $1 AND user_id = $2 AND (split_item = false OR split_item IS NULL)',
       [itemId, userId]
     );
-  },
-
-  // Delete split item assignment by item and user (only share = 'Y')
-  deleteSplitItemAssignment: async (itemId, userId) => {
-    await query(
-      'DELETE FROM item_assignments WHERE item_id = $1 AND user_id = $2 AND share = \'Y\'',
-      [itemId, userId]
-    );
-  },
-
-  // Delete all assignments for an item
-  deleteByItem: async (itemId) => {
-    await query('DELETE FROM item_assignments WHERE item_id = $1', [itemId]);
-  },
-
-  // Delete all split item assignments for an item (only share = 'Y')
-  deleteSplitItemAssignments: async (itemId) => {
-    await query(
-      'DELETE FROM item_assignments WHERE item_id = $1 AND share = \'Y\'',
-      [itemId]
-    );
-  },
-
-  // Get user assignments for a session
-  getByUserAndSession: async (userId, sessionId) => {
-    const result = await query(
-      `SELECT ia.*, ri.name as item_name, ri.price, ri.quantity
-       FROM item_assignments ia
-       JOIN receipt_items ri ON ia.item_id = ri.id
-       WHERE ia.user_id = $1 AND ia.session_id = $2
-       ORDER BY ia.created_at`,
-      [userId, sessionId]
-    );
-    return result.rows;
+    return result.rows[0];
   }
 };
 

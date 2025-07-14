@@ -733,7 +733,6 @@ class _AddItemScreenState extends State<AddItemScreen> {
           itemId: widget.editItem!.id,
           itemName: itemName,
           price: price,
-          quantity: 1, // Always use quantity 1 in database
           share: share,
         );
       } else {
@@ -744,7 +743,6 @@ class _AddItemScreenState extends State<AddItemScreen> {
             sessionId: widget.session.id,
             itemName: itemName,
             price: price,
-            quantity: 1, // Always use quantity 1 in database
             share: share,
           );
 

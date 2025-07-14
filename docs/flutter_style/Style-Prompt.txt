@@ -1,22 +1,15 @@
-Manage Share
-Next we need to manage shared items, poppadoms, shared set meals etc etc
+Split Item
+Next we need to manage items that are split equally in price between participants.
 
-Lets have a new screen called "Shared Items"
+Lets have a new screen called "Split Items"
 
-Very similiar to adding individual items for a session, except we are adding only shared items. Not sure we need a separate screen for the add, just have the fields at the top and then they are added to the list below
+Very similiar to adding individual items for a session, except we are adding only split items. Two parts to this
+1 - The screen which lists all the split items for the session with which guest is a part of that split. Have a menu at the bottom, "add split". If the item in the list was tapped, a popup appears with a scrollable list of guests and allows clicking which guest is a part or not a part of that splt.
+2 - The screen which allows adding a split item. The name, the total cost. This is arrived from screen 1 above "Add Split"
 
-We want the item name, cost and then a way of assigning who is sharing
+Use the below design only for these screens, and keep all UI, styles and logic in their own file. Do not change other parts of the app apart from the session home page where you add a button (simple button) for "Split Item"
 
-The list will auto populate with any already set shared items. We know this by the receipt_items table having a share column. "Unknown" is in the list. "All" is in he list and has all the guests in it's list on the screen.
- 
-Lets just do this for now and then add more functionality later, just to see how it feels and if we will use it going forward. The idea is to add an item that is shared and allocate guests to it but im not sure yet of all the details until we start working with it.
-
-Lets add a button on session lobby to get to it.
-
-
-Let's apply these styles to the manage share screen too. Keep all styles and code in the single file.
-
-- Design Rules
+- Design Rules for these screens only. Not other parts of the app
 - Use Material 3 theming.
 - Use Google Sans Rounded Bold for headings.
 - Use Nunito Regular 24pt for body text.
@@ -32,6 +25,8 @@ Let's apply these styles to the manage share screen too. Keep all styles and cod
   - OnSurface: #4E4B47
 
 
+Logic and data
+Ive updated DB_Schema which now incldes a table caled split_items. Use this table to add to, and lookup details.
 
 
 

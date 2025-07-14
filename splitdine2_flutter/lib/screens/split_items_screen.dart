@@ -236,46 +236,13 @@ class _SplitItemsScreenState extends State<SplitItemsScreen> {
               );
             }
 
-            return Column(
-              children: [
-                // Summary header
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  color: surfaceColor,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Split Items (${splitItems.length})',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Total: £${splitItemProvider.subtotal.toStringAsFixed(2)}',
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: primaryColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                
-                // Items list
-                Expanded(
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: splitItems.length,
-                    itemBuilder: (context, index) {
-                      final item = splitItems[index];
-                      return _buildSplitItemCard(item);
-                    },
-                  ),
-                ),
-              ],
+            return ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: splitItems.length,
+              itemBuilder: (context, index) {
+                final item = splitItems[index];
+                return _buildSplitItemCard(item);
+              },
             );
           },
         ),

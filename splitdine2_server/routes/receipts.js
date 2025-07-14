@@ -11,7 +11,7 @@ const { authenticateToken, requireSessionParticipant } = require('../middleware/
 // Add receipt item
 router.post('/add-item', authenticateToken, requireSessionParticipant, async (req, res) => {
   try {
-    const { session_id, item_name, price, quantity, share } = req.body;
+    const { session_id, item_name, price, share } = req.body;
 
     // DEBUG: Log all received parameters
     console.log('=== ADD ITEM DEBUG ===');
@@ -19,22 +19,21 @@ router.post('/add-item', authenticateToken, requireSessionParticipant, async (re
     console.log('session_id:', session_id, 'type:', typeof session_id);
     console.log('item_name:', item_name, 'type:', typeof item_name);
     console.log('price:', price, 'type:', typeof price);
-    console.log('quantity:', quantity, 'type:', typeof quantity);
     console.log('share:', share, 'type:', typeof share);
     console.log('User ID:', req.user?.id);
     console.log('======================');
 
-    // Validate required fields
-    if (!session_id || !item_name || price === undefined || price === null || !quantity) {
+    // Validate required fields (no quantity - multiple items are separate rows)
+    if (!session_id || !item_name || price === undefined || price === null) {
       console.log('VALIDATION FAILED - Missing fields');
       return res.status(400).json({
         return_code: 'MISSING_FIELDS',
-        message: 'Session ID, item name, price, and quantity are required',
+        message: 'Session ID, item name, and price are required',
         timestamp: new Date().toISOString()
       });
     }
 
-    // Validate price and quantity (allow price = 0 for shareable items)
+    // Validate price (allow price = 0 for shareable items)
     if (isNaN(price) || price < 0) {
       return res.status(400).json({
         return_code: 'INVALID_PRICE',
@@ -43,20 +42,11 @@ router.post('/add-item', authenticateToken, requireSessionParticipant, async (re
       });
     }
 
-    if (isNaN(quantity) || quantity <= 0 || !Number.isInteger(Number(quantity))) {
-      return res.status(400).json({
-        return_code: 'INVALID_QUANTITY',
-        message: 'Quantity must be a positive integer',
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    // Create receipt item
+    // Create receipt item (no quantity column - each item is a single row)
     const itemData = {
-      session_id,
+      session_id: parseInt(session_id),
       item_name: item_name.trim(),
       price: parseFloat(price),
-      quantity: parseInt(quantity),
       added_by_user_id: req.user.id,
       share: share || null
     };
@@ -72,11 +62,9 @@ router.post('/add-item', authenticateToken, requireSessionParticipant, async (re
       item: {
         id: newItem.id,
         session_id: newItem.session_id,
-        item_name: newItem.name,
+        item_name: newItem.item_name,
         price: newItem.price,
-        quantity: newItem.quantity,
         share: newItem.share,
-        total: newItem.price * newItem.quantity,
         added_by_user_id: newItem.added_by_user_id,
         added_by_name: 'You', // Default for newly created items
         created_at: newItem.created_at,
@@ -112,7 +100,7 @@ router.post('/get-items', authenticateToken, requireSessionParticipant, async (r
       items: items.map(item => ({
         id: item.id,
         session_id: item.session_id,
-        item_name: item.name,
+        item_name: item.item_name,
         price: item.price,
         quantity: item.quantity,
         total: item.price * item.quantity,
@@ -142,7 +130,7 @@ router.post('/get-items', authenticateToken, requireSessionParticipant, async (r
 // Update receipt item
 router.post('/update-item', authenticateToken, async (req, res) => {
   try {
-    const { item_id, item_name, price, quantity, share } = req.body;
+    const { item_id, item_name, price, share } = req.body;
 
     // DEBUG: Log all received parameters
     console.log('=== UPDATE ITEM DEBUG ===');
@@ -150,34 +138,25 @@ router.post('/update-item', authenticateToken, async (req, res) => {
     console.log('item_id:', item_id, 'type:', typeof item_id);
     console.log('item_name:', item_name, 'type:', typeof item_name);
     console.log('price:', price, 'type:', typeof price);
-    console.log('quantity:', quantity, 'type:', typeof quantity);
     console.log('share:', share, 'type:', typeof share);
     console.log('User ID:', req.user?.id);
     console.log('=========================');
 
-    // Validate required fields
-    if (!item_id || !item_name || price === undefined || price === null || !quantity) {
+    // Validate required fields (no quantity - it's represented by multiple rows)
+    if (!item_id || !item_name || price === undefined || price === null) {
       console.log('VALIDATION FAILED - Missing fields');
       return res.status(400).json({
         return_code: 'MISSING_FIELDS',
-        message: 'Item ID, item name, price, and quantity are required',
+        message: 'Item ID, item name, and price are required',
         timestamp: new Date().toISOString()
       });
     }
 
-    // Validate price and quantity (allow price = 0 for shareable items)
+    // Validate price (allow price = 0 for shareable items)
     if (isNaN(price) || price < 0) {
       return res.status(400).json({
         return_code: 'INVALID_PRICE',
         message: 'Price must be a non-negative number',
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    if (isNaN(quantity) || quantity <= 0 || !Number.isInteger(Number(quantity))) {
-      return res.status(400).json({
-        return_code: 'INVALID_QUANTITY',
-        message: 'Quantity must be a positive integer',
         timestamp: new Date().toISOString()
       });
     }
@@ -216,20 +195,12 @@ router.post('/update-item', authenticateToken, async (req, res) => {
       });
     }
 
-    // Check permissions: organizer can edit any item, guests can only edit their own
-    if (!isHost && existingItem.added_by_user_id !== req.user.id) {
-      return res.status(403).json({
-        return_code: 'UNAUTHORIZED',
-        message: 'You can only edit items you added',
-        timestamp: new Date().toISOString()
-      });
-    }
+    // Any participant can edit any item in the session
 
-    // Update receipt item
+    // Update receipt item (no quantity column - multiple items are separate rows)
     const updateData = {
       item_name: item_name.trim(),
       price: parseFloat(price),
-      quantity: parseInt(quantity),
       share: share || null
     };
 
@@ -256,15 +227,13 @@ router.post('/update-item', authenticateToken, async (req, res) => {
       item: {
         id: updatedItem.id,
         session_id: updatedItem.session_id,
-        item_name: updatedItem.name,
+        item_name: updatedItem.item_name,
         price: updatedItem.price,
-        quantity: updatedItem.quantity,
         share: updatedItem.share,
         added_by_user_id: updatedItem.added_by_user_id,
         added_by_name: updatedItemWithUser?.added_by_name || 'Unknown',
         created_at: updatedItem.created_at,
-        updated_at: updatedItem.updated_at,
-        total: updatedItem.price * updatedItem.quantity
+        updated_at: updatedItem.updated_at
       },
       timestamp: new Date().toISOString()
     });
@@ -327,14 +296,7 @@ router.post('/delete-item', authenticateToken, async (req, res) => {
       });
     }
 
-    // Check permissions: organizer can delete any item, guests can only delete their own
-    if (!isHost && existingItem.added_by_user_id !== req.user.id) {
-      return res.status(403).json({
-        return_code: 'UNAUTHORIZED',
-        message: 'You can only delete items you added',
-        timestamp: new Date().toISOString()
-      });
-    }
+    // Any participant can delete any item in the session
 
     // Delete receipt item
     await receiptQueries.delete(item_id);
