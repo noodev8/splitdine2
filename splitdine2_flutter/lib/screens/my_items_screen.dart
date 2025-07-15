@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/session.dart';
 import '../models/receipt_item.dart';
-import '../services/receipt_provider.dart';
-import '../services/assignment_provider.dart';
 import '../services/auth_provider.dart';
-import 'add_item_screen.dart';
+import '../services/receipt_provider.dart';
+import '../services/split_item_service.dart';
 
 class MyItemsScreen extends StatefulWidget {
   final Session session;
@@ -20,365 +19,737 @@ class MyItemsScreen extends StatefulWidget {
 }
 
 class _MyItemsScreenState extends State<MyItemsScreen> {
+  final TextEditingController _textController = TextEditingController();
+  final FocusNode _textFocusNode = FocusNode();
+
+  List<ReceiptItem> _myItems = [];
+  List<Map<String, dynamic>> _splitItems = [];
+  bool _isLoading = false;
+  bool _isAddingItem = false;
+
   @override
   void initState() {
     super.initState();
-    // Load data after the first frame to avoid setState during build
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadData();
-    });
-  }
-
-  Future<void> _loadData() async {
-    final receiptProvider = Provider.of<ReceiptProvider>(context, listen: false);
-    final assignmentProvider = Provider.of<AssignmentProvider>(context, listen: false);
-
-    await receiptProvider.loadItems(widget.session.id);
-    await assignmentProvider.loadSessionAssignments(widget.session.id);
+    _loadItems();
+    _loadSplitItems();
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA), // Very light gray background
-      body: Consumer3<ReceiptProvider, AssignmentProvider, AuthProvider>(
-        builder: (context, receiptProvider, assignmentProvider, authProvider, child) {
-          if (receiptProvider.isLoading || assignmentProvider.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
+  void dispose() {
+    _textController.dispose();
+    _textFocusNode.dispose();
+    super.dispose();
+  }
 
-          final currentUserId = authProvider.user?.id ?? 0;
-          final userAssignments = assignmentProvider.getUserAssignments(currentUserId);
-          final allItems = receiptProvider.items;
+  Future<void> _loadItems() async {
+    setState(() {
+      _isLoading = true;
+    });
 
-          // Get items assigned to current user
-          final myItems = <ReceiptItem>[];
-          for (final assignment in userAssignments) {
-            final item = allItems.firstWhere(
-              (item) => item.id == assignment.itemId,
-              orElse: () => ReceiptItem(
-                id: 0, sessionId: 0, itemName: '', price: 0.0, quantity: 0,
-                addedByUserId: 0, addedByName: '',
-                createdAt: DateTime.now(), updatedAt: DateTime.now()
+    try {
+      final receiptProvider = Provider.of<ReceiptProvider>(context, listen: false);
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+      await receiptProvider.loadItems(widget.session.id);
+
+      final currentUserId = authProvider.user?.id ?? 0;
+      final allItems = receiptProvider.items;
+
+      // Filter items added by current user
+      final userItems = allItems.where((item) => item.addedByUserId == currentUserId).toList();
+
+      // Sort by creation date, latest first
+      userItems.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+      setState(() {
+        _myItems = userItems;
+      });
+    } catch (e) {
+      print('Error loading items: $e');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _loadSplitItems() async {
+    try {
+      final splitItemService = SplitItemService();
+      final result = await splitItemService.getSplitItems(widget.session.id);
+
+      if (result['success']) {
+        setState(() {
+          _splitItems = (result['items'] as List).map((item) => {
+            'id': item.id,
+            'name': item.name,
+            'price': item.price,
+            'description': item.description,
+          }).toList();
+        });
+      }
+    } catch (e) {
+      print('Error loading split items: $e');
+    }
+  }
+
+  void _showAddSplitItemDialog() {
+    final TextEditingController splitItemController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Add Split Item',
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            fontFamily: 'GoogleSansRounded',
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: TextField(
+          controller: splitItemController,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: InputDecoration(
+            hintText: 'Enter item name',
+            hintStyle: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontFamily: 'Nunito',
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
+          ),
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            fontFamily: 'Nunito',
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(
+              'Cancel',
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                fontFamily: 'Nunito',
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
-            );
-            if (item.id != 0) {
-              // If item has multiple quantities, add them separately
-              for (int i = 0; i < item.quantity; i++) {
-                myItems.add(item.copyWith(quantity: 1));
+            ),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final itemName = splitItemController.text.trim();
+              if (itemName.isNotEmpty) {
+                Navigator.of(context).pop();
+                await _addSplitItem(itemName);
               }
-            }
-          }
-
-          // Sort items by creation date, latest first
-          myItems.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-
-          final userTotal = assignmentProvider.getUserAssignedTotal(currentUserId, allItems);
-
-          return Stack(
-            children: [
-              // Header background that extends down
-              Container(
-                height: 200,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFFFC629), // Sunshine Yellow
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(24),
-                    bottomRight: Radius.circular(24),
-                  ),
-                ),
+            },
+            child: Text(
+              'Add',
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                fontFamily: 'Nunito',
+                fontWeight: FontWeight.w600,
               ),
-
-              // Content
-              SafeArea(
-                child: Column(
-                  children: [
-                    // App bar content
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Row(
-                        children: [
-                          IconButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            icon: const Icon(
-                              Icons.arrow_back,
-                              color: Color(0xFF4E4B47), // Warm Gray-700
-                            ),
-                          ),
-                          const Expanded(
-                            child: Text(
-                              'My Items',
-                              style: TextStyle(
-                                fontFamily: 'GoogleSans',
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF4E4B47), // Warm Gray-700
-                                letterSpacing: -0.02,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                          const SizedBox(width: 48), // Balance the back button
-                        ],
-                      ),
-                    ),
-
-                    // Total Card overlapping the header
-                    Container(
-                      width: double.infinity,
-                      margin: const EdgeInsets.symmetric(horizontal: 24),
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
-                            spreadRadius: 0,
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          const Text(
-                            'Your Total',
-                            style: TextStyle(
-                              fontFamily: 'Nunito',
-                              fontSize: 18,
-                              fontWeight: FontWeight.w500,
-                              color: Color(0xFF4E4B47), // Warm Gray-700
-                              letterSpacing: -0.02,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            '£${userTotal.toStringAsFixed(2)}',
-                            style: const TextStyle(
-                              fontFamily: 'Nunito',
-                              fontSize: 36,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF4E4B47), // Warm Gray-700
-                              letterSpacing: -0.02,
-                              fontFeatures: [FontFeature.tabularFigures()],
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${myItems.length} item${myItems.length != 1 ? 's' : ''}',
-                            style: TextStyle(
-                              fontFamily: 'Nunito',
-                              fontSize: 18,
-                              color: const Color(0xFF4E4B47).withValues(alpha: 0.7),
-                              height: 1.3, // 130% line height
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Items List
-                    Expanded(
-                      child: myItems.isEmpty
-                          ? Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.receipt_long,
-                                    size: 64,
-                                    color: Colors.grey.shade400,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  const Text(
-                                    'No items assigned to you yet',
-                                    style: TextStyle(
-                                      fontFamily: 'Nunito',
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w500,
-                                      color: Color(0xFF4E4B47),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Items you\'re assigned to will appear here',
-                                    style: TextStyle(
-                                      fontFamily: 'Nunito',
-                                      fontSize: 18,
-                                      color: const Color(0xFF4E4B47).withValues(alpha: 0.7),
-                                      height: 1.3, // 130% line height
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ],
-                              ),
-                            )
-                          : ListView.separated(
-                              padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
-                              itemCount: myItems.length,
-                              separatorBuilder: (context, index) => const Divider(
-                                height: 1,
-                                thickness: 1,
-                                color: Color(0xFFECE9E6), // Warm Gray-200
-                                indent: 24,
-                                endIndent: 24,
-                              ),
-                              itemBuilder: (context, index) {
-                                final item = myItems[index];
-                                final itemAssignments = assignmentProvider.getItemAssignments(item.id);
-                                final shareCount = itemAssignments.length;
-                                final myShare = shareCount > 0 ? item.price / shareCount : item.price;
-
-                                return ListTile(
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                                  title: Text(
-                                    item.itemName,
-                                    style: const TextStyle(
-                                      fontFamily: 'Nunito',
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w500,
-                                      color: Color(0xFF4E4B47),
-                                      height: 1.3, // 130% line height
-                                    ),
-                                  ),
-                                  subtitle: shareCount > 1
-                                      ? Text(
-                                          'Shared with ${shareCount - 1} other${shareCount > 2 ? 's' : ''}',
-                                          style: TextStyle(
-                                            fontFamily: 'Nunito',
-                                            fontSize: 16,
-                                            color: const Color(0xFF4E4B47).withValues(alpha: 0.6),
-                                            height: 1.3, // 130% line height
-                                          ),
-                                        )
-                                      : null,
-                                  trailing: Text(
-                                    '£${myShare.toStringAsFixed(2)}',
-                                    style: const TextStyle(
-                                      fontFamily: 'Nunito',
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w600,
-                                      color: Color(0xFF4E4B47),
-                                      fontFeatures: [FontFeature.tabularFigures()],
-                                    ),
-                                  ),
-                                  onTap: () => _navigateToEditItem(context, item),
-                                );
-                              },
-                            ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        selectedItemColor: const Color(0xFFFFC629), // Sunshine Yellow
-        unselectedItemColor: const Color(0xFF4E4B47).withValues(alpha: 0.6),
-        selectedLabelStyle: const TextStyle(
-          fontFamily: 'Nunito',
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-        ),
-        unselectedLabelStyle: const TextStyle(
-          fontFamily: 'Nunito',
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-        ),
-        elevation: 8,
-        currentIndex: 0, // Add Item is selected
-        onTap: (index) {
-          switch (index) {
-            case 0:
-              _navigateToAddItem(context);
-              break;
-            case 1:
-              // TODO: Implement table functionality
-              break;
-            case 2:
-              // TODO: Implement guests functionality
-              break;
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.add),
-            label: 'Add Item',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.table_restaurant),
-            label: 'Table',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.people),
-            label: 'Guests',
+            ),
           ),
         ],
       ),
     );
   }
 
-  void _navigateToAddItem(BuildContext context) async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final assignmentProvider = Provider.of<AssignmentProvider>(context, listen: false);
-    final receiptProvider = Provider.of<ReceiptProvider>(context, listen: false);
+  Future<void> _addSplitItem(String itemName) async {
+    if (itemName.trim().isEmpty) return;
 
-    final result = await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => AddItemScreen(session: widget.session),
-      ),
-    );
+    setState(() {
+      _isAddingItem = true;
+    });
 
-    // If an item was added (result contains the last item ID), automatically assign all new items to the current user
-    if (result != null && result is int && mounted) {
-      final currentUserId = authProvider.user?.id;
-      if (currentUserId != null) {
-        // Refresh items first to get all the newly added items
-        await receiptProvider.loadItems(widget.session.id);
+    try {
+      final splitItemService = SplitItemService();
 
-        // Find all items that are not yet assigned to anyone
-        final allItems = receiptProvider.items;
-        final unassignedItems = assignmentProvider.getUnallocatedItems(allItems);
+      final result = await splitItemService.addSplitItem(
+        sessionId: widget.session.id,
+        name: itemName.trim(),
+        price: 0.0, // Start with zero price
+      );
 
-        // Assign all unassigned items to the current user
-        // (These should be the items we just added)
-        for (final item in unassignedItems) {
-          await assignmentProvider.assignItem(
-            widget.session.id,
-            item.id,
-            currentUserId
-          );
-        }
-
-        // Refresh data to show the updated assignments
-        await _loadData();
+      if (result['success']) {
+        await _loadSplitItems(); // Reload to get the new split item
       }
-    } else if (result != null) {
-      // Item was edited or other action, just refresh
-      await _loadData();
+    } catch (e) {
+      print('Error adding split item: $e');
+    } finally {
+      setState(() {
+        _isAddingItem = false;
+      });
     }
   }
 
-  void _navigateToEditItem(BuildContext context, ReceiptItem item) async {
-    final result = await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => AddItemScreen(
-          session: widget.session,
-          editItem: item,
+  Future<void> _addItem(String itemName) async {
+    if (itemName.trim().isEmpty) return;
+
+    setState(() {
+      _isAddingItem = true;
+    });
+
+    try {
+      final receiptProvider = Provider.of<ReceiptProvider>(context, listen: false);
+
+      final success = await receiptProvider.addItem(
+        sessionId: widget.session.id,
+        itemName: itemName.trim(),
+        price: 0.0, // Start with zero price
+      );
+
+      if (success) {
+        _textController.clear();
+        await _loadItems(); // Reload to get the new item
+      }
+    } catch (e) {
+      print('Error adding item: $e');
+    } finally {
+      setState(() {
+        _isAddingItem = false;
+      });
+    }
+  }
+
+  void _showEditPriceDialog(ReceiptItem item) {
+    showDialog(
+      context: context,
+      builder: (context) => _EditPriceDialog(
+        item: item,
+        onSave: (newPrice) async {
+          final receiptProvider = Provider.of<ReceiptProvider>(context, listen: false);
+          await receiptProvider.updateItem(
+            itemId: item.id,
+            itemName: item.itemName,
+            price: newPrice,
+            share: item.share,
+          );
+          await _loadItems();
+        },
+        onDelete: () async {
+          final receiptProvider = Provider.of<ReceiptProvider>(context, listen: false);
+          await receiptProvider.deleteItem(item.id);
+          await _loadItems();
+        },
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Combine personal items and split items with unified total
+    final personalTotal = _myItems.fold<double>(0.0, (sum, item) => sum + item.price);
+    final splitTotal = _splitItems.fold<double>(0.0, (sum, item) => sum + (item['price'] ?? 0.0));
+    final totalAmount = personalTotal + splitTotal;
+    final totalItemCount = _myItems.length + _splitItems.length;
+
+    return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      appBar: AppBar(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
+        elevation: 0,
+        title: Text(
+          'Food List',
+          style: TextStyle(
+            fontFamily: 'GoogleSansRounded',
+            fontWeight: FontWeight.bold,
+            fontSize: 24,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
+        centerTitle: false,
+        actions: [
+          // Add Split Item button
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: FilledButton.tonal(
+              onPressed: () {
+                _showAddSplitItemDialog();
+              },
+              style: FilledButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                minimumSize: const Size(0, 36),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.group_add, size: 16),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Split',
+                    style: TextStyle(
+                      fontFamily: 'Nunito',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+      body: _isLoading
+        ? const Center(child: CircularProgressIndicator())
+        : Column(
+            children: [
+              // Total price card
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      'Your Total',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontFamily: 'GoogleSansRounded',
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '£${totalAmount.toStringAsFixed(2)}',
+                      style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                        fontFamily: 'GoogleSansRounded',
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                    if (totalItemCount > 0)
+                      Text(
+                        '${totalItemCount} item${totalItemCount != 1 ? 's' : ''}',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontFamily: 'Nunito',
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+
+              // Combined Items list
+              Expanded(
+                child: totalItemCount == 0
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.restaurant_menu_outlined,
+                            size: 64,
+                            color: Theme.of(context).colorScheme.outline,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No items yet',
+                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Add your first item below\nor use the Split button for shared items',
+                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      itemCount: _myItems.length + _splitItems.length,
+                      itemBuilder: (context, index) {
+                        if (index < _myItems.length) {
+                          // Personal item
+                          final item = _myItems[index];
+                          return _buildItemCard(item);
+                        } else {
+                          // Split item
+                          final splitItem = _splitItems[index - _myItems.length];
+                          return _buildSplitItemCard(splitItem);
+                        }
+                      },
+                    ),
+              ),
+            ],
+          ),
+      // Bottom input field that stays connected to keyboard
+      bottomNavigationBar: Container(
+        padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          bottom: MediaQuery.of(context).viewInsets.bottom + MediaQuery.of(context).padding.bottom + 16,
+          top: 16,
+        ),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          border: Border(
+            top: BorderSide(
+              color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+              width: 1,
+            ),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: Row(
+            children: [
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+                    ),
+                  ),
+                  child: TextField(
+                    controller: _textController,
+                    focusNode: _textFocusNode,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: InputDecoration(
+                      hintText: 'Add food item',
+                      hintStyle: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontFamily: 'Nunito',
+                      ),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
+                    ),
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      fontFamily: 'Nunito',
+                    ),
+                    onSubmitted: (value) {
+                      if (value.trim().isNotEmpty) {
+                        _addItem(value);
+                      }
+                    },
+                  ),
+                ),
+              ),
+              if (_isAddingItem)
+                Padding(
+                  padding: const EdgeInsets.only(left: 12),
+                  child: SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
+  }
 
-    // Refresh data when returning from edit screen
-    if (result != null) {
-      await _loadData();
-    }
+  Widget _buildItemCard(ReceiptItem item) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      elevation: 0,
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        title: Text(
+          item.itemName,
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            fontFamily: 'Nunito',
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        trailing: Text(
+          '£${item.price.toStringAsFixed(2)}',
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            fontFamily: 'Nunito',
+            fontWeight: FontWeight.w600,
+            color: item.price == 0
+              ? Theme.of(context).colorScheme.onSurfaceVariant
+              : Theme.of(context).colorScheme.primary,
+          ),
+        ),
+        onTap: () => _showEditPriceDialog(item),
+      ),
+    );
+  }
+
+  Widget _buildSplitItemCard(Map<String, dynamic> splitItem) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      elevation: 0,
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        leading: Icon(
+          Icons.group,
+          color: Theme.of(context).colorScheme.primary,
+          size: 20,
+        ),
+        title: Text(
+          splitItem['name'] ?? '',
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            fontFamily: 'Nunito',
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        trailing: Text(
+          '£${(splitItem['price'] ?? 0.0).toStringAsFixed(2)}',
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            fontFamily: 'Nunito',
+            fontWeight: FontWeight.w600,
+            color: (splitItem['price'] ?? 0.0) == 0
+              ? Theme.of(context).colorScheme.onSurfaceVariant
+              : Theme.of(context).colorScheme.primary,
+          ),
+        ),
+        onTap: () {
+          // TODO: Navigate to split item details/management screen
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Split item management coming soon!'),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// Edit Price Dialog Widget
+class _EditPriceDialog extends StatefulWidget {
+  final ReceiptItem item;
+  final Function(double) onSave;
+  final VoidCallback onDelete;
+
+  const _EditPriceDialog({
+    required this.item,
+    required this.onSave,
+    required this.onDelete,
+  });
+
+  @override
+  State<_EditPriceDialog> createState() => _EditPriceDialogState();
+}
+
+class _EditPriceDialogState extends State<_EditPriceDialog> {
+  String _displayPrice = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _displayPrice = widget.item.price == 0
+      ? ''
+      : widget.item.price.toStringAsFixed(2);
+  }
+
+  void _onNumberTap(String number) {
+    setState(() {
+      if (number == '.') {
+        if (!_displayPrice.contains('.')) {
+          _displayPrice = _displayPrice.isEmpty ? '0.' : _displayPrice + '.';
+        }
+      } else {
+        _displayPrice += number;
+      }
+    });
+  }
+
+  void _onBackspace() {
+    setState(() {
+      if (_displayPrice.isNotEmpty) {
+        _displayPrice = _displayPrice.substring(0, _displayPrice.length - 1);
+      }
+    });
+  }
+
+  void _onSave() {
+    final price = double.tryParse(_displayPrice) ?? 0.0;
+    widget.onSave(price);
+    Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Item name
+            Text(
+              widget.item.itemName,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontFamily: 'GoogleSansRounded',
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+
+            const SizedBox(height: 24),
+
+            // Price display
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Text(
+                '£${_displayPrice.isEmpty ? '0.00' : _displayPrice}',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontFamily: 'GoogleSansRounded',
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Number pad
+            GridView.count(
+              shrinkWrap: true,
+              crossAxisCount: 3,
+              childAspectRatio: 1.2,
+              mainAxisSpacing: 8,
+              crossAxisSpacing: 8,
+              children: [
+                _buildNumberButton('1'),
+                _buildNumberButton('2'),
+                _buildNumberButton('3'),
+                _buildNumberButton('4'),
+                _buildNumberButton('5'),
+                _buildNumberButton('6'),
+                _buildNumberButton('7'),
+                _buildNumberButton('8'),
+                _buildNumberButton('9'),
+                _buildNumberButton('.'),
+                _buildNumberButton('0'),
+                _buildBackspaceButton(),
+              ],
+            ),
+
+            const SizedBox(height: 24),
+
+            // Action buttons
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton(
+                    onPressed: _onSave,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      'Save',
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        fontFamily: 'Nunito',
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    widget.onDelete();
+                  },
+                  child: Text(
+                    'Remove Item',
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      fontFamily: 'Nunito',
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNumberButton(String number) {
+    return FilledButton.tonal(
+      onPressed: () => _onNumberTap(number),
+      style: FilledButton.styleFrom(
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+      child: Text(
+        number,
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+          fontFamily: 'Nunito',
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBackspaceButton() {
+    return FilledButton.tonal(
+      onPressed: _onBackspace,
+      style: FilledButton.styleFrom(
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+      child: Icon(
+        Icons.backspace_outlined,
+        color: Theme.of(context).colorScheme.onSurface,
+      ),
+    );
   }
 }
