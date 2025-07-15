@@ -138,6 +138,19 @@ const sessionQueries = {
     return result.rows[0];
   },
 
+  // Update session bill totals
+  updateBillTotals: async (sessionId, billData) => {
+    const { item_amount, tax_amount, service_charge, extra_charge, total_amount } = billData;
+    const result = await query(
+      `UPDATE session
+       SET item_amount = $1, tax_amount = $2, service_charge = $3, extra_charge = $4, total_amount = $5, updated_at = NOW()
+       WHERE id = $6
+       RETURNING *`,
+      [item_amount, tax_amount, service_charge, extra_charge, total_amount, sessionId]
+    );
+    return result.rows[0];
+  },
+
   // Delete session
   delete: async (sessionId) => {
     const result = await query(

@@ -14,6 +14,8 @@ class Session {
   final double taxAmount;
   final double tipAmount;
   final double serviceCharge;
+  final double itemAmount;
+  final double extraCharge;
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool isHost;
@@ -34,6 +36,8 @@ class Session {
     required this.taxAmount,
     required this.tipAmount,
     required this.serviceCharge,
+    required this.itemAmount,
+    required this.extraCharge,
     required this.createdAt,
     required this.updatedAt,
     required this.isHost,
@@ -90,6 +94,8 @@ class Session {
       taxAmount: double.parse((json['tax_amount'] ?? 0.0).toString()),
       tipAmount: double.parse((json['tip_amount'] ?? 0.0).toString()),
       serviceCharge: double.parse((json['service_charge'] ?? 0.0).toString()),
+      itemAmount: double.parse((json['item_amount'] ?? 0.0).toString()),
+      extraCharge: double.parse((json['extra_charge'] ?? 0.0).toString()),
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
       isHost: json['is_host'] as bool? ?? false,
@@ -113,6 +119,8 @@ class Session {
       'tax_amount': taxAmount,
       'tip_amount': tipAmount,
       'service_charge': serviceCharge,
+      'item_amount': itemAmount,
+      'extra_charge': extraCharge,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
       'is_host': isHost,
@@ -135,6 +143,8 @@ class Session {
     double? taxAmount,
     double? tipAmount,
     double? serviceCharge,
+    double? itemAmount,
+    double? extraCharge,
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? isHost,
@@ -155,6 +165,8 @@ class Session {
       taxAmount: taxAmount ?? this.taxAmount,
       tipAmount: tipAmount ?? this.tipAmount,
       serviceCharge: serviceCharge ?? this.serviceCharge,
+      itemAmount: itemAmount ?? this.itemAmount,
+      extraCharge: extraCharge ?? this.extraCharge,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isHost: isHost ?? this.isHost,

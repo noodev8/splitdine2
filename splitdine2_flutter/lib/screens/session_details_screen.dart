@@ -12,6 +12,7 @@ import 'guest_management_screen.dart';
 import 'guest_items_screen.dart';
 import 'my_items_screen.dart';
 import 'split_items_screen.dart';
+import 'receipt_total_screen.dart';
 
 class SessionDetailsScreen extends StatefulWidget {
   final Session session;
@@ -372,6 +373,21 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                   ),
                 ),
 
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _navigateToReceiptTotal(context),
+                    icon: const Icon(Icons.receipt),
+                    label: const Text('Bill Total'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: Colors.brown,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+
                 if (!widget.session.isHost) ...[
                   const SizedBox(height: 12),
                   SizedBox(
@@ -535,6 +551,14 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => SplitItemsScreen(session: widget.session),
+      ),
+    );
+  }
+
+  void _navigateToReceiptTotal(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => ReceiptTotalScreen(session: widget.session),
       ),
     );
   }

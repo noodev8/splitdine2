@@ -603,4 +603,87 @@ router.post('/delete', authenticateToken, async (req, res) => {
   }
 });
 
+// Update session bill totals
+router.post('/update-bill-totals', authenticateToken, async (req, res) => {
+  try {
+    const { session_id, item_amount, tax_amount, service_charge, extra_charge, total_amount } = req.body;
+
+    // Validate required fields
+    if (!session_id) {
+      return res.status(400).json({
+        return_code: 'MISSING_FIELDS',
+        message: 'Session ID is required',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Find session
+    const session = await sessionQueries.findById(session_id);
+    if (!session) {
+      return res.status(404).json({
+        return_code: 'SESSION_NOT_FOUND',
+        message: 'Session not found',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Check if user is participant or organizer
+    const isHost = session.organizer_id === req.user.id;
+    const isParticipant = await participantQueries.isParticipant(session_id, req.user.id);
+
+    if (!isHost && !isParticipant) {
+      return res.status(403).json({
+        return_code: 'UNAUTHORIZED',
+        message: 'You are not a participant in this session',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Update session bill totals
+    const billData = {
+      item_amount: parseFloat(item_amount) || 0.0,
+      tax_amount: parseFloat(tax_amount) || 0.0,
+      service_charge: parseFloat(service_charge) || 0.0,
+      extra_charge: parseFloat(extra_charge) || 0.0,
+      total_amount: parseFloat(total_amount) || 0.0
+    };
+
+    const updatedSession = await sessionQueries.updateBillTotals(session_id, billData);
+
+    res.json({
+      return_code: 'SUCCESS',
+      message: 'Bill totals updated successfully',
+      session: {
+        id: updatedSession.id,
+        organizer_id: updatedSession.organizer_id,
+        session_name: updatedSession.session_name,
+        location: updatedSession.location,
+        session_date: updatedSession.session_date,
+        session_time: updatedSession.session_time,
+        description: updatedSession.description,
+        join_code: updatedSession.join_code,
+        receipt_processed: updatedSession.receipt_processed,
+        total_amount: updatedSession.total_amount,
+        tax_amount: updatedSession.tax_amount,
+        tip_amount: updatedSession.tip_amount,
+        service_charge: updatedSession.service_charge,
+        item_amount: updatedSession.item_amount,
+        extra_charge: updatedSession.extra_charge,
+        created_at: updatedSession.created_at,
+        updated_at: updatedSession.updated_at,
+        is_host: isHost
+      },
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Update bill totals error:', error);
+    res.status(500).json({
+      return_code: 'SERVER_ERROR',
+      message: 'Failed to update bill totals',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 module.exports = router;

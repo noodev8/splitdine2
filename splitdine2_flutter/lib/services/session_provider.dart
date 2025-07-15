@@ -287,4 +287,43 @@ class SessionProvider with ChangeNotifier {
       _setLoading(false);
     }
   }
+
+  // Update session bill totals
+  Future<({bool success, String? errorMessage})> updateSessionBillTotals({
+    required int sessionId,
+    required double itemAmount,
+    required double taxAmount,
+    required double serviceCharge,
+    required double extraCharge,
+    required double totalAmount,
+  }) async {
+    _setLoading(true);
+    _setError(null);
+
+    try {
+      final result = await _sessionService.updateBillTotals(
+        sessionId: sessionId,
+        itemAmount: itemAmount,
+        taxAmount: taxAmount,
+        serviceCharge: serviceCharge,
+        extraCharge: extraCharge,
+        totalAmount: totalAmount,
+      );
+
+      if (result['success']) {
+        final updatedSession = result['session'] as Session;
+        updateSession(updatedSession);
+        return (success: true, errorMessage: null);
+      } else {
+        _setError(result['message']);
+        return (success: false, errorMessage: result['message'] as String?);
+      }
+    } catch (e) {
+      final errorMsg = 'Failed to update bill totals: $e';
+      _setError(errorMsg);
+      return (success: false, errorMessage: errorMsg);
+    } finally {
+      _setLoading(false);
+    }
+  }
 }

@@ -1,0 +1,26 @@
+Receipt Total
+We are ready for a new screen. It is receipt total and the itention is to allow the guest to put the total amunt that is owed to the restaurant
+
+The fields needed are
+Total Bill (calculated from the below 3)
+- Items
+- Tax
+- Service Charge
+- Extras
+
+Use the below design for this screen only. Keep all UI, styles and logic in its own file. Do not change other parts of the app apart from the session home page where you add a button (simple button) for "Bill Total"
+
+- Use Material 3 theming.
+- Make it look like a restaurant receipt bill
+- Perhaps black and white text based
+
+
+Logic and data
+Make the Total Bill field the most evident.
+The required columns are in the sessiono table and DB_Schema.sql is up to date for you
+
+
+
+
+
+

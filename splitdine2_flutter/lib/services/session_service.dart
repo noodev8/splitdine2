@@ -277,4 +277,41 @@ class SessionService {
       return {'success': false, 'message': 'Network error: $e'};
     }
   }
+
+  // Update session bill totals
+  Future<Map<String, dynamic>> updateBillTotals({
+    required int sessionId,
+    required double itemAmount,
+    required double taxAmount,
+    required double serviceCharge,
+    required double extraCharge,
+    required double totalAmount,
+  }) async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.post(
+        Uri.parse('$baseUrl/sessions/update-bill-totals'),
+        headers: headers,
+        body: jsonEncode({
+          'session_id': sessionId,
+          'item_amount': itemAmount,
+          'tax_amount': taxAmount,
+          'service_charge': serviceCharge,
+          'extra_charge': extraCharge,
+          'total_amount': totalAmount,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (data['return_code'] == 'SUCCESS') {
+        final session = Session.fromJson(data['session']);
+        return {'success': true, 'session': session};
+      } else {
+        return {'success': false, 'message': data['message']};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
 }
