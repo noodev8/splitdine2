@@ -1,5 +1,4 @@
 const rateLimit = require('express-rate-limit');
-const config = require('../config/config');
 
 /**
  * Rate Limiting Middleware
@@ -8,8 +7,8 @@ const config = require('../config/config');
 
 // General rate limiter
 const generalLimiter = rateLimit({
-  windowMs: config.security.rateLimitWindowMs,
-  max: config.security.rateLimitMax,
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
   message: {
     return_code: 'RATE_LIMIT_EXCEEDED',
     message: 'Too many requests from this IP, please try again later',
