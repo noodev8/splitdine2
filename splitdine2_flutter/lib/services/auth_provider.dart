@@ -167,6 +167,12 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  // Handle token invalidation (called when token is invalid)
+  Future<void> handleTokenInvalidation() async {
+    await logout();
+    // The UI will automatically redirect to login when user becomes null
+  }
+
   // Helper methods
   void _setLoading(bool loading) {
     _isLoading = loading;

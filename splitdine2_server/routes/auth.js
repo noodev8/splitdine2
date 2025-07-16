@@ -240,7 +240,6 @@ router.post('/validate', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Token validation error:', error);
     res.status(401).json({
       return_code: 'INVALID_TOKEN',
       message: 'Invalid or expired token',

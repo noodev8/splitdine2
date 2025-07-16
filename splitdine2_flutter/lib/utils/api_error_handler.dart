@@ -122,12 +122,34 @@ class ApiErrorHandler {
     try {
       final data = jsonDecode(response.body);
       final returnCode = data['return_code'];
-      
-      return returnCode == 'INVALID_TOKEN' || 
-             returnCode == 'TOKEN_EXPIRED' || 
+
+      return returnCode == 'INVALID_TOKEN' ||
+             returnCode == 'TOKEN_EXPIRED' ||
              returnCode == 'MISSING_TOKEN';
     } catch (e) {
       return false;
+    }
+  }
+
+  /// Simple method to check if response is successful or handle auth errors
+  /// Returns null if authentication error (token invalid), otherwise returns the response data
+  static Map<String, dynamic>? checkResponse(http.Response response) {
+    try {
+      final data = jsonDecode(response.body);
+
+      // Check for authentication errors - return null to indicate auth failure
+      if (response.statusCode == 401) {
+        final returnCode = data['return_code'];
+        if (returnCode == 'INVALID_TOKEN' ||
+            returnCode == 'TOKEN_EXPIRED' ||
+            returnCode == 'MISSING_TOKEN') {
+          return null; // Indicates authentication error
+        }
+      }
+
+      return data;
+    } catch (e) {
+      return {'return_code': 'ERROR', 'message': 'Invalid server response'};
     }
   }
 }
