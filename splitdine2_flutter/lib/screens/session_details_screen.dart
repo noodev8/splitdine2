@@ -6,7 +6,7 @@ import '../models/session.dart';
 import '../services/receipt_provider.dart';
 import '../services/assignment_provider.dart';
 import '../services/session_provider.dart';
-import 'session_items_screen.dart';
+
 import 'payment_summary_screen.dart';
 import 'guest_management_screen.dart';
 import 'guest_items_screen.dart';
@@ -296,24 +296,105 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
 
             const SizedBox(height: 24),
 
+            // Guest List and Totals
+            Consumer<SessionProvider>(
+              builder: (context, sessionProvider, child) {
+                final participants = sessionProvider.participants;
+
+                if (participants.isEmpty) {
+                  return const SizedBox.shrink();
+                }
+
+                return Card(
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Participants (${participants.length})',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        ...participants.map((participant) {
+                          return Consumer2<AssignmentProvider, ReceiptProvider>(
+                            builder: (context, assignmentProvider, receiptProvider, child) {
+                              final assignments = assignmentProvider.assignments
+                                  .where((a) => a.userId == participant.userId)
+                                  .toList();
+
+                              // Calculate total by getting item prices
+                              double total = 0.0;
+                              for (final assignment in assignments) {
+                                final item = receiptProvider.items
+                                    .where((item) => item.id == assignment.itemId)
+                                    .firstOrNull;
+                                if (item != null) {
+                                  total += item.price * item.quantity;
+                                }
+                              }
+
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 4),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      participant.userId == widget.session.organizerId
+                                          ? Icons.star
+                                          : Icons.person,
+                                      size: 16,
+                                      color: participant.userId == widget.session.organizerId
+                                          ? Colors.amber
+                                          : Colors.grey,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        participant.displayName,
+                                        style: Theme.of(context).textTheme.bodyMedium,
+                                      ),
+                                    ),
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      children: [
+                                        Text(
+                                          '£${total.toStringAsFixed(2)}',
+                                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                            color: total > 0 ? Colors.green : Colors.grey,
+                                          ),
+                                        ),
+                                        Text(
+                                          '${assignments.length} item${assignments.length == 1 ? '' : 's'}',
+                                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                            color: Colors.grey.shade600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+
+            const SizedBox(height: 24),
+
             // Action Buttons
             Column(
               children: [
                 Row(
                   children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: canEdit ? () => _navigateToItems(context) : null,
-                        icon: const Icon(Icons.list_alt),
-                        label: Text(canEdit ? 'Manage Items' : 'View Items'),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          backgroundColor: canEdit ? Theme.of(context).colorScheme.primary : Colors.grey,
-                          foregroundColor: Colors.white,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton.icon(
                         onPressed: () => _navigateToMyItems(context),
@@ -322,6 +403,19 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           backgroundColor: Colors.purple,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _navigateToGuestItems(context),
+                        icon: const Icon(Icons.people),
+                        label: const Text('Guests'),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          backgroundColor: Colors.orange,
                           foregroundColor: Colors.white,
                         ),
                       ),
@@ -515,13 +609,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
     );
   }
 
-  void _navigateToItems(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => SessionItemsScreen(session: widget.session),
-      ),
-    );
-  }
+
 
   void _navigateToPaymentSummary(BuildContext context) {
     Navigator.of(context).push(
@@ -563,13 +651,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
     );
   }
 
-  void _navigateToGuestManagement(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => GuestManagementScreen(session: widget.session),
-      ),
-    );
-  }
+
 
   Future<void> _leaveSession(BuildContext context) async {
     final sessionProvider = Provider.of<SessionProvider>(context, listen: false);

@@ -253,8 +253,8 @@ class _SplitItemsScreenState extends State<SplitItemsScreen> {
             child: ElevatedButton(
               onPressed: _navigateToAddSplitItem,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.primary,
-                foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                backgroundColor: onSurfaceColor, // Use dark gray instead of blue
+                foregroundColor: Colors.white, // White text for good contrast
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -264,6 +264,7 @@ class _SplitItemsScreenState extends State<SplitItemsScreen> {
                 'Add Split',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   fontWeight: FontWeight.bold,
+                  color: Colors.white, // Ensure white text
                 ),
               ),
             ),
@@ -284,15 +285,17 @@ class _SplitItemsScreenState extends State<SplitItemsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Item header
+            // Item header - more prominent
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
                   child: Text(
                     item.name,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                      color: onSurfaceColor,
                     ),
                   ),
                 ),
@@ -303,18 +306,20 @@ class _SplitItemsScreenState extends State<SplitItemsScreen> {
                       children: [
                         Text(
                           '£${item.price.toStringAsFixed(2)}',
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF1976D2), // Darker blue for better readability
+                            fontSize: 22,
+                            color: onSurfaceColor,
                           ),
                         ),
                         if (item.participants.isNotEmpty) ...[
-                          const SizedBox(height: 2),
+                          const SizedBox(height: 4),
                           Text(
                             '£${(item.price / item.participants.length).toStringAsFixed(2)} each',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               color: Colors.grey.shade600,
                               fontStyle: FontStyle.italic,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
