@@ -8,10 +8,7 @@ import '../services/assignment_provider.dart';
 import '../services/session_provider.dart';
 
 import 'payment_summary_screen.dart';
-import 'guest_management_screen.dart';
-import 'guest_items_screen.dart';
 import 'my_items_screen.dart';
-import 'split_items_screen.dart';
 import 'receipt_total_screen.dart';
 
 class SessionDetailsScreen extends StatefulWidget {
@@ -51,9 +48,12 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
     final canEdit = isUpcoming;
 
     return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
         title: Text(widget.session.displayName),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
+        elevation: 0,
         actions: [
           if (widget.session.isHost)
             PopupMenuButton<String>(
@@ -82,311 +82,138 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Session Info Card
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.restaurant_menu,
-                          size: 32,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                widget.session.displayName,
-                                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Text(
-                                widget.session.location,
-                                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                  color: Colors.grey.shade600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    _buildInfoRow(
-                      icon: Icons.calendar_today,
-                      label: 'Date',
-                      value: DateFormat('EEEE, MMM d, yyyy').format(widget.session.sessionDate),
-                    ),
-                    if (widget.session.sessionTime != null) ...[
-                      const SizedBox(height: 8),
-                      _buildInfoRow(
-                        icon: Icons.access_time,
-                        label: 'Time',
-                        value: _formatTime(widget.session.sessionTime!),
-                      ),
-                    ],
-                    if (widget.session.description != null && widget.session.description!.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      _buildInfoRow(
-                        icon: Icons.description,
-                        label: 'Description',
-                        value: widget.session.description!,
-                      ),
-                    ],
-                    const SizedBox(height: 8),
-                    _buildInfoRow(
-                      icon: widget.session.isHost ? Icons.star : Icons.person,
-                      label: 'Role',
-                      value: widget.session.isHost ? 'Host' : 'Guest',
-                      valueColor: widget.session.isHost ? Colors.green : Colors.blue,
-                    ),
-                  ],
+            // Session Info Card with Session Code
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
                 ),
               ),
-            ),
-            
-            const SizedBox(height: 16),
-
-            // Join Code Card
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Session Code',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.restaurant_menu,
+                        size: 32,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade100,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.grey.shade300),
-                            ),
-                            child: Text(
-                              widget.session.joinCode,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.session.displayName,
                               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                                 fontWeight: FontWeight.bold,
-                                letterSpacing: 2,
                               ),
-                              textAlign: TextAlign.center,
                             ),
+                            Text(
+                              widget.session.location,
+                              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  _buildInfoRow(
+                    icon: Icons.calendar_today,
+                    label: 'Date',
+                    value: DateFormat('EEEE, MMM d, yyyy').format(widget.session.sessionDate),
+                  ),
+                  if (widget.session.sessionTime != null) ...[
+                    const SizedBox(height: 8),
+                    _buildInfoRow(
+                      icon: Icons.access_time,
+                      label: 'Time',
+                      value: _formatTime(widget.session.sessionTime!),
+                    ),
+                  ],
+                  if (widget.session.description != null && widget.session.description!.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    _buildInfoRow(
+                      icon: Icons.description,
+                      label: 'Description',
+                      value: widget.session.description!,
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  _buildInfoRow(
+                    icon: widget.session.isHost ? Icons.star : Icons.person,
+                    label: 'Role',
+                    value: widget.session.isHost ? 'Host' : 'Guest',
+                    valueColor: widget.session.isHost ? Colors.green : Colors.blue,
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Session Code section within the main card
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.qr_code,
+                        size: 24,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Session Code',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          widget.session.joinCode,
+                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'monospace',
                           ),
                         ),
-                        const SizedBox(width: 12),
                         IconButton(
                           onPressed: () => _copyJoinCode(context),
                           icon: const Icon(Icons.copy),
-                          tooltip: 'Copy join code',
+                          tooltip: 'Copy session code',
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Share this code with others to join the session',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.grey.shade600,
-                      ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Share this code with others to join the session',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
 
-            const SizedBox(height: 16),
 
-            // Meal Status Card
-            Consumer2<ReceiptProvider, AssignmentProvider>(
-              builder: (context, receiptProvider, assignmentProvider, child) {
-                final items = receiptProvider.items;
-                final allocatedAmount = assignmentProvider.getTotalAllocatedAmount(items);
-                final unallocatedItems = assignmentProvider.getUnallocatedItems(items);
-                final subtotal = receiptProvider.subtotal;
-                final isFullyAllocated = unallocatedItems.isEmpty && items.isNotEmpty;
-                final completionPercentage = subtotal > 0 ? (allocatedAmount / subtotal * 100) : 0.0;
 
-                return Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              isFullyAllocated ? Icons.check_circle : Icons.pending,
-                              color: isFullyAllocated ? Colors.green : Colors.orange,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Meal Status',
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const Spacer(),
-                            Text(
-                              '${completionPercentage.toStringAsFixed(0)}% allocated',
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: isFullyAllocated ? Colors.green : Colors.orange,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            _buildSummaryItem(
-                              context,
-                              icon: Icons.receipt_long,
-                              label: 'Items',
-                              value: '${items.length}',
-                              valueColor: items.isEmpty ? Colors.grey : null,
-                            ),
-                            _buildSummaryItem(
-                              context,
-                              icon: Icons.check_circle,
-                              label: 'Allocated',
-                              value: '£${allocatedAmount.toStringAsFixed(2)}',
-                              valueColor: allocatedAmount > 0 ? Colors.green : Colors.grey,
-                            ),
-                            _buildSummaryItem(
-                              context,
-                              icon: Icons.pending,
-                              label: 'Remaining',
-                              value: '£${(subtotal - allocatedAmount).toStringAsFixed(2)}',
-                              valueColor: (subtotal - allocatedAmount) == 0 ? Colors.green : Colors.red,
-                            ),
-                          ],
-                        ),
-                        if (items.isNotEmpty) ...[
-                          const SizedBox(height: 12),
-                          LinearProgressIndicator(
-                            value: completionPercentage / 100,
-                            backgroundColor: Colors.grey.shade300,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              isFullyAllocated ? Colors.green : Colors.orange,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
 
-            const SizedBox(height: 24),
-
-            // Guest List and Totals
-            Consumer<SessionProvider>(
-              builder: (context, sessionProvider, child) {
-                final participants = sessionProvider.participants;
-
-                if (participants.isEmpty) {
-                  return const SizedBox.shrink();
-                }
-
-                return Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Participants (${participants.length})',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        ...participants.map((participant) {
-                          return Consumer2<AssignmentProvider, ReceiptProvider>(
-                            builder: (context, assignmentProvider, receiptProvider, child) {
-                              final assignments = assignmentProvider.assignments
-                                  .where((a) => a.userId == participant.userId)
-                                  .toList();
-
-                              // Calculate total by getting item prices
-                              double total = 0.0;
-                              for (final assignment in assignments) {
-                                final item = receiptProvider.items
-                                    .where((item) => item.id == assignment.itemId)
-                                    .firstOrNull;
-                                if (item != null) {
-                                  total += item.price * item.quantity;
-                                }
-                              }
-
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 4),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      participant.userId == widget.session.organizerId
-                                          ? Icons.star
-                                          : Icons.person,
-                                      size: 16,
-                                      color: participant.userId == widget.session.organizerId
-                                          ? Colors.amber
-                                          : Colors.grey,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        participant.displayName,
-                                        style: Theme.of(context).textTheme.bodyMedium,
-                                      ),
-                                    ),
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.end,
-                                      children: [
-                                        Text(
-                                          '£${total.toStringAsFixed(2)}',
-                                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                            color: total > 0 ? Colors.green : Colors.grey,
-                                          ),
-                                        ),
-                                        Text(
-                                          '${assignments.length} item${assignments.length == 1 ? '' : 's'}',
-                                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                            color: Colors.grey.shade600,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
-                          );
-                        }),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
 
             const SizedBox(height: 24),
 
@@ -410,23 +237,6 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: () => _navigateToGuestItems(context),
-                        icon: const Icon(Icons.people),
-                        label: const Text('Guests'),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          backgroundColor: Colors.orange,
-                          foregroundColor: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
                         onPressed: () => _navigateToPaymentSummary(context),
                         icon: const Icon(Icons.receipt_long),
                         label: const Text('Payment Summary'),
@@ -437,34 +247,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () => _navigateToGuestItems(context),
-                        icon: const Icon(Icons.people),
-                        label: const Text('Guest Items'),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          backgroundColor: Colors.orange,
-                          foregroundColor: Colors.white,
-                        ),
-                      ),
-                    ),
                   ],
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () => _navigateToSplitItems(context),
-                    icon: const Icon(Icons.call_split),
-                    label: const Text('Split Items'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: Colors.teal,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
                 ),
 
                 const SizedBox(height: 12),
@@ -571,33 +354,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
     );
   }
 
-  Widget _buildSummaryItem(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required String value,
-    Color? valueColor,
-  }) {
-    return Column(
-      children: [
-        Icon(icon, size: 24, color: Theme.of(context).colorScheme.primary),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: valueColor,
-          ),
-        ),
-        Text(
-          label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Colors.grey.shade600,
-          ),
-        ),
-      ],
-    );
-  }
+
 
   void _copyJoinCode(BuildContext context) {
     Clipboard.setData(ClipboardData(text: widget.session.joinCode));
@@ -627,21 +384,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
     );
   }
 
-  void _navigateToGuestItems(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => GuestItemsScreen(session: widget.session),
-      ),
-    );
-  }
 
-  void _navigateToSplitItems(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => SplitItemsScreen(session: widget.session),
-      ),
-    );
-  }
 
   void _navigateToReceiptTotal(BuildContext context) {
     Navigator.of(context).push(
@@ -792,43 +535,24 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
   }
 
   Future<void> _leaveAsHost(BuildContext context) async {
-    final navigator = Navigator.of(context);
-
-    // Show dialog explaining the host needs to transfer privileges first
-    final shouldProceed = await showDialog<bool>(
+    // Show dialog explaining the host cannot leave without transferring privileges
+    await showDialog<void>(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Leave Session as Host'),
+          title: const Text('Cannot Leave Session'),
           content: const Text(
-            'As the session host, you need to transfer host privileges to another participant before leaving.\n\n'
-            'Would you like to go to the Guests screen to select a new host?',
+            'As the session host, you cannot leave the session without first transferring host privileges to another participant.\n\n'
+            'Please use the web interface or contact support to transfer host privileges.',
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Select New Host'),
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
             ),
           ],
         );
       },
-    ) ?? false;
-
-    if (shouldProceed && mounted) {
-      // Navigate to guest management screen
-      navigator.push(
-        MaterialPageRoute(
-          builder: (context) => GuestManagementScreen(session: widget.session),
-        ),
-      );
-    }
+    );
   }
 }
