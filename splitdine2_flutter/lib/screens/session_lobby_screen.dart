@@ -31,9 +31,19 @@ class _SessionLobbyScreenState extends State<SessionLobbyScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text('Split Dine'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        title: const Text(
+          'Split Dine',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+        elevation: 1,
+        shadowColor: Colors.black12,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -123,24 +133,37 @@ class _SessionLobbyScreenState extends State<SessionLobbyScreen> {
           return Column(
             children: [
               // User info header
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primaryContainer,
+              Card(
+                elevation: 0,
+                color: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  side: BorderSide(
+                    color: Colors.grey.shade200,
+                    width: 1,
+                  ),
                 ),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      child: Text(
-                        user.displayName[0].toUpperCase(),
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onPrimary,
-                          fontWeight: FontWeight.bold,
+                margin: const EdgeInsets.all(16),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: user.isAnonymous
+                              ? Colors.orange.shade100
+                              : Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          Icons.person,
+                          size: 28,
+                          color: user.isAnonymous
+                              ? Colors.orange.shade700
+                              : Theme.of(context).colorScheme.primary,
                         ),
                       ),
-                    ),
                     const SizedBox(width: 16),
                     Expanded(
                       child: Column(
@@ -149,16 +172,18 @@ class _SessionLobbyScreenState extends State<SessionLobbyScreen> {
                           Text(
                             'Welcome, ${user.displayName}!',
                             style: const TextStyle(
-                              fontSize: 18,
+                              fontSize: 20,
                               fontWeight: FontWeight.bold,
+                              color: Colors.black87,
                             ),
                           ),
+                          const SizedBox(height: 4),
                           if (user.email != null)
                             Text(
                               user.email!,
                               style: TextStyle(
                                 color: Colors.grey.shade600,
-                                fontSize: 14,
+                                fontSize: 16,
                               ),
                             ),
                           if (user.isAnonymous)
@@ -187,6 +212,7 @@ class _SessionLobbyScreenState extends State<SessionLobbyScreen> {
                   ],
                 ),
               ),
+              ),
               
               // Sessions content
               Expanded(
@@ -196,23 +222,67 @@ class _SessionLobbyScreenState extends State<SessionLobbyScreen> {
           );
         },
       ),
-      floatingActionButton: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          FloatingActionButton(
-            heroTag: "join",
-            onPressed: _handleJoinSession,
-            backgroundColor: Colors.blue,
-            child: const Icon(Icons.qr_code_scanner, color: Colors.white),
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(
+            top: BorderSide(
+              color: Colors.grey.shade200,
+              width: 1,
+            ),
           ),
-          const SizedBox(height: 16),
-          FloatingActionButton(
-            heroTag: "create",
-            onPressed: _handleCreateSession,
-            backgroundColor: Colors.green,
-            child: const Icon(Icons.add, color: Colors.white),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _handleCreateSession,
+                  icon: const Icon(Icons.add, size: 20),
+                  label: const Text(
+                    'Create Session',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    elevation: 0,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _handleJoinSession,
+                  icon: const Icon(Icons.qr_code_scanner, size: 20),
+                  label: const Text(
+                    'Join Session',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    side: BorderSide(color: Colors.grey.shade400),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -323,13 +393,31 @@ class _SessionLobbyScreenState extends State<SessionLobbyScreen> {
 
   Widget _buildSessionCard(Session session, {required bool isUpcoming}) {
     return Card(
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(
+          color: Colors.grey.shade200,
+          width: 1,
+        ),
+      ),
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: session.isHost ? Colors.green : Colors.blue,
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: session.isHost
+                ? Colors.green.shade100
+                : Colors.blue.shade100,
+            borderRadius: BorderRadius.circular(8),
+          ),
           child: Icon(
             session.isHost ? Icons.star : Icons.group,
-            color: Colors.white,
+            color: session.isHost
+                ? Colors.green.shade700
+                : Colors.blue.shade700,
+            size: 20,
           ),
         ),
         title: Text(
@@ -515,14 +603,31 @@ class _JoinSessionDialogState extends State<_JoinSessionDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+      ),
       title: Row(
         children: [
-          Icon(
-            Icons.qr_code_scanner,
-            color: Theme.of(context).colorScheme.primary,
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Icon(
+              Icons.qr_code_scanner,
+              color: Theme.of(context).colorScheme.primary,
+              size: 20,
+            ),
           ),
-          const SizedBox(width: 8),
-          const Text('Join Session'),
+          const SizedBox(width: 12),
+          const Text(
+            'Join Session',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ],
       ),
       content: Column(
@@ -566,17 +671,38 @@ class _JoinSessionDialogState extends State<_JoinSessionDialog> {
       actions: [
         TextButton(
           onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          style: TextButton.styleFrom(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(6),
+            ),
+          ),
+          child: const Text(
+            'Cancel',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ),
         ElevatedButton(
           onPressed: _isLoading ? null : _joinSession,
+          style: ElevatedButton.styleFrom(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(6),
+            ),
+            elevation: 0,
+          ),
           child: _isLoading
               ? const SizedBox(
                   width: 16,
                   height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('Join'),
+              : const Text(
+                  'Join',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
         ),
       ],
     );
