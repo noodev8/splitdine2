@@ -1,21 +1,9 @@
 class AppConfig {
-  // Simple configuration - change this IP address as needed
-  static const String baseUrl = 'http://192.168.1.88:3000/api';
+  // Change this URL for your environment
+  // static const String baseUrl = 'http://192.168.1.88:3000/api'; // Development
+  static const String baseUrl = 'https://splitdine.noodev8.com/api'; // Production
 
-  // App Configuration
   static const String appName = 'Split Dine';
-
-  // Debug Configuration - always false to remove debug banner
   static const bool isDebugMode = false;
-
-  // Logging Configuration
-  static const bool enableLogging = true;
-
-  // Timeout Configuration
   static const Duration apiTimeout = Duration(seconds: 30);
-
-  // Helper method to log current configuration
-  static void printConfig() {
-    // Configuration logging removed to reduce warnings
-  }
 }

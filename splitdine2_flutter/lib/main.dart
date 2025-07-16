@@ -9,8 +9,6 @@ import 'package:splitdine2_flutter/screens/splash_screen.dart';
 import 'package:splitdine2_flutter/config/app_config.dart';
 
 void main() {
-  // Print configuration on app start
-  AppConfig.printConfig();
   runApp(const SplitDineApp());
 }
 

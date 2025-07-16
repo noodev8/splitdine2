@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../config/app_config.dart';
 
 class GuestChoiceService {
-  static const String baseUrl = 'http://10.0.2.2:3000/api';
+  static String get baseUrl => AppConfig.baseUrl;
 
   Future<Map<String, String>> _getAuthHeaders() async {
     final prefs = await SharedPreferences.getInstance();
