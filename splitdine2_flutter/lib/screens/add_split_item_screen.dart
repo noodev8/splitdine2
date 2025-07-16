@@ -20,15 +20,10 @@ class _AddSplitItemScreenState extends State<AddSplitItemScreen> {
   final _nameController = TextEditingController();
   final _priceController = TextEditingController();
   final _descriptionController = TextEditingController();
-  
+
   bool _isLoading = false;
 
-  // Custom theme colors for this screen only
-  static const Color primaryColor = Color(0xFFFFC629); // Sunshine Yellow
-  static const Color secondaryColor = Color(0xFFF04438); // Tomato Red
-  static const Color backgroundColor = Color(0xFFFFFFFF); // White
-  static const Color surfaceColor = Color(0xFFECE9E6); // Light Gray
-  static const Color onSurfaceColor = Color(0xFF4E4B47); // Dark Gray
+  // Clean modern theme to match session dashboard
 
   @override
   void dispose() {
@@ -81,7 +76,7 @@ class _AddSplitItemScreenState extends State<AddSplitItemScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(splitItemProvider.errorMessage ?? 'Failed to add split item'),
-              backgroundColor: secondaryColor,
+              backgroundColor: Colors.red,
             ),
           );
         }
@@ -91,7 +86,7 @@ class _AddSplitItemScreenState extends State<AddSplitItemScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: $e'),
-            backgroundColor: secondaryColor,
+            backgroundColor: Colors.red,
           ),
         );
       }
@@ -104,55 +99,21 @@ class _AddSplitItemScreenState extends State<AddSplitItemScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: Theme.of(context).copyWith(
-        colorScheme: const ColorScheme.light(
-          primary: primaryColor,
-          secondary: secondaryColor,
-          surface: surfaceColor,
-          onSurface: onSurfaceColor,
-        ),
-        textTheme: Theme.of(context).textTheme.copyWith(
-          headlineLarge: const TextStyle(
+    return Scaffold(
+      backgroundColor: Colors.grey.shade50,
+      appBar: AppBar(
+        title: const Text(
+          'Add Split Item',
+          style: TextStyle(
+            fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: onSurfaceColor,
-          ),
-          headlineMedium: const TextStyle(
-            fontWeight: FontWeight.bold,
-            color: onSurfaceColor,
-          ),
-          headlineSmall: const TextStyle(
-            fontWeight: FontWeight.bold,
-            color: onSurfaceColor,
-          ),
-          bodyLarge: const TextStyle(
-            fontSize: 24,
-            color: onSurfaceColor,
-          ),
-          bodyMedium: const TextStyle(
-            fontSize: 16,
-            color: onSurfaceColor,
-          ),
-          bodySmall: const TextStyle(
-            fontSize: 14,
-            color: onSurfaceColor,
           ),
         ),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+        elevation: 1,
+        shadowColor: Colors.black12,
       ),
-      child: Scaffold(
-        backgroundColor: backgroundColor,
-        appBar: AppBar(
-          title: Text(
-            'Add Split Item',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Colors.black,
-            ),
-          ),
-          backgroundColor: primaryColor,
-          foregroundColor: Colors.black,
-          elevation: 0,
-        ),
         body: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Form(
@@ -161,26 +122,31 @@ class _AddSplitItemScreenState extends State<AddSplitItemScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Header
-                Text(
+                const Text(
                   'Create New Split Item',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  style: TextStyle(
+                    fontSize: 24,
                     fontWeight: FontWeight.bold,
+                    color: Colors.black87,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Add an item that will be split equally between participants.',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  style: TextStyle(
+                    fontSize: 16,
                     color: Colors.grey.shade600,
                   ),
                 ),
                 const SizedBox(height: 32),
 
                 // Item Name Field
-                Text(
+                const Text(
                   'Item Name',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  style: TextStyle(
+                    fontSize: 16,
                     fontWeight: FontWeight.w600,
+                    color: Colors.black87,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -189,20 +155,29 @@ class _AddSplitItemScreenState extends State<AddSplitItemScreen> {
                   textCapitalization: TextCapitalization.words,
                   decoration: InputDecoration(
                     hintText: 'e.g., Shared Appetizer, Bottle of Wine',
-                    hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    hintStyle: TextStyle(
                       color: Colors.grey.shade500,
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: Theme.of(context).colorScheme.primary),
                     ),
                     filled: true,
-                    fillColor: surfaceColor,
+                    fillColor: Colors.white,
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 16,
                     ),
                   ),
-                  style: Theme.of(context).textTheme.bodyLarge,
+                  style: const TextStyle(fontSize: 16),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
                       return 'Please enter an item name';
@@ -213,10 +188,12 @@ class _AddSplitItemScreenState extends State<AddSplitItemScreen> {
                 const SizedBox(height: 24),
 
                 // Price Field
-                Text(
+                const Text(
                   'Total Price (£)',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  style: TextStyle(
+                    fontSize: 16,
                     fontWeight: FontWeight.w600,
+                    color: Colors.black87,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -224,20 +201,29 @@ class _AddSplitItemScreenState extends State<AddSplitItemScreen> {
                   controller: _priceController,
                   decoration: InputDecoration(
                     hintText: '0.00',
-                    hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    hintStyle: TextStyle(
                       color: Colors.grey.shade500,
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: Theme.of(context).colorScheme.primary),
                     ),
                     filled: true,
-                    fillColor: surfaceColor,
+                    fillColor: Colors.white,
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 16,
                     ),
                   ),
-                  style: Theme.of(context).textTheme.bodyLarge,
+                  style: const TextStyle(fontSize: 16),
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
@@ -253,10 +239,12 @@ class _AddSplitItemScreenState extends State<AddSplitItemScreen> {
                 const SizedBox(height: 24),
 
                 // Description Field (Optional)
-                Text(
+                const Text(
                   'Description (Optional)',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  style: TextStyle(
+                    fontSize: 16,
                     fontWeight: FontWeight.w600,
+                    color: Colors.black87,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -265,53 +253,31 @@ class _AddSplitItemScreenState extends State<AddSplitItemScreen> {
                   textCapitalization: TextCapitalization.sentences,
                   decoration: InputDecoration(
                     hintText: 'Add any additional details...',
-                    hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    hintStyle: TextStyle(
                       color: Colors.grey.shade500,
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: Theme.of(context).colorScheme.primary),
                     ),
                     filled: true,
-                    fillColor: surfaceColor,
+                    fillColor: Colors.white,
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 16,
                     ),
                   ),
-                  style: Theme.of(context).textTheme.bodyMedium,
+                  style: const TextStyle(fontSize: 16),
                   maxLines: 3,
                   textInputAction: TextInputAction.done,
-                ),
-                const SizedBox(height: 32),
-
-                // Info box
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: primaryColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: primaryColor.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.info_outline,
-                        color: primaryColor,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'After creating the item, you can assign participants by tapping on it in the list.',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: onSurfaceColor,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
                 ),
               ],
             ),
@@ -320,15 +286,13 @@ class _AddSplitItemScreenState extends State<AddSplitItemScreen> {
         bottomNavigationBar: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: backgroundColor,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withValues(alpha: 0.3),
-                spreadRadius: 1,
-                blurRadius: 5,
-                offset: const Offset(0, -3),
+            color: Colors.white,
+            border: Border(
+              top: BorderSide(
+                color: Colors.grey.shade200,
+                width: 1,
               ),
-            ],
+            ),
           ),
           child: SafeArea(
             child: Row(
@@ -338,16 +302,16 @@ class _AddSplitItemScreenState extends State<AddSplitItemScreen> {
                     onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      side: const BorderSide(color: primaryColor),
+                      side: BorderSide(color: Colors.grey.shade400),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    child: Text(
+                    child: const Text(
                       'Cancel',
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: primaryColor,
-                        fontWeight: FontWeight.bold,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
@@ -357,12 +321,11 @@ class _AddSplitItemScreenState extends State<AddSplitItemScreen> {
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _addSplitItem,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: primaryColor,
-                      foregroundColor: Colors.black,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
+                      elevation: 0,
                     ),
                     child: _isLoading
                         ? const SizedBox(
@@ -370,14 +333,13 @@ class _AddSplitItemScreenState extends State<AddSplitItemScreen> {
                             width: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
                             ),
                           )
-                        : Text(
+                        : const Text(
                             'Add Item',
-                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                   ),
@@ -386,7 +348,6 @@ class _AddSplitItemScreenState extends State<AddSplitItemScreen> {
             ),
           ),
         ),
-      ),
     );
   }
 }

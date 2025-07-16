@@ -34,20 +34,35 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
   }
 
   Future<void> _loadData() async {
-    final receiptProvider = Provider.of<ReceiptProvider>(context, listen: false);
-    final assignmentProvider = Provider.of<AssignmentProvider>(context, listen: false);
-    
-    // Load items and assignments for this session
-    await receiptProvider.loadItems(widget.session.id);
-    await assignmentProvider.loadSessionAssignments(widget.session.id);
-    
-    // Load participants
-    await _loadParticipants();
+    if (!mounted) return;
+
+    try {
+      final receiptProvider = Provider.of<ReceiptProvider>(context, listen: false);
+      final assignmentProvider = Provider.of<AssignmentProvider>(context, listen: false);
+
+      // Load items and assignments for this session
+      await receiptProvider.loadItems(widget.session.id);
+      await assignmentProvider.loadSessionAssignments(widget.session.id);
+
+      // Load participants
+      await _loadParticipants();
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Failed to load data: $e';
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   Future<void> _loadParticipants() async {
+    if (!mounted) return;
+
     try {
       final result = await _sessionService.getSessionParticipants(widget.session.id);
+      if (!mounted) return;
+
       if (result['success']) {
         setState(() {
           _participants = result['participants'] as List<Participant>;
@@ -60,19 +75,31 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
         });
       }
     } catch (e) {
-      setState(() {
-        _errorMessage = 'Failed to load participants: $e';
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Failed to load participants: $e';
+          _isLoading = false;
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: Text('Payment Summary'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        title: const Text(
+          'Payment Summary',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+        elevation: 1,
+        shadowColor: Colors.black12,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -121,21 +148,33 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
                         children: [
                           // Session Info Card
                           Card(
+                            elevation: 0,
+                            color: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              side: BorderSide(
+                                color: Colors.grey.shade200,
+                                width: 1,
+                              ),
+                            ),
                             child: Padding(
-                              padding: const EdgeInsets.all(16),
+                              padding: const EdgeInsets.all(20),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     widget.session.displayName,
-                                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                    style: const TextStyle(
+                                      fontSize: 24,
                                       fontWeight: FontWeight.bold,
+                                      color: Colors.black87,
                                     ),
                                   ),
-                                  const SizedBox(height: 8),
+                                  const SizedBox(height: 4),
                                   Text(
                                     widget.session.location,
-                                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                    style: TextStyle(
+                                      fontSize: 16,
                                       color: Colors.grey.shade600,
                                     ),
                                   ),
@@ -148,8 +187,17 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
 
                           // Summary Card
                           Card(
+                            elevation: 0,
+                            color: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              side: BorderSide(
+                                color: Colors.grey.shade200,
+                                width: 1,
+                              ),
+                            ),
                             child: Padding(
-                              padding: const EdgeInsets.all(16),
+                              padding: const EdgeInsets.all(20),
                               child: Column(
                                 children: [
                                   Row(
@@ -211,10 +259,12 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
                           const SizedBox(height: 16),
 
                           // Participants Payment List
-                          Text(
+                          const Text(
                             'Who Owes What',
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            style: TextStyle(
+                              fontSize: 20,
                               fontWeight: FontWeight.bold,
+                              color: Colors.black87,
                             ),
                           ),
                           const SizedBox(height: 12),
@@ -222,8 +272,17 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
                           ..._participants.map((participant) {
                             final amount = participantTotals[participant.userId] ?? 0.0;
                             final isOrganizer = participant.userId == widget.session.organizerId;
-                            
+
                             return Card(
+                              elevation: 0,
+                              color: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                side: BorderSide(
+                                  color: Colors.grey.shade200,
+                                  width: 1,
+                                ),
+                              ),
                               margin: const EdgeInsets.only(bottom: 8),
                               child: ListTile(
                                 onTap: amount > 0 ? () => _navigateToItemsWithFilter(context, participant.displayName) : null,

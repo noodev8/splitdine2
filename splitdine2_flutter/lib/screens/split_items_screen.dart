@@ -27,10 +27,7 @@ class _SplitItemsScreenState extends State<SplitItemsScreen> {
   String? _errorMessage;
   final ScrollController _scrollController = ScrollController();
 
-  // Material 3 grey color scheme to match guest items
-  static const Color backgroundColor = Color(0xFFFAFAFA); // Very light gray background
-  static const Color surfaceColor = Color(0xFFFFFFFF); // White surface
-  static const Color onSurfaceColor = Color(0xFF4E4B47); // Dark Gray text
+  // Clean modern theme to match session dashboard
 
   @override
   void initState() {
@@ -141,18 +138,19 @@ class _SplitItemsScreenState extends State<SplitItemsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: Colors.grey.shade50,
         appBar: AppBar(
-          title: Text(
+          title: const Text(
             'Split Items',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+            style: TextStyle(
+              fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: onSurfaceColor,
             ),
           ),
-          backgroundColor: surfaceColor,
-          foregroundColor: onSurfaceColor,
-          elevation: 0,
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black87,
+          elevation: 1,
+          shadowColor: Colors.black12,
         ),
         body: Consumer<SplitItemProvider>(
           builder: (context, splitItemProvider, child) {
@@ -239,32 +237,29 @@ class _SplitItemsScreenState extends State<SplitItemsScreen> {
         bottomNavigationBar: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: backgroundColor,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withValues(alpha: 0.3),
-                spreadRadius: 1,
-                blurRadius: 5,
-                offset: const Offset(0, -3),
+            color: Colors.white,
+            border: Border(
+              top: BorderSide(
+                color: Colors.grey.shade200,
+                width: 1,
               ),
-            ],
+            ),
           ),
           child: SafeArea(
             child: ElevatedButton(
               onPressed: _navigateToAddSplitItem,
               style: ElevatedButton.styleFrom(
-                backgroundColor: onSurfaceColor, // Use dark gray instead of blue
-                foregroundColor: Colors.white, // White text for good contrast
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
+                elevation: 0,
               ),
-              child: Text(
-                'Add Split',
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white, // Ensure white text
+              child: const Text(
+                'Add Split Item',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
@@ -276,92 +271,93 @@ class _SplitItemsScreenState extends State<SplitItemsScreen> {
   Widget _buildSplitItemCard(SplitItem item) {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
-      elevation: 2,
+      elevation: 0,
+      color: Colors.white,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(
+          color: Colors.grey.shade200,
+          width: 1,
+        ),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Item header - more prominent
+            // Item header - name and menu
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
-                  child: Text(
-                    item.name,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
-                      color: onSurfaceColor,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.name,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '£${item.price.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                      if (item.participants.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          '£${(item.price / item.participants.length).toStringAsFixed(2)} each',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey.shade500,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-                Row(
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          '£${item.price.toStringAsFixed(2)}',
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 22,
-                            color: onSurfaceColor,
-                          ),
-                        ),
-                        if (item.participants.isNotEmpty) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            '£${(item.price / item.participants.length).toStringAsFixed(2)} each',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Colors.grey.shade600,
-                              fontStyle: FontStyle.italic,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
+                PopupMenuButton<String>(
+                  onSelected: (value) {
+                    if (value == 'delete') {
+                      _showDeleteConfirmation(item);
+                    } else if (value == 'assign_all') {
+                      _assignToAllParticipants(item);
+                    }
+                  },
+                  itemBuilder: (BuildContext context) => [
+                    const PopupMenuItem<String>(
+                      value: 'assign_all',
+                      child: Row(
+                        children: [
+                          Icon(Icons.group_add, size: 20),
+                          SizedBox(width: 8),
+                          Text('Assign to All'),
                         ],
-                      ],
+                      ),
                     ),
-                    const SizedBox(width: 8),
-                    PopupMenuButton<String>(
-                      onSelected: (value) {
-                        if (value == 'delete') {
-                          _showDeleteConfirmation(item);
-                        } else if (value == 'assign_all') {
-                          _assignToAllParticipants(item);
-                        }
-                      },
-                      itemBuilder: (BuildContext context) => [
-                        const PopupMenuItem<String>(
-                          value: 'assign_all',
-                          child: Row(
-                            children: [
-                              Icon(Icons.group_add, size: 20),
-                              SizedBox(width: 8),
-                              Text('Assign to All'),
-                            ],
-                          ),
-                        ),
-                        const PopupMenuItem<String>(
-                          value: 'delete',
-                          child: Row(
-                            children: [
-                              Icon(Icons.delete, size: 20, color: Colors.red),
-                              SizedBox(width: 8),
-                              Text('Delete Item', style: TextStyle(color: Colors.red)),
-                            ],
-                          ),
-                        ),
-                      ],
-                      child: Icon(
-                        Icons.more_vert,
-                        color: Colors.grey.shade600,
+                    const PopupMenuItem<String>(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete, size: 20, color: Colors.red),
+                          SizedBox(width: 8),
+                          Text('Delete Item', style: TextStyle(color: Colors.red)),
+                        ],
                       ),
                     ),
                   ],
+                  child: Icon(
+                    Icons.more_vert,
+                    color: Colors.grey.shade600,
+                  ),
                 ),
               ],
             ),
@@ -415,7 +411,7 @@ class _SplitItemsScreenState extends State<SplitItemsScreen> {
 
   Widget _buildParticipantRow(SplitItem item, String participantName, int participantId, bool isAssigned) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
           Icon(
@@ -423,11 +419,13 @@ class _SplitItemsScreenState extends State<SplitItemsScreen> {
             size: 16,
             color: Colors.grey.shade600,
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               participantName,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
                 color: isAssigned ? Colors.black87 : Colors.grey.shade600,
               ),
             ),
@@ -436,15 +434,16 @@ class _SplitItemsScreenState extends State<SplitItemsScreen> {
             InkWell(
               onTap: () => _toggleParticipant(item, _findParticipantById(participantId), false),
               child: Container(
-                padding: const EdgeInsets.all(12), // Increased padding for larger tap area
+                padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: Colors.green,
-                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.green.shade100,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: Colors.green.shade300, width: 1),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.check,
-                  size: 24, // Increased from 16 to 24
-                  color: Colors.black,
+                  size: 16,
+                  color: Colors.green.shade700,
                 ),
               ),
             )
@@ -452,17 +451,17 @@ class _SplitItemsScreenState extends State<SplitItemsScreen> {
             InkWell(
               onTap: () => _toggleParticipant(item, _findParticipantById(participantId), true),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), // Increased padding
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade400, width: 2), // Thicker border
-                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade300, width: 1),
+                  borderRadius: BorderRadius.circular(6),
                 ),
-                child: const Text(
+                child: Text(
                   '+ Add',
                   style: TextStyle(
-                    fontSize: 14, // Increased from 12 to 14
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey.shade600,
                   ),
                 ),
               ),

@@ -73,23 +73,34 @@ class _ReceiptTotalScreenState extends State<ReceiptTotalScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text('Bill Total'),
+        title: const Text(
+          'Bill Total',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 0,
+        foregroundColor: Colors.black87,
+        elevation: 1,
+        shadowColor: Colors.black12,
       ),
       body: Column(
         children: [
           // Total Section at top
           Container(
             width: double.infinity,
-            margin: const EdgeInsets.all(24.0),
+            margin: const EdgeInsets.all(16.0),
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.grey.shade900,
+              color: Colors.white,
               borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: Colors.grey.shade200,
+                width: 1,
+              ),
             ),
             child: Column(
               children: [
@@ -98,7 +109,7 @@ class _ReceiptTotalScreenState extends State<ReceiptTotalScreen> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: Colors.black87,
                     letterSpacing: 1.2,
                   ),
                 ),
@@ -108,7 +119,7 @@ class _ReceiptTotalScreenState extends State<ReceiptTotalScreen> {
                   style: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: Colors.black87,
                   ),
                 ),
               ],
@@ -148,8 +159,8 @@ class _ReceiptTotalScreenState extends State<ReceiptTotalScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        border: Border.all(color: Colors.grey.shade300),
+        color: Colors.white,
+        border: Border.all(color: Colors.grey.shade200),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -263,29 +274,26 @@ class _ReceiptTotalScreenState extends State<ReceiptTotalScreen> {
 
   Widget _buildFixedSaveButton() {
     return Container(
-      padding: const EdgeInsets.all(24.0),
+      padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.shade300,
-            spreadRadius: 1,
-            blurRadius: 5,
-            offset: const Offset(0, -3),
+        border: Border(
+          top: BorderSide(
+            color: Colors.grey.shade200,
+            width: 1,
           ),
-        ],
+        ),
       ),
       child: SizedBox(
         width: double.infinity,
-        height: 50,
         child: ElevatedButton(
           onPressed: _isLoading ? null : _saveBillTotal,
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.black,
-            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
+            elevation: 0,
           ),
           child: _isLoading
               ? const SizedBox(
@@ -297,11 +305,10 @@ class _ReceiptTotalScreenState extends State<ReceiptTotalScreen> {
                   ),
                 )
               : const Text(
-                  'SAVE BILL TOTAL',
+                  'Save Bill Total',
                   style: TextStyle(
                     fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.2,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
         ),
