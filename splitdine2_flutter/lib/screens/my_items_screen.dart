@@ -171,20 +171,19 @@ class _MyItemsScreenState extends State<MyItemsScreen> {
     final totalItemCount = _myItems.length + _splitItems.length;
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        foregroundColor: Theme.of(context).colorScheme.onSurface,
-        elevation: 0,
-        title: Text(
-          'Food List',
+        title: const Text(
+          'My Items',
           style: TextStyle(
-            fontFamily: 'GoogleSansRounded',
+            fontSize: 20,
             fontWeight: FontWeight.bold,
-            fontSize: 24,
-            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+        elevation: 1,
+        shadowColor: Colors.black12,
         centerTitle: false,
         actions: [
           // Add Split Item button
@@ -222,18 +221,20 @@ class _MyItemsScreenState extends State<MyItemsScreen> {
         : Column(
             children: [
               // Total price card
-              Container(
-                width: double.infinity,
-                margin: const EdgeInsets.all(16),
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainerHigh,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+              Card(
+                elevation: 0,
+                color: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  side: BorderSide(
+                    color: Colors.grey.shade200,
+                    width: 1,
                   ),
                 ),
-                child: Column(
+                margin: const EdgeInsets.all(16),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
                   children: [
                     Text(
                       'Your Total',
@@ -261,6 +262,7 @@ class _MyItemsScreenState extends State<MyItemsScreen> {
                         ),
                       ),
                   ],
+                  ),
                 ),
               ),
 
@@ -321,20 +323,13 @@ class _MyItemsScreenState extends State<MyItemsScreen> {
           top: 16,
         ),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
+          color: Colors.white,
           border: Border(
             top: BorderSide(
-              color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+              color: Colors.grey.shade200,
               width: 1,
             ),
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 8,
-              offset: const Offset(0, -2),
-            ),
-          ],
         ),
         child: SafeArea(
           child: Row(
@@ -398,24 +393,32 @@ class _MyItemsScreenState extends State<MyItemsScreen> {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       elevation: 0,
-      color: Theme.of(context).colorScheme.surfaceContainerLow,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(
+          color: Colors.grey.shade200,
+          width: 1,
+        ),
+      ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         title: Text(
           item.itemName,
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            fontFamily: 'Nunito',
+          style: const TextStyle(
+            fontSize: 16,
             fontWeight: FontWeight.w600,
+            color: Colors.black87,
           ),
         ),
         trailing: Text(
           '£${item.price.toStringAsFixed(2)}',
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            fontFamily: 'Nunito',
+          style: TextStyle(
+            fontSize: 16,
             fontWeight: FontWeight.w600,
             color: item.price == 0
-              ? Theme.of(context).colorScheme.onSurfaceVariant
-              : Theme.of(context).colorScheme.primary,
+              ? Colors.grey.shade600
+              : Colors.black87,
           ),
         ),
         onTap: () => _showEditPriceDialog(item),
@@ -427,7 +430,14 @@ class _MyItemsScreenState extends State<MyItemsScreen> {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       elevation: 0,
-      color: Theme.of(context).colorScheme.surfaceContainerLow,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(
+          color: Colors.grey.shade200,
+          width: 1,
+        ),
+      ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: Icon(

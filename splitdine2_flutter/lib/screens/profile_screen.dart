@@ -175,15 +175,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
             style: TextButton.styleFrom(
-              foregroundColor: Colors.white,
-              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(6),
+              ),
             ),
-            child: const Text('Delete Account'),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(6),
+              ),
+              elevation: 0,
+            ),
+            child: const Text(
+              'Delete Account',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),
@@ -193,10 +212,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text('Profile'),
-        backgroundColor: Colors.blue.shade700,
-        foregroundColor: Colors.white,
+        title: const Text(
+          'Profile',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+        elevation: 1,
+        shadowColor: Colors.black12,
       ),
       body: Consumer<AuthProvider>(
         builder: (context, authProvider, child) {
@@ -215,17 +243,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 // Profile Header
                 Card(
+                  elevation: 0,
+                  color: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    side: BorderSide(
+                      color: Colors.grey.shade200,
+                      width: 1,
+                    ),
+                  ),
                   child: Padding(
-                    padding: const EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.all(20),
                     child: Column(
                       children: [
-                        CircleAvatar(
-                          radius: 40,
-                          backgroundColor: Colors.blue.shade100,
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: user.isAnonymous
+                                ? Colors.orange.shade100
+                                : Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                           child: Icon(
                             Icons.person,
                             size: 40,
-                            color: Colors.blue.shade700,
+                            color: user.isAnonymous
+                                ? Colors.orange.shade700
+                                : Theme.of(context).colorScheme.primary,
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -258,11 +302,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                           _nameController.text = user.displayName;
                                         });
                                       },
-                                      child: const Text('Cancel'),
+                                      style: TextButton.styleFrom(
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                      child: const Text(
+                                        'Cancel',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
                                     ),
                                     ElevatedButton(
                                       onPressed: _updateName,
-                                      child: const Text('Save'),
+                                      style: ElevatedButton.styleFrom(
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        elevation: 0,
+                                      ),
+                                      child: const Text(
+                                        'Save',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -272,13 +337,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ] else ...[
                           Text(
                             user.displayName,
-                            style: Theme.of(context).textTheme.headlineSmall,
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
                           ),
                           const SizedBox(height: 8),
                           if (!user.isAnonymous && user.email != null) ...[
                             Text(
                               user.email!,
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              style: TextStyle(
+                                fontSize: 16,
                                 color: Colors.grey.shade600,
                               ),
                             ),
@@ -297,8 +367,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 _isEditing = true;
                               });
                             },
-                            icon: const Icon(Icons.edit),
-                            label: const Text('Edit Name'),
+                            icon: const Icon(Icons.edit, size: 20),
+                            label: const Text(
+                              'Edit Name',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 12,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              elevation: 0,
+                            ),
                           ),
                         ],
                       ],
@@ -310,6 +396,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 
                 // Profile Options
                 Card(
+                  elevation: 0,
+                  color: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    side: BorderSide(
+                      color: Colors.grey.shade200,
+                      width: 1,
+                    ),
+                  ),
                   child: Column(
                     children: [
                       ListTile(
