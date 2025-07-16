@@ -7,6 +7,8 @@ import '../models/participant.dart';
 import '../services/receipt_provider.dart';
 import '../services/session_provider.dart';
 import '../services/auth_provider.dart';
+import '../services/split_item_service.dart';
+import 'split_items_screen.dart';
 
 class GuestItemsScreen extends StatefulWidget {
   final Session session;
@@ -24,6 +26,7 @@ class _GuestItemsScreenState extends State<GuestItemsScreen> {
   List<Participant> _participants = [];
   bool _isLoading = true;
   String? _errorMessage;
+  Map<int, List<Map<String, dynamic>>> _userSplitItems = {}; // userId -> split items
 
   @override
   void initState() {
@@ -47,6 +50,9 @@ class _GuestItemsScreenState extends State<GuestItemsScreen> {
         sessionProvider.loadParticipants(widget.session.id),
       ]);
 
+      // Load split items for each participant
+      await _loadSplitItemsForAllParticipants(sessionProvider.participants);
+
       if (mounted) {
         setState(() {
           _participants = sessionProvider.participants;
@@ -63,14 +69,59 @@ class _GuestItemsScreenState extends State<GuestItemsScreen> {
     }
   }
 
+  Future<void> _loadSplitItemsForAllParticipants(List<Participant> participants) async {
+    final splitItemService = SplitItemService();
+    final Map<int, List<Map<String, dynamic>>> userSplitItems = {};
+
+    for (final participant in participants) {
+      try {
+        // Note: We need to create a method to get split items for a specific user
+        // For now, we'll get all split items and filter by participant
+        final result = await splitItemService.getSplitItems(widget.session.id);
+        if (result['success']) {
+          final allSplitItems = result['items'] as List;
+          final userItems = allSplitItems.where((item) {
+            final participants = item['participants'] as List? ?? [];
+            return participants.any((p) => p['user_id'] == participant.userId);
+          }).map((item) => {
+            'id': item['id'],
+            'name': item['name'],
+            'price': item['price'],
+            'split_price': (item['price'] as double) / (item['participants'] as List).length,
+            'participant_count': (item['participants'] as List).length,
+            'description': item['description'],
+          }).toList();
+
+          userSplitItems[participant.userId] = userItems;
+        }
+      } catch (e) {
+        print('Error loading split items for user ${participant.userId}: $e');
+        userSplitItems[participant.userId] = [];
+      }
+    }
+
+    setState(() {
+      _userSplitItems = userSplitItems;
+    });
+  }
+
   List<ReceiptItem> _getItemsForParticipant(int userId) {
     final receiptProvider = Provider.of<ReceiptProvider>(context, listen: false);
     return receiptProvider.items.where((item) => item.addedByUserId == userId).toList();
   }
 
+  List<Map<String, dynamic>> _getSplitItemsForParticipant(int userId) {
+    return _userSplitItems[userId] ?? [];
+  }
+
   double _getTotalForParticipant(int userId) {
     final items = _getItemsForParticipant(userId);
-    return items.fold(0.0, (sum, item) => sum + (item.price * item.quantity));
+    final regularTotal = items.fold(0.0, (sum, item) => sum + (item.price * item.quantity));
+
+    final splitItems = _getSplitItemsForParticipant(userId);
+    final splitTotal = splitItems.fold(0.0, (sum, item) => sum + (item['split_price'] ?? 0.0));
+
+    return regularTotal + splitTotal;
   }
 
   @override
@@ -271,6 +322,7 @@ class _GuestItemsScreenState extends State<GuestItemsScreen> {
       itemBuilder: (context, index) {
         final participant = _participants[index];
         final items = _getItemsForParticipant(participant.userId);
+        final splitItems = _getSplitItemsForParticipant(participant.userId);
         final total = _getTotalForParticipant(participant.userId);
         final isOrganizer = participant.userId == widget.session.organizerId;
 
@@ -391,11 +443,16 @@ class _GuestItemsScreenState extends State<GuestItemsScreen> {
               ),
 
               // Items list
-              if (items.isNotEmpty)
+              if (items.isNotEmpty || splitItems.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
-                    children: items.map((item) => _buildItemTile(item)).toList(),
+                    children: [
+                      // Regular items
+                      ...items.map((item) => _buildItemTile(item)),
+                      // Split items
+                      ...splitItems.map((item) => _buildSplitItemTile(item)),
+                    ],
                   ),
                 )
               else
@@ -486,6 +543,98 @@ class _GuestItemsScreenState extends State<GuestItemsScreen> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSplitItemTile(Map<String, dynamic> splitItem) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0F8FF), // Light blue background to distinguish split items
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: const Color(0xFFE3F2FD),
+          width: 1,
+        ),
+      ),
+      child: InkWell(
+        onTap: () {
+          // Navigate to split items screen and scroll to this item
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => SplitItemsScreen(
+                session: widget.session,
+                scrollToItemName: splitItem['name'],
+              ),
+            ),
+          );
+        },
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.call_split,
+                        size: 16,
+                        color: const Color(0xFF4E4B47).withValues(alpha: 0.7),
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          splitItem['name'],
+                          style: const TextStyle(
+                            fontFamily: 'Nunito',
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF4E4B47),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Split ${splitItem['participant_count']} ways',
+                    style: TextStyle(
+                      fontFamily: 'Nunito',
+                      fontSize: 12,
+                      color: const Color(0xFF4E4B47).withValues(alpha: 0.6),
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '£${(splitItem['split_price'] ?? 0.0).toStringAsFixed(2)}',
+                  style: const TextStyle(
+                    fontFamily: 'Nunito',
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF4E4B47),
+                  ),
+                ),
+                Text(
+                  'your share',
+                  style: TextStyle(
+                    fontFamily: 'Nunito',
+                    fontSize: 12,
+                    color: const Color(0xFF4E4B47).withValues(alpha: 0.6),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

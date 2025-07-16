@@ -481,6 +481,19 @@ const participantChoiceQueries = {
        WHERE session_id = $1 AND name = $2 AND split_item = true`,
       [sessionId, splitItemName]
     );
+  },
+
+  // Get user's split item assignments
+  getUserSplitItems: async (userId, sessionId) => {
+    const result = await query(
+      `SELECT gc.*, gc.name as item_name, si.id as split_item_id
+       FROM guest_choice gc
+       LEFT JOIN split_items si ON gc.session_id = si.session_id AND gc.name = si.name
+       WHERE gc.user_id = $1 AND gc.session_id = $2 AND gc.split_item = true
+       ORDER BY gc.created_at DESC`,
+      [userId, sessionId]
+    );
+    return result.rows;
   }
 };
 

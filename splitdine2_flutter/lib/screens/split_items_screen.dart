@@ -9,10 +9,12 @@ import 'package:splitdine2_flutter/screens/add_split_item_screen.dart';
 
 class SplitItemsScreen extends StatefulWidget {
   final Session session;
+  final String? scrollToItemName; // Optional item name to scroll to
 
   const SplitItemsScreen({
     super.key,
     required this.session,
+    this.scrollToItemName,
   });
 
   @override
@@ -23,13 +25,12 @@ class _SplitItemsScreenState extends State<SplitItemsScreen> {
   List<Participant> _participants = [];
   bool _isLoadingParticipants = false;
   String? _errorMessage;
+  final ScrollController _scrollController = ScrollController();
 
-  // Custom theme colors for this screen only
-  static const Color primaryColor = Color(0xFFFFC629); // Sunshine Yellow
-  static const Color secondaryColor = Color(0xFFF04438); // Tomato Red
-  static const Color backgroundColor = Color(0xFFFFFFFF); // White
-  static const Color surfaceColor = Color(0xFFECE9E6); // Light Gray
-  static const Color onSurfaceColor = Color(0xFF4E4B47); // Dark Gray
+  // Material 3 grey color scheme to match guest items
+  static const Color backgroundColor = Color(0xFFFAFAFA); // Very light gray background
+  static const Color surfaceColor = Color(0xFFFFFFFF); // White surface
+  static const Color onSurfaceColor = Color(0xFF4E4B47); // Dark Gray text
 
   @override
   void initState() {
@@ -39,22 +40,45 @@ class _SplitItemsScreenState extends State<SplitItemsScreen> {
     });
   }
 
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadData() async {
     await Future.wait([
       _loadSplitItems(),
       _loadParticipants(),
     ]);
+
+    // Scroll to specific item if requested
+    if (widget.scrollToItemName != null) {
+      _scrollToItem(widget.scrollToItemName!);
+    }
   }
 
   Future<void> _loadSplitItems() async {
-    print('=== SPLIT ITEMS SCREEN DEBUG ===');
-    print('Session ID: ${widget.session.id}');
-    print('Session Name: ${widget.session.sessionName}');
-    print('Session Host: ${widget.session.isHost}');
-    print('================================');
-
     final splitItemProvider = Provider.of<SplitItemProvider>(context, listen: false);
     await splitItemProvider.loadItems(widget.session.id);
+  }
+
+  void _scrollToItem(String itemName) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final splitItemProvider = Provider.of<SplitItemProvider>(context, listen: false);
+      final items = splitItemProvider.items;
+
+      final itemIndex = items.indexWhere((item) => item.name == itemName);
+      if (itemIndex != -1 && _scrollController.hasClients) {
+        // Calculate approximate position (each item card is roughly 200 pixels)
+        final position = itemIndex * 200.0;
+        _scrollController.animateTo(
+          position,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
   }
 
   Future<void> _loadParticipants() async {
@@ -116,53 +140,18 @@ class _SplitItemsScreenState extends State<SplitItemsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: Theme.of(context).copyWith(
-        colorScheme: const ColorScheme.light(
-          primary: primaryColor,
-          secondary: secondaryColor,
-          surface: surfaceColor,
-          onSurface: onSurfaceColor,
-        ),
-        textTheme: Theme.of(context).textTheme.copyWith(
-          headlineLarge: const TextStyle(
-            fontWeight: FontWeight.bold,
-            color: onSurfaceColor,
-          ),
-          headlineMedium: const TextStyle(
-            fontWeight: FontWeight.bold,
-            color: onSurfaceColor,
-          ),
-          headlineSmall: const TextStyle(
-            fontWeight: FontWeight.bold,
-            color: onSurfaceColor,
-          ),
-          bodyLarge: const TextStyle(
-            fontSize: 24,
-            color: onSurfaceColor,
-          ),
-          bodyMedium: const TextStyle(
-            fontSize: 16,
-            color: onSurfaceColor,
-          ),
-          bodySmall: const TextStyle(
-            fontSize: 14,
-            color: onSurfaceColor,
-          ),
-        ),
-      ),
-      child: Scaffold(
-        backgroundColor: backgroundColor,
+    return Scaffold(
+      backgroundColor: backgroundColor,
         appBar: AppBar(
           title: Text(
             'Split Items',
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
               fontWeight: FontWeight.bold,
-              color: Colors.black,
+              color: onSurfaceColor,
             ),
           ),
-          backgroundColor: primaryColor,
-          foregroundColor: Colors.black,
+          backgroundColor: surfaceColor,
+          foregroundColor: onSurfaceColor,
           elevation: 0,
         ),
         body: Consumer<SplitItemProvider>(
@@ -179,7 +168,7 @@ class _SplitItemsScreenState extends State<SplitItemsScreen> {
                     Icon(
                       Icons.error_outline,
                       size: 64,
-                      color: secondaryColor,
+                      color: Colors.red,
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -191,8 +180,8 @@ class _SplitItemsScreenState extends State<SplitItemsScreen> {
                     ElevatedButton(
                       onPressed: _loadData,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryColor,
-                        foregroundColor: Colors.black,
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor: Theme.of(context).colorScheme.onPrimary,
                       ),
                       child: const Text('Retry'),
                     ),
@@ -237,6 +226,7 @@ class _SplitItemsScreenState extends State<SplitItemsScreen> {
             }
 
             return ListView.builder(
+              controller: _scrollController,
               padding: const EdgeInsets.all(16),
               itemCount: splitItems.length,
               itemBuilder: (context, index) {
@@ -263,8 +253,8 @@ class _SplitItemsScreenState extends State<SplitItemsScreen> {
             child: ElevatedButton(
               onPressed: _navigateToAddSplitItem,
               style: ElevatedButton.styleFrom(
-                backgroundColor: primaryColor,
-                foregroundColor: Colors.black,
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -274,13 +264,11 @@ class _SplitItemsScreenState extends State<SplitItemsScreen> {
                 'Add Split',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: Colors.black,
                 ),
               ),
             ),
           ),
         ),
-      ),
     );
   }
 
@@ -445,7 +433,7 @@ class _SplitItemsScreenState extends State<SplitItemsScreen> {
               child: Container(
                 padding: const EdgeInsets.all(12), // Increased padding for larger tap area
                 decoration: BoxDecoration(
-                  color: primaryColor,
+                  color: Colors.green,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(

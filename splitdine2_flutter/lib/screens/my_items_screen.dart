@@ -77,15 +77,17 @@ class _MyItemsScreenState extends State<MyItemsScreen> {
   Future<void> _loadSplitItems() async {
     try {
       final splitItemService = SplitItemService();
-      final result = await splitItemService.getSplitItems(widget.session.id);
+      final result = await splitItemService.getUserSplitItems(widget.session.id);
 
       if (result['success']) {
         setState(() {
           _splitItems = (result['items'] as List).map((item) => {
-            'id': item.id,
-            'name': item.name,
-            'price': item.price,
-            'description': item.description,
+            'id': item['id'],
+            'name': item['name'],
+            'price': item['price'], // Full price
+            'split_price': item['split_price'], // Split price
+            'participant_count': item['participant_count'],
+            'description': item['description'],
           }).toList();
         });
       }
@@ -164,7 +166,7 @@ class _MyItemsScreenState extends State<MyItemsScreen> {
   Widget build(BuildContext context) {
     // Combine personal items and split items with unified total
     final personalTotal = _myItems.fold<double>(0.0, (sum, item) => sum + item.price);
-    final splitTotal = _splitItems.fold<double>(0.0, (sum, item) => sum + (item['price'] ?? 0.0));
+    final splitTotal = _splitItems.fold<double>(0.0, (sum, item) => sum + (item['split_price'] ?? 0.0));
     final totalAmount = personalTotal + splitTotal;
     final totalItemCount = _myItems.length + _splitItems.length;
 
@@ -440,24 +442,46 @@ class _MyItemsScreenState extends State<MyItemsScreen> {
             fontWeight: FontWeight.w600,
           ),
         ),
-        trailing: Text(
-          '£${(splitItem['price'] ?? 0.0).toStringAsFixed(2)}',
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            fontFamily: 'Nunito',
-            fontWeight: FontWeight.w600,
-            color: (splitItem['price'] ?? 0.0) == 0
-              ? Theme.of(context).colorScheme.onSurfaceVariant
-              : Theme.of(context).colorScheme.primary,
-          ),
+        trailing: Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '£${(splitItem['split_price'] ?? 0.0).toStringAsFixed(2)}',
+              style: const TextStyle(
+                fontFamily: 'Nunito',
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF4E4B47), // Match guest items color
+              ),
+            ),
+            if ((splitItem['participant_count'] ?? 0) > 1) ...[
+              const SizedBox(height: 2),
+              Text(
+                'Split ${splitItem['participant_count']} ways',
+                style: TextStyle(
+                  fontFamily: 'Nunito',
+                  fontSize: 12,
+                  color: const Color(0xFF4E4B47).withValues(alpha: 0.6),
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
+          ],
         ),
         onTap: () {
-          // TODO: Navigate to split item details/management screen
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Split item management coming soon!'),
-              duration: const Duration(seconds: 2),
+          // Navigate to split items screen and scroll to this item
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => SplitItemsScreen(
+                session: widget.session,
+                scrollToItemName: splitItem['name'],
+              ),
             ),
-          );
+          ).then((_) {
+            // Refresh split items when returning from split items screen
+            _loadSplitItems();
+          });
         },
       ),
     );

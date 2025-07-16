@@ -87,15 +87,10 @@ router.post('/add-item', authenticateToken, async (req, res) => {
 // Get session split items
 router.post('/get-items', authenticateToken, async (req, res) => {
   try {
-    console.log('=== SPLIT ITEMS GET-ITEMS DEBUG ===');
-    console.log('Request body:', req.body);
     const { session_id } = req.body;
-    console.log('Session ID:', session_id);
 
     // Get all split items for the session
-    console.log('Getting split items from database...');
     const items = await splitItemQueries.getBySession(session_id);
-    console.log('Split items found:', items.length);
 
     // Get participants for each item
     const itemsWithParticipants = await Promise.all(
@@ -558,6 +553,65 @@ router.post('/delete', authenticateToken, async (req, res) => {
     res.status(500).json({
       return_code: 'SERVER_ERROR',
       message: 'Failed to delete split item',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Get user's split item assignments
+router.post('/get-user-assignments', authenticateToken, async (req, res) => {
+  try {
+    const { session_id } = req.body;
+    const userId = req.user.id;
+
+    // Validate required fields
+    if (!session_id) {
+      return res.status(400).json({
+        return_code: 'MISSING_FIELDS',
+        message: 'Session ID is required',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Get user's split item assignments
+    const userSplitItems = await participantChoiceQueries.getUserSplitItems(userId, session_id);
+
+    // For each split item, get the participant count to calculate split price
+    const formattedItems = await Promise.all(
+      userSplitItems.map(async (item) => {
+        const participants = await participantChoiceQueries.getSplitItemParticipants(session_id, item.item_name);
+        const participantCount = participants.length;
+        const splitPrice = participantCount > 0 ? parseFloat(item.price) / participantCount : parseFloat(item.price);
+
+        return {
+          id: item.split_item_id || item.id, // Use split_item_id if available, fallback to assignment id
+          name: item.item_name,
+          price: parseFloat(item.price), // Full price
+          split_price: splitPrice, // Price divided by participants
+          participant_count: participantCount,
+          description: item.description,
+          created_at: item.created_at,
+          updated_at: item.updated_at
+        };
+      })
+    );
+
+    // Calculate total using split prices
+    const total = formattedItems.reduce((sum, item) => sum + item.split_price, 0);
+
+    res.json({
+      return_code: 'SUCCESS',
+      items: formattedItems,
+      total: total,
+      item_count: formattedItems.length,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Get user split item assignments error:', error);
+    res.status(500).json({
+      return_code: 'SERVER_ERROR',
+      message: 'Failed to get user split item assignments',
       timestamp: new Date().toISOString()
     });
   }
