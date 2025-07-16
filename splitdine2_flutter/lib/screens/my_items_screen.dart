@@ -5,6 +5,7 @@ import '../models/receipt_item.dart';
 import '../services/auth_provider.dart';
 import '../services/receipt_provider.dart';
 import '../services/split_item_service.dart';
+import 'split_items_screen.dart';
 
 class MyItemsScreen extends StatefulWidget {
   final Session session;
@@ -93,100 +94,18 @@ class _MyItemsScreenState extends State<MyItemsScreen> {
     }
   }
 
-  void _showAddSplitItemDialog() {
-    final TextEditingController splitItemController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          'Add Split Item',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-            fontFamily: 'GoogleSansRounded',
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        content: TextField(
-          controller: splitItemController,
-          textCapitalization: TextCapitalization.sentences,
-          decoration: InputDecoration(
-            hintText: 'Enter item name',
-            hintStyle: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-              fontFamily: 'Nunito',
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 12,
-            ),
-          ),
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            fontFamily: 'Nunito',
-          ),
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(
-              'Cancel',
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                fontFamily: 'Nunito',
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-          FilledButton(
-            onPressed: () async {
-              final itemName = splitItemController.text.trim();
-              if (itemName.isNotEmpty) {
-                Navigator.of(context).pop();
-                await _addSplitItem(itemName);
-              }
-            },
-            child: Text(
-              'Add',
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                fontFamily: 'Nunito',
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
+  void _navigateToSplitItems() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => SplitItemsScreen(session: widget.session),
       ),
-    );
-  }
-
-  Future<void> _addSplitItem(String itemName) async {
-    if (itemName.trim().isEmpty) return;
-
-    setState(() {
-      _isAddingItem = true;
+    ).then((_) {
+      // Refresh split items when returning from split items screen
+      _loadSplitItems();
     });
-
-    try {
-      final splitItemService = SplitItemService();
-
-      final result = await splitItemService.addSplitItem(
-        sessionId: widget.session.id,
-        name: itemName.trim(),
-        price: 0.0, // Start with zero price
-      );
-
-      if (result['success']) {
-        await _loadSplitItems(); // Reload to get the new split item
-      }
-    } catch (e) {
-      print('Error adding split item: $e');
-    } finally {
-      setState(() {
-        _isAddingItem = false;
-      });
-    }
   }
+
+
 
   Future<void> _addItem(String itemName) async {
     if (itemName.trim().isEmpty) return;
@@ -271,7 +190,7 @@ class _MyItemsScreenState extends State<MyItemsScreen> {
             padding: const EdgeInsets.only(right: 8),
             child: FilledButton.tonal(
               onPressed: () {
-                _showAddSplitItemDialog();
+                _navigateToSplitItems();
               },
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
