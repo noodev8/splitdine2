@@ -44,43 +44,66 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.blue.shade700,
-      body: const Center(
+      backgroundColor: Colors.grey.shade50,
+      body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // App Logo/Icon
-            Icon(
-              Icons.restaurant,
-              size: 80,
-              color: Colors.white,
+            // App Logo
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Image.asset(
+                'assets/splitdine_icon_1024.png',
+                width: 80,
+                height: 80,
+                fit: BoxFit.contain,
+              ),
             ),
-            SizedBox(height: 20),
-            
+            const SizedBox(height: 32),
+
             // App Name
-            Text(
+            const Text(
               'Split Dine',
               style: TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: Colors.black87,
               ),
             ),
-            SizedBox(height: 10),
-            
+            const SizedBox(height: 8),
+
             // Tagline
             Text(
               'Split bills, share meals',
               style: TextStyle(
                 fontSize: 16,
-                color: Colors.white70,
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w500,
               ),
             ),
-            SizedBox(height: 40),
-            
+            const SizedBox(height: 48),
+
             // Loading indicator
-            CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  Theme.of(context).colorScheme.primary,
+                ),
+              ),
             ),
           ],
         ),
