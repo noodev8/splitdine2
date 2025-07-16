@@ -22,12 +22,7 @@ pool.on('error', (err, client) => {
 const testConnection = async () => {
   try {
     const client = await pool.connect();
-    console.log('Database connected successfully');
-    
-    // Test query to verify database structure
-    const result = await client.query('SELECT NOW() as current_time');
-    console.log('Database test query successful:', result.rows[0].current_time);
-    
+    await client.query('SELECT NOW()');
     client.release();
     return true;
   } catch (err) {

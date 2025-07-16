@@ -1,19 +1,8 @@
-require('dotenv').config();
+require('dotenv').config({ silent: true });
 
 module.exports = {
-  server: {
-    port: process.env.PORT || 3000,
-    env: process.env.NODE_ENV || 'development'
-  },
-  database: {
-    url: process.env.DATABASE_URL,
-    ssl: process.env.NODE_ENV === 'production'
-  },
-  jwt: {
-    secret: process.env.JWT_SECRET,
-    expiresIn: process.env.JWT_EXPIRES_IN || '24h'
-  },
-  security: {
-    corsOrigin: process.env.CORS_ORIGIN || '*'
-  }
+  port: process.env.PORT || 3000,
+  databaseUrl: process.env.DATABASE_URL,
+  jwtSecret: process.env.JWT_SECRET,
+  corsOrigin: process.env.CORS_ORIGIN || '*'
 };
