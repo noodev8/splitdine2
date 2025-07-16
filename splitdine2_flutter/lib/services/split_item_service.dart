@@ -157,7 +157,7 @@ class SplitItemService {
     try {
       final headers = await _getAuthHeaders();
       final response = await http.post(
-        Uri.parse('$baseUrl/split-items/delete-item'),
+        Uri.parse('$baseUrl/split-items/delete'),
         headers: headers,
         body: jsonEncode({
           'item_id': itemId,
