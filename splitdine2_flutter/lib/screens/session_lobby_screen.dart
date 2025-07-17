@@ -177,15 +177,7 @@ class _SessionLobbyScreenState extends State<SessionLobbyScreen> {
                               color: Colors.black87,
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          if (user.email != null)
-                            Text(
-                              user.email!,
-                              style: TextStyle(
-                                color: Colors.grey.shade600,
-                                fontSize: 16,
-                              ),
-                            ),
+                          // Email address removed as requested
                           if (user.isAnonymous)
                             Container(
                               margin: const EdgeInsets.only(top: 4),

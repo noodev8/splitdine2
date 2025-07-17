@@ -77,13 +77,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
             itemBuilder: (BuildContext context) => [
               const PopupMenuItem<String>(
                 value: 'share_code',
-                child: Row(
-                  children: [
-                    Icon(Icons.share),
-                    SizedBox(width: 8),
-                    Text('Share Session Code'),
-                  ],
-                ),
+                child: Text('Session Code'),
               ),
               if (widget.session.isHost)
                 const PopupMenuItem<String>(
@@ -147,18 +141,20 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                             ],
                           ),
                         ),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(8),
+                        // Show host icon only for hosts
+                        if (widget.session.isHost)
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.star,
+                              size: 28,
+                              color: Colors.amber,
+                            ),
                           ),
-                          child: Icon(
-                            Icons.restaurant_menu,
-                            size: 28,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                        ),
                       ],
                     ),
 
@@ -177,21 +173,9 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                       ),
                     if (widget.session.sessionTime != null) const SizedBox(height: 12),
 
-                    // Description
-                    if (widget.session.description != null && widget.session.description!.isNotEmpty) ...[
-                      _buildModernInfoRow(
-                        icon: Icons.description,
-                        text: widget.session.description!,
-                      ),
-                      const SizedBox(height: 12),
-                    ],
+                    // Description moved to after buttons
 
-                    // Role
-                    _buildModernInfoRow(
-                      icon: widget.session.isHost ? Icons.star : Icons.person,
-                      text: 'Role: ${widget.session.isHost ? 'Host' : 'Guest'}',
-                      iconColor: widget.session.isHost ? Colors.amber : const Color(0xFF6200EE),
-                    ),
+                    // Role removed - no longer displayed
                   ],
                 ),
               ),
@@ -199,21 +183,8 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
 
             const SizedBox(height: 24),
 
-            // Session Code Section
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Session Code',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-
-              ],
-            ),
+            // Session Code Section (title removed)
+            const SizedBox.shrink(), // Placeholder for removed section
 
 
 
@@ -243,6 +214,8 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       elevation: 0,
+                      shadowColor: Colors.transparent,
+                      overlayColor: Colors.black.withValues(alpha: 0.05), // Subtle press effect
                     ),
                   ),
                 ),
@@ -268,6 +241,8 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       elevation: 0,
+                      shadowColor: Colors.transparent,
+                      overlayColor: Colors.black.withValues(alpha: 0.05), // Subtle press effect
                     ),
                   ),
                 ),
@@ -293,9 +268,36 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       elevation: 0,
+                      shadowColor: Colors.transparent,
+                      overlayColor: Colors.black.withValues(alpha: 0.05), // Subtle press effect
                     ),
                   ),
                 ),
+
+                // Description section (moved from header)
+                if (widget.session.description != null && widget.session.description!.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Colors.grey.shade200,
+                        width: 1,
+                      ),
+                    ),
+                    child: Text(
+                      widget.session.description!,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade700,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
 
                 const SizedBox(height: 24),
 

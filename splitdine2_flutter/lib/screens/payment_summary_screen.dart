@@ -159,44 +159,7 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          // Session Info Card
-                          Card(
-                            elevation: 0,
-                            color: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              side: BorderSide(
-                                color: Colors.grey.shade200,
-                                width: 1,
-                              ),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(20),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    widget.session.displayName,
-                                    style: const TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black87,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    widget.session.location,
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.grey.shade600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(height: 16),
+                          // Session info card removed as requested
 
                           // Summary Card
                           Card(
@@ -363,13 +326,7 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
                                                 : Colors.grey,
                                           ),
                                         ),
-                                        Text(
-                                          amount > 0 ? 'owes' : 'no items',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey.shade600,
-                                          ),
-                                        ),
+                                        // "owes" text removed as requested
                                       ],
                                     ),
                                     if (amount > 0) ...[

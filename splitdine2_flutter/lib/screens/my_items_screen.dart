@@ -266,9 +266,9 @@ class _MyItemsScreenState extends State<MyItemsScreen> {
         ? const Center(child: CircularProgressIndicator())
         : Column(
             children: [
-              // Total price card
-              Container(
-                margin: const EdgeInsets.fromLTRB(16, 16, 16, 16), // Match ListView padding
+              // Total price card - match ListView padding exactly
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0), // Match ListView horizontal padding
                 child: Card(
                   elevation: 0,
                   color: Colors.white,
@@ -670,14 +670,30 @@ class _EditPriceDialogState extends State<_EditPriceDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Item name
-            Text(
-              widget.item.itemName,
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontFamily: 'GoogleSansRounded',
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
+            // Close button and item name
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    widget.item.itemName,
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontFamily: 'GoogleSansRounded',
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close),
+                  iconSize: 20,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 32,
+                    minHeight: 32,
+                  ),
+                ),
+              ],
             ),
 
             const SizedBox(height: 24),

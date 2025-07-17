@@ -133,11 +133,7 @@ class _ReceiptTotalScreenState extends State<ReceiptTotalScreen> {
                 key: _formKey,
                 child: Column(
                   children: [
-                    // Receipt Header
-                    _buildReceiptHeader(),
-                    const SizedBox(height: 32),
-
-                    // Bill Items
+                    // Bill Items (header removed)
                     _buildBillItems(),
                     const SizedBox(height: 100), // Space for fixed button
                   ],
@@ -153,49 +149,7 @@ class _ReceiptTotalScreenState extends State<ReceiptTotalScreen> {
     );
   }
 
-  Widget _buildReceiptHeader() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: Colors.grey.shade200),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        children: [
-          Text(
-            widget.session.sessionName ?? 'Unnamed Session',
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Colors.black,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            widget.session.location,
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey.shade600,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Code: ${widget.session.joinCode}',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade600,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const Divider(height: 24, color: Colors.black),
-        ],
-      ),
-    );
-  }
+  // Receipt header removed as requested
 
   Widget _buildBillItems() {
     return Column(
