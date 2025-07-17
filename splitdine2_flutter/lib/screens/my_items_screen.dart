@@ -269,49 +269,52 @@ class _MyItemsScreenState extends State<MyItemsScreen> {
               // Total price card - match ListView padding exactly
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 0), // Match ListView horizontal padding
-                child: Card(
-                  elevation: 0,
-                  color: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    side: BorderSide(
-                      color: Colors.grey.shade200,
-                      width: 1,
-                    ),
-                  ),
-                  margin: EdgeInsets.zero, // Remove card's own margin
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                  children: [
-                    Text(
-                      'Total',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontFamily: 'GoogleSansRounded',
-                        fontWeight: FontWeight.w600,
-                        color: Theme.of(context).colorScheme.onSurface,
+                child: SizedBox(
+                  width: double.infinity,
+                  child: Card(
+                    elevation: 0,
+                    color: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      side: BorderSide(
+                        color: Colors.grey.shade200,
+                        width: 1,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '£${totalAmount.toStringAsFixed(2)}',
-                      style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                        fontFamily: 'GoogleSansRounded',
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                    ),
-                    if (totalItemCount > 0)
+                    margin: EdgeInsets.zero, // Remove card's own margin
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                    children: [
                       Text(
-                        '${totalItemCount} item${totalItemCount != 1 ? 's' : ''}',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontFamily: 'Nunito',
-                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                        'Total',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontFamily: 'GoogleSansRounded',
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
-                  ],
+                      const SizedBox(height: 8),
+                      Text(
+                        '£${totalAmount.toStringAsFixed(2)}',
+                        style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                          fontFamily: 'GoogleSansRounded',
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ),
+                      if (totalItemCount > 0)
+                        Text(
+                          '${totalItemCount} item${totalItemCount != 1 ? 's' : ''}',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontFamily: 'Nunito',
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                          ),
+                        ),
+                    ],
+                    ),
                   ),
-                ),
+                  ),
                 ),
               ),
 
@@ -346,7 +349,7 @@ class _MyItemsScreenState extends State<MyItemsScreen> {
                       ),
                     )
                   : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16), // Added top padding for spacing
                       itemCount: _myItems.length + _splitItems.length,
                       itemBuilder: (context, index) {
                         if (index < _myItems.length) {
@@ -389,7 +392,7 @@ class _MyItemsScreenState extends State<MyItemsScreen> {
                     color: Theme.of(context).colorScheme.surfaceContainerHigh,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+                      color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
                     ),
                   ),
                   child: TextField(
@@ -579,7 +582,7 @@ class _MyItemsScreenState extends State<MyItemsScreen> {
                 style: TextStyle(
                   fontFamily: 'Nunito',
                   fontSize: 12,
-                  color: const Color(0xFF4E4B47).withValues(alpha: 0.6),
+                  color: const Color(0xFF4E4B47).withOpacity(0.6),
                   fontStyle: FontStyle.italic,
                 ),
               ),
