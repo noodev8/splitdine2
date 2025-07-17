@@ -71,6 +71,7 @@ class SessionProvider with ChangeNotifier {
     required DateTime sessionDate,
     String? sessionTime,
     String? description,
+    String? foodType,
   }) async {
     _setLoading(true);
     _setError(null);
@@ -82,6 +83,7 @@ class SessionProvider with ChangeNotifier {
         sessionDate: sessionDate,
         sessionTime: sessionTime,
         description: description,
+        foodType: foodType,
       );
 
       if (result['success']) {

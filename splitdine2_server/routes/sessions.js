@@ -16,7 +16,7 @@ const generateSessionCode = () => {
 // Create new session
 router.post('/create', authenticateToken, async (req, res) => {
   try {
-    const { session_name, location, session_date, session_time, description } = req.body;
+    const { session_name, location, session_date, session_time, description, food_type } = req.body;
 
     // Validate required fields
     if (!location || !session_date) {
@@ -56,6 +56,7 @@ router.post('/create', authenticateToken, async (req, res) => {
       session_date,
       session_time,
       description,
+      food_type,
       join_code: session_code
     });
 

@@ -14,28 +14,53 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
   final _sessionNameController = TextEditingController();
   final _locationController = TextEditingController();
   final _descriptionController = TextEditingController();
-  final _hoursController = TextEditingController();
-  final _minutesController = TextEditingController();
+  final _manualTimeController = TextEditingController();
 
   DateTime? _selectedDate;
+  String? _selectedTimeSlot;
+  String? _selectedFoodType;
   bool _isLoading = false;
+  bool _useManualTime = false;
+
+  // Time slots in 30-minute intervals
+  final List<String> _timeSlots = [
+    '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
+    '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30',
+    '19:00', '19:30', '20:00', '20:30', '21:00', '21:30', '22:00', '22:30'
+  ];
+
+  // Food types
+  final List<String> _foodTypes = [
+    'Indian', 'Mexican', 'American', 'Italian', 'Chinese', 'Japanese',
+    'Thai', 'Mediterranean', 'French', 'British', 'Korean', 'Vietnamese',
+    'Greek', 'Spanish', 'Lebanese', 'Turkish', 'Other'
+  ];
 
   @override
   void dispose() {
     _sessionNameController.dispose();
     _locationController.dispose();
     _descriptionController.dispose();
-    _hoursController.dispose();
-    _minutesController.dispose();
+    _manualTimeController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text('Create Session'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        title: const Text(
+          'Create Session',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+        elevation: 1,
+        shadowColor: Colors.black12,
       ),
       body: Form(
         key: _formKey,
@@ -46,25 +71,48 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
             children: [
               // Header
               Card(
+                elevation: 0,
+                color: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  side: BorderSide(
+                    color: Colors.grey.shade200,
+                    width: 1,
+                  ),
+                ),
                 child: Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
-                      Icon(
-                        Icons.restaurant_menu,
-                        size: 48,
-                        color: Theme.of(context).colorScheme.primary,
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          Icons.restaurant_menu,
+                          size: 32,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Plan Your Dining Session',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Plan Your Dining Session',
-                        style: Theme.of(context).textTheme.headlineSmall,
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
                         'Create a session to split bills with friends',
-                        style: TextStyle(color: Colors.grey.shade600),
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey.shade600,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                     ],
@@ -74,11 +122,11 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
               
               const SizedBox(height: 24),
               
-              // Session Name (Optional)
+              // Session Name
               TextFormField(
                 controller: _sessionNameController,
                 decoration: const InputDecoration(
-                  labelText: 'Session Name (Optional)',
+                  labelText: 'Session Name',
                   hintText: 'e.g., Birthday Dinner, Team Lunch',
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.edit),
@@ -131,59 +179,127 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
               
               const SizedBox(height: 16),
               
-              // Time (Optional)
-              Row(
+              // Time Selection
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _hoursController,
+                  const Text(
+                    'Start Time (Optional)',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Time slot buttons
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _timeSlots.map((time) {
+                      final isSelected = _selectedTimeSlot == time && !_useManualTime;
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedTimeSlot = time;
+                            _useManualTime = false;
+                            _manualTimeController.clear();
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? Theme.of(context).colorScheme.primary
+                                : Colors.white,
+                            border: Border.all(
+                              color: isSelected
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Colors.grey.shade300,
+                            ),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            time,
+                            style: TextStyle(
+                              color: isSelected ? Colors.white : Colors.black87,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Manual time option
+                  Row(
+                    children: [
+                      Checkbox(
+                        value: _useManualTime,
+                        onChanged: (value) {
+                          setState(() {
+                            _useManualTime = value ?? false;
+                            if (_useManualTime) {
+                              _selectedTimeSlot = null;
+                            } else {
+                              _manualTimeController.clear();
+                            }
+                          });
+                        },
+                      ),
+                      const Text('Enter custom time'),
+                    ],
+                  ),
+
+                  if (_useManualTime) ...[
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _manualTimeController,
                       decoration: const InputDecoration(
-                        labelText: 'Hours (Optional)',
-                        hintText: '14',
+                        labelText: 'Custom Time',
+                        hintText: 'e.g., 19:30',
                         border: OutlineInputBorder(),
                         prefixIcon: Icon(Icons.access_time),
                       ),
-                      keyboardType: TextInputType.number,
-                      maxLength: 2,
                       validator: (value) {
-                        if (value != null && value.isNotEmpty) {
-                          final hour = int.tryParse(value);
-                          if (hour == null || hour < 0 || hour > 23) {
-                            return 'Enter 0-23';
-                          }
+                        if (_useManualTime && (value == null || value.trim().isEmpty)) {
+                          return 'Please enter a time';
                         }
                         return null;
                       },
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _minutesController,
-                      decoration: const InputDecoration(
-                        labelText: 'Minutes (Optional)',
-                        hintText: '30',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.schedule),
-                      ),
-                      keyboardType: TextInputType.number,
-                      maxLength: 2,
-                      validator: (value) {
-                        if (value != null && value.isNotEmpty) {
-                          final minute = int.tryParse(value);
-                          if (minute == null || minute < 0 || minute > 59) {
-                            return 'Enter 0-59';
-                          }
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
+                  ],
                 ],
               ),
               
               const SizedBox(height: 16),
-              
+
+              // Food Type Selection
+              DropdownButtonFormField<String>(
+                value: _selectedFoodType,
+                decoration: const InputDecoration(
+                  labelText: 'Food Type (Optional)',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.restaurant),
+                ),
+                items: _foodTypes.map((String foodType) {
+                  return DropdownMenuItem<String>(
+                    value: foodType,
+                    child: Text(foodType),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _selectedFoodType = newValue;
+                  });
+                },
+              ),
+
+              const SizedBox(height: 16),
+
               // Description (Optional)
               TextFormField(
                 controller: _descriptionController,
@@ -200,49 +316,33 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
               const SizedBox(height: 32),
               
               // Create Button
-              ElevatedButton(
-                onPressed: _isLoading ? null : _handleCreateSession,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
-                      )
-                    : const Text(
-                        'Create Session',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-              ),
-              
-              const SizedBox(height: 16),
-              
-              // Info text
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue.shade200),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.info_outline, color: Colors.blue.shade600),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'After creating, you\'ll get a join code to share with friends.',
-                        style: TextStyle(color: Colors.blue.shade700),
-                      ),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _handleCreateSession,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                  ],
+                    elevation: 0,
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Text(
+                          'Create Session',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                 ),
               ),
             ],
@@ -286,22 +386,12 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
     try {
       final sessionProvider = Provider.of<SessionProvider>(context, listen: false);
 
-      // Format time as string if provided (24-hour format)
+      // Format time as string if provided
       String? timeString;
-      final hours = _hoursController.text.trim();
-      final minutes = _minutesController.text.trim();
-
-      if (hours.isNotEmpty && minutes.isNotEmpty) {
-        final hour = int.tryParse(hours);
-        final minute = int.tryParse(minutes);
-        if (hour != null && minute != null && hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) {
-          timeString = '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
-        }
-      } else if (hours.isNotEmpty) {
-        final hour = int.tryParse(hours);
-        if (hour != null && hour >= 0 && hour <= 23) {
-          timeString = '${hour.toString().padLeft(2, '0')}:00';
-        }
+      if (_useManualTime) {
+        timeString = _manualTimeController.text.trim();
+      } else if (_selectedTimeSlot != null) {
+        timeString = _selectedTimeSlot;
       }
 
       final success = await sessionProvider.createSession(
@@ -314,6 +404,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
         description: _descriptionController.text.trim().isEmpty
             ? null
             : _descriptionController.text.trim(),
+        foodType: _selectedFoodType,
       );
 
       if (success && mounted) {
@@ -363,14 +454,32 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
       barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
-          icon: Icon(
-            Icons.check_circle,
-            color: Colors.green.shade600,
-            size: 48,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
           ),
-          title: const Text(
-            'Session Created!',
-            textAlign: TextAlign.center,
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade100,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Icon(
+                  Icons.check_circle,
+                  color: Colors.green.shade700,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Session Created!',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -425,10 +534,17 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
             ElevatedButton(
               onPressed: () => Navigator.of(context).pop(),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green.shade600,
-                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                elevation: 0,
               ),
-              child: const Text('Got it!'),
+              child: const Text(
+                'Got it!',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           ],
         );

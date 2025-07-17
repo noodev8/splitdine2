@@ -51,6 +51,7 @@ class SessionService {
     required DateTime sessionDate,
     String? sessionTime,
     String? description,
+    String? foodType,
   }) async {
     try {
       final headers = await _getAuthHeaders();
@@ -63,6 +64,7 @@ class SessionService {
           'session_date': sessionDate.toIso8601String().split('T')[0], // Date only
           'session_time': sessionTime,
           'description': description,
+          'food_type': foodType,
         }),
       );
 

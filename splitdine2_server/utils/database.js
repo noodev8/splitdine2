@@ -88,12 +88,12 @@ const userQueries = {
 const sessionQueries = {
   // Create new session
   create: async (sessionData) => {
-    const { organizer_id, session_name, location, session_date, session_time, description, join_code } = sessionData;
+    const { organizer_id, session_name, location, session_date, session_time, description, food_type, join_code } = sessionData;
     const result = await query(
-      `INSERT INTO session (organizer_id, session_name, location, session_date, session_time, description, join_code)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO session (organizer_id, session_name, location, session_date, session_time, description, food_type, join_code)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
-      [organizer_id, session_name, location, session_date, session_time, description, join_code]
+      [organizer_id, session_name, location, session_date, session_time, description, food_type, join_code]
     );
     return result.rows[0];
   },
