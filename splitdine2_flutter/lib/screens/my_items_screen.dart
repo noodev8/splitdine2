@@ -4,15 +4,23 @@ import '../models/session.dart';
 import '../models/receipt_item.dart';
 import '../services/auth_provider.dart';
 import '../services/receipt_provider.dart';
+import '../services/session_provider.dart';
 import '../services/split_item_service.dart';
 import 'split_items_screen.dart';
+import 'payment_summary_screen.dart';
 
 class MyItemsScreen extends StatefulWidget {
   final Session session;
+  final int? guestUserId; // Optional parameter to view items for a specific guest
+  final String? guestName; // Optional parameter for guest display name
+  final bool fromPaymentSummary; // Track navigation source
 
   const MyItemsScreen({
     super.key,
     required this.session,
+    this.guestUserId,
+    this.guestName,
+    this.fromPaymentSummary = false,
   });
 
   @override
@@ -31,8 +39,11 @@ class _MyItemsScreenState extends State<MyItemsScreen> {
   @override
   void initState() {
     super.initState();
-    _loadItems();
-    _loadSplitItems();
+    // Schedule data loading after the build is complete
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadItems();
+      _loadSplitItems();
+    });
   }
 
   @override
@@ -53,11 +64,12 @@ class _MyItemsScreenState extends State<MyItemsScreen> {
 
       await receiptProvider.loadItems(widget.session.id);
 
-      final currentUserId = authProvider.user?.id ?? 0;
+      // Use guest user ID if provided, otherwise use current user ID
+      final targetUserId = widget.guestUserId ?? (authProvider.user?.id ?? 0);
       final allItems = receiptProvider.items;
 
-      // Filter items added by current user
-      final userItems = allItems.where((item) => item.addedByUserId == currentUserId).toList();
+      // Filter items added by target user
+      final userItems = allItems.where((item) => item.addedByUserId == targetUserId).toList();
 
       // Sort by creation date, latest first
       userItems.sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -77,6 +89,9 @@ class _MyItemsScreenState extends State<MyItemsScreen> {
   Future<void> _loadSplitItems() async {
     try {
       final splitItemService = SplitItemService();
+
+      // Load split items for all users - split items are session-wide
+
       final result = await splitItemService.getUserSplitItems(widget.session.id);
 
       if (result['success']) {
@@ -152,14 +167,27 @@ class _MyItemsScreenState extends State<MyItemsScreen> {
             share: item.share,
           );
           await _loadItems();
+          await _refreshSessionData();
         },
         onDelete: () async {
           final receiptProvider = Provider.of<ReceiptProvider>(context, listen: false);
           await receiptProvider.deleteItem(item.id);
           await _loadItems();
+          await _refreshSessionData();
         },
       ),
     );
+  }
+
+  Future<void> _refreshSessionData() async {
+    try {
+      // Refresh session data to update bill totals
+      final sessionProvider = Provider.of<SessionProvider>(context, listen: false);
+      await sessionProvider.loadSessions();
+    } catch (e) {
+      // Handle error silently
+      debugPrint('Error refreshing session data: $e');
+    }
   }
 
   @override
@@ -169,16 +197,33 @@ class _MyItemsScreenState extends State<MyItemsScreen> {
     final splitTotal = _splitItems.fold<double>(0.0, (sum, item) => sum + (item['split_price'] ?? 0.0));
     final totalAmount = personalTotal + splitTotal;
     final totalItemCount = _myItems.length + _splitItems.length;
+    final isViewingGuest = widget.guestUserId != null;
 
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text(
-          'My Items',
-          style: TextStyle(
+        title: Text(
+          isViewingGuest ? (widget.guestName ?? 'Guest Items') : 'My Items',
+          style: const TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (widget.fromPaymentSummary) {
+              // Navigate back to payment summary
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                  builder: (context) => PaymentSummaryScreen(session: widget.session),
+                ),
+              );
+            } else {
+              // Normal back navigation
+              Navigator.of(context).pop();
+            }
+          },
         ),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black87,
@@ -186,34 +231,35 @@ class _MyItemsScreenState extends State<MyItemsScreen> {
         shadowColor: Colors.black12,
         centerTitle: false,
         actions: [
-          // Add Split Item button
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: FilledButton.tonal(
-              onPressed: () {
-                _navigateToSplitItems();
-              },
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                minimumSize: const Size(0, 36),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.group_add, size: 16),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Split',
-                    style: TextStyle(
-                      fontFamily: 'Nunito',
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
+          // Add Split Item button (show if user can manage split items)
+          if (_canManageSplitItems())
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: FilledButton.tonal(
+                onPressed: () {
+                  _navigateToSplitItems();
+                },
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  minimumSize: const Size(0, 36),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.group_add, size: 16),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Split',
+                      style: TextStyle(
+                        fontFamily: 'Nunito',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
         ],
       ),
       body: _isLoading
@@ -221,23 +267,25 @@ class _MyItemsScreenState extends State<MyItemsScreen> {
         : Column(
             children: [
               // Total price card
-              Card(
-                elevation: 0,
-                color: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  side: BorderSide(
-                    color: Colors.grey.shade200,
-                    width: 1,
+              Container(
+                margin: const EdgeInsets.fromLTRB(16, 16, 16, 16), // Match ListView padding
+                child: Card(
+                  elevation: 0,
+                  color: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    side: BorderSide(
+                      color: Colors.grey.shade200,
+                      width: 1,
+                    ),
                   ),
-                ),
-                margin: const EdgeInsets.all(16),
+                  margin: EdgeInsets.zero, // Remove card's own margin
                 child: Padding(
                   padding: const EdgeInsets.all(20),
                   child: Column(
                   children: [
                     Text(
-                      'Your Total',
+                      'Total',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontFamily: 'GoogleSansRounded',
                         fontWeight: FontWeight.w600,
@@ -263,6 +311,7 @@ class _MyItemsScreenState extends State<MyItemsScreen> {
                       ),
                   ],
                   ),
+                ),
                 ),
               ),
 
@@ -314,8 +363,8 @@ class _MyItemsScreenState extends State<MyItemsScreen> {
               ),
             ],
           ),
-      // Bottom input field that stays connected to keyboard
-      bottomNavigationBar: Container(
+      // Bottom input field that stays connected to keyboard (show if user can add items)
+      bottomNavigationBar: _canAddItems() ? Container(
         padding: EdgeInsets.only(
           left: 16,
           right: 16,
@@ -385,11 +434,43 @@ class _MyItemsScreenState extends State<MyItemsScreen> {
             ],
           ),
         ),
-      ),
+      ) : null,
     );
   }
 
+  bool _canAddItems() {
+    final isViewingGuest = widget.guestUserId != null;
+
+    // If not viewing a guest, allow adding items (current user's items)
+    if (!isViewingGuest) {
+      return true;
+    }
+
+    // If viewing a guest, check permissions
+    final authProvider = context.read<AuthProvider>();
+    final currentUserId = authProvider.user?.id ?? 0;
+
+    // Allow if current user is the HOST
+    if (widget.session.isHost && currentUserId == widget.session.organizerId) {
+      return true;
+    }
+
+    // Allow if current user is viewing their own items
+    if (currentUserId == widget.guestUserId) {
+      return true;
+    }
+
+    return false;
+  }
+
+  bool _canManageSplitItems() {
+    // Use the same permission logic as _canAddItems
+    return _canAddItems();
+  }
+
   Widget _buildItemCard(ReceiptItem item) {
+    final canEdit = _canEditItem(item);
+
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       elevation: 0,
@@ -421,9 +502,35 @@ class _MyItemsScreenState extends State<MyItemsScreen> {
               : Colors.black87,
           ),
         ),
-        onTap: () => _showEditPriceDialog(item),
+        onTap: canEdit ? () => _showEditPriceDialog(item) : null,
       ),
     );
+  }
+
+  bool _canEditItem(ReceiptItem item) {
+    final isViewingGuest = widget.guestUserId != null;
+
+    // If not viewing a guest, allow editing (current user's items)
+    if (!isViewingGuest) {
+      return true;
+    }
+
+    // If viewing a guest, check permissions
+    // Use cached auth provider to avoid triggering during build
+    final authProvider = context.read<AuthProvider>();
+    final currentUserId = authProvider.user?.id ?? 0;
+
+    // Allow if current user is the HOST
+    if (widget.session.isHost && currentUserId == widget.session.organizerId) {
+      return true;
+    }
+
+    // Allow if current user is the item owner (viewing their own items)
+    if (currentUserId == item.addedByUserId) {
+      return true;
+    }
+
+    return false;
   }
 
   Widget _buildSplitItemCard(Map<String, dynamic> splitItem) {

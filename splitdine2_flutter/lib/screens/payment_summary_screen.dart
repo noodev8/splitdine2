@@ -5,7 +5,8 @@ import '../models/participant.dart';
 import '../services/receipt_provider.dart';
 import '../services/assignment_provider.dart';
 import '../services/session_service.dart';
-import 'session_items_screen.dart';
+import '../services/session_provider.dart';
+import 'my_items_screen.dart';
 
 class PaymentSummaryScreen extends StatefulWidget {
   final Session session;
@@ -30,6 +31,7 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadData();
+      _refreshSessionData();
     });
   }
 
@@ -84,6 +86,17 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
     }
   }
 
+  Future<void> _refreshSessionData() async {
+    try {
+      // Refresh session data by reloading sessions
+      final sessionProvider = Provider.of<SessionProvider>(context, listen: false);
+      await sessionProvider.loadSessions();
+    } catch (e) {
+      // Handle error silently for now
+      debugPrint('Error refreshing session data: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -130,9 +143,9 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
               : Consumer2<ReceiptProvider, AssignmentProvider>(
                   builder: (context, receiptProvider, assignmentProvider, child) {
                     final items = receiptProvider.items;
-                    final subtotal = receiptProvider.subtotal;
+                    final billTotal = widget.session.totalAmount; // Use session's total amount from database
                     final allocatedAmount = assignmentProvider.getTotalAllocatedAmount(items);
-                    final unallocatedAmount = subtotal - allocatedAmount;
+                    final remainingAmount = billTotal - allocatedAmount;
 
                     // Calculate each participant's total
                     final participantTotals = <int, double>{};
@@ -208,7 +221,7 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
                                         style: Theme.of(context).textTheme.titleMedium,
                                       ),
                                       Text(
-                                        '£${subtotal.toStringAsFixed(2)}',
+                                        '£${billTotal.toStringAsFixed(2)}',
                                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                           fontWeight: FontWeight.bold,
                                         ),
@@ -232,25 +245,23 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
                                       ),
                                     ],
                                   ),
-                                  if (unallocatedAmount > 0) ...[
-                                    const SizedBox(height: 8),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          'Unallocated',
-                                          style: Theme.of(context).textTheme.bodyMedium,
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'Remaining',
+                                        style: Theme.of(context).textTheme.bodyMedium,
+                                      ),
+                                      Text(
+                                        '£${remainingAmount.toStringAsFixed(2)}',
+                                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                          color: remainingAmount > 0 ? Colors.red : Colors.green,
+                                          fontWeight: FontWeight.w500,
                                         ),
-                                        Text(
-                                          '£${unallocatedAmount.toStringAsFixed(2)}',
-                                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                            color: Colors.red,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
+                                      ),
+                                    ],
+                                  ),
                                 ],
                               ),
                             ),
@@ -375,33 +386,7 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
                             );
                           }),
 
-                          if (unallocatedAmount > 0) ...[
-                            const SizedBox(height: 16),
-                            Card(
-                              color: Colors.orange.withValues(alpha: 0.1),
-                              child: Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.warning_amber,
-                                      color: Colors.orange,
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Text(
-                                        'There are still unallocated items worth £${unallocatedAmount.toStringAsFixed(2)}',
-                                        style: TextStyle(
-                                          color: Colors.orange.shade700,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
+
                         ],
                       ),
                     );
@@ -411,11 +396,20 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
   }
 
   void _navigateToItemsWithFilter(BuildContext context, String userName) {
-    Navigator.of(context).push(
+    // Find the participant with the given name
+    final participant = _participants.firstWhere(
+      (p) => p.displayName == userName,
+      orElse: () => _participants.first,
+    );
+
+    // Navigate to My Items screen with the guest's user ID and name
+    Navigator.of(context).pushReplacement(
       MaterialPageRoute(
-        builder: (context) => SessionItemsScreen(
+        builder: (context) => MyItemsScreen(
           session: widget.session,
-          initialFilter: userName,
+          guestUserId: participant.userId,
+          guestName: participant.displayName,
+          fromPaymentSummary: true,
         ),
       ),
     );
