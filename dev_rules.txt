@@ -15,6 +15,8 @@ No need for the word individual for shared button. Just colour the shared or unc
 
 Remove "Assign All" - it happens but its rare that all guests have the same product
 
+Nothing was written to the database in guest_choice table when I selected a guest for an item. Have you implemented the API and called it when tapping on a guest for an item. Please check and implement
+
 == Rules ==
 == Structure ==
 

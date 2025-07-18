@@ -10,7 +10,7 @@ import '../services/session_provider.dart';
 import 'payment_summary_screen.dart';
 import 'my_items_screen.dart';
 import 'receipt_total_screen.dart';
-import 'receipt_scan_screen.dart';
+import 'guest_allocate_screen.dart';
 
 class SessionDetailsScreen extends StatefulWidget {
   final Session session;
@@ -522,7 +522,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
   void _navigateToReceiptScan(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => ReceiptScanScreen(session: widget.session),
+        builder: (context) => GuestAllocateScreen(session: widget.session),
       ),
     );
   }
