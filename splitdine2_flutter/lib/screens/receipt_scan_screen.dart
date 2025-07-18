@@ -41,9 +41,13 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
   @override
   void initState() {
     super.initState();
-    _loadExistingItems();
-    _loadParticipants();
-    _loadAssignments();
+    _initializeData();
+  }
+
+  Future<void> _initializeData() async {
+    await _loadParticipants();
+    await _loadExistingItems();
+    await _loadAssignments();
   }
 
   @override
@@ -247,6 +251,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Item name with shared tag
                       Row(
                         children: [
                           Expanded(
@@ -257,19 +262,21 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
                                 fontWeight: FontWeight.w600,
                                 color: Colors.black87,
                               ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           if (isShared) ...[
+                            const SizedBox(width: 8),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFFFC629).withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(4),
+                                color: const Color(0xFFFFC629).withValues(alpha: 0.3),
+                                borderRadius: BorderRadius.circular(3),
                               ),
                               child: Text(
                                 'SHARED',
                                 style: TextStyle(
-                                  fontSize: 10,
+                                  fontSize: 9,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.orange.shade700,
                                 ),
@@ -279,28 +286,39 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
                         ],
                       ),
                       const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Text(
-                            '£${item.price.toStringAsFixed(2)}',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: isShared ? Colors.grey.shade600 : const Color(0xFF6200EE),
-                            ),
-                          ),
-                          if (isShared) ...[
+                      // Price information - stack vertically for shared items
+                      if (isShared) ...[
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             Text(
-                              ' (£${splitPrice.toStringAsFixed(2)} each)',
-                              style: const TextStyle(
+                              '£${item.price.toStringAsFixed(2)} total',
+                              style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                            Text(
+                              '£${splitPrice.toStringAsFixed(2)} each',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
                                 color: Color(0xFF6200EE),
                               ),
                             ),
                           ],
-                        ],
-                      ),
+                        ),
+                      ] else ...[
+                        Text(
+                          '£${item.price.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF6200EE),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -311,31 +329,33 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
                     // Copy item button
                     IconButton(
                       onPressed: () => _copyItem(item),
-                      icon: const Icon(Icons.copy, size: 18),
+                      icon: const Icon(Icons.copy, size: 16),
                       tooltip: 'Copy Item',
                       style: IconButton.styleFrom(
                         backgroundColor: Colors.grey.shade100,
                         foregroundColor: Colors.grey.shade700,
-                        minimumSize: const Size(32, 32),
+                        minimumSize: const Size(28, 28),
+                        padding: EdgeInsets.zero,
                       ),
                     ),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: 2),
                     // Edit item button
                     IconButton(
                       onPressed: () => _showEditItemDialog(item),
-                      icon: const Icon(Icons.edit, size: 18),
+                      icon: const Icon(Icons.edit, size: 16),
                       tooltip: 'Edit Item',
                       style: IconButton.styleFrom(
                         backgroundColor: const Color(0xFF6200EE).withValues(alpha: 0.1),
                         foregroundColor: const Color(0xFF6200EE),
-                        minimumSize: const Size(32, 32),
+                        minimumSize: const Size(28, 28),
+                        padding: EdgeInsets.zero,
                       ),
                     ),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: 2),
                     // Shared toggle button
                     IconButton(
                       onPressed: () => _toggleItemType(item),
-                      icon: const Icon(Icons.group, size: 18),
+                      icon: const Icon(Icons.group, size: 16),
                       tooltip: isShared ? 'Make Individual' : 'Make Shared',
                       style: IconButton.styleFrom(
                         backgroundColor: isShared
@@ -344,19 +364,21 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
                         foregroundColor: isShared
                           ? const Color(0xFFFFC629)
                           : Colors.grey.shade700,
-                        minimumSize: const Size(32, 32),
+                        minimumSize: const Size(28, 28),
+                        padding: EdgeInsets.zero,
                       ),
                     ),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: 2),
                     // Delete item button
                     IconButton(
                       onPressed: () => _deleteItem(item),
-                      icon: const Icon(Icons.delete, size: 18),
+                      icon: const Icon(Icons.delete, size: 16),
                       tooltip: 'Delete Item',
                       style: IconButton.styleFrom(
                         backgroundColor: Colors.red.shade50,
                         foregroundColor: Colors.red,
-                        minimumSize: const Size(32, 32),
+                        minimumSize: const Size(28, 28),
+                        padding: EdgeInsets.zero,
                       ),
                     ),
                   ],
@@ -495,6 +517,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
 
       if (result['success']) {
         await _loadExistingItems();
+        await _loadAssignments();
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -876,6 +899,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
             _parsedItems.clear();
           });
           await _loadExistingItems();
+          await _loadAssignments();
         }
       } else {
         setState(() {
@@ -931,6 +955,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
 
       if (result['success']) {
         await _loadExistingItems();
+        await _loadAssignments();
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -962,6 +987,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
 
       if (result['success']) {
         await _loadExistingItems();
+        await _loadAssignments();
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -1053,6 +1079,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
 
       if (result['success']) {
         await _loadExistingItems();
+        await _loadAssignments();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
