@@ -90,25 +90,70 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'Receipt Items',
-                                  style: TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '${_existingItems.length + _parsedItems.length} items',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey.shade600,
-                                  ),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                        Text(
+                                          'Receipt Items',
+                                          style: TextStyle(
+                                            fontSize: 24,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.black87,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          '${_existingItems.length + _parsedItems.length} items',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.grey.shade600,
+                                          ),
+                                        ),
+                                        ],
+                                      ),
+                                    ),
+                                    if (_existingItems.isNotEmpty)
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                        children: [
+                                          Text(
+                                            'TOTAL',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.grey.shade600,
+                                            ),
+                                          ),
+                                          Text(
+                                            '£${_calculateTotal().toStringAsFixed(2)}',
+                                            style: TextStyle(
+                                              fontSize: 24,
+                                              fontWeight: FontWeight.bold,
+                                              color: Color(0xFF6200EE),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                  ],
                                 ),
                               ],
                             ),
                           ),
+                          FilledButton.icon(
+                            onPressed: _addNewItem,
+                            icon: const Icon(Icons.add, size: 20),
+                            label: const Text('Add Item'),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: const Color(0xFF4CAF50),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
                           FilledButton.icon(
                             onPressed: _showRescanDialog,
                             icon: const Icon(Icons.camera_alt, size: 20),
@@ -137,12 +182,6 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
                       : ListView(
                           padding: const EdgeInsets.all(16),
                           children: [
-                            // Total card (if there are existing items)
-                            if (_existingItems.isNotEmpty) ...[
-                              _buildTotalCard(),
-                              const SizedBox(height: 16),
-                            ],
-
                             // Existing items
                             ..._existingItems.map((item) => _buildSessionReceiptItemCard(item)),
 
@@ -302,48 +341,48 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
     );
   }
 
-  Widget _buildTotalCard() {
-    double total = _existingItems.fold(0.0, (sum, item) {
+  double _calculateTotal() {
+    return _existingItems.fold(0.0, (sum, item) {
       return sum + item.price;
     });
+  }
 
-    return Card(
-      elevation: 0,
-      color: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-        side: BorderSide(
-          color: Colors.grey.shade200,
-          width: 1,
-        ),
-      ),
-      margin: EdgeInsets.zero,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            const Text(
-              'TOTAL',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
+  // Add new item
+  void _addNewItem() {
+    _showAddItemDialog();
+  }
+
+  // Add item to database
+  Future<void> _addItemToDatabase(String itemName, double price) async {
+    try {
+      final result = await SessionReceiptService.addItem(
+        sessionId: widget.session.id,
+        itemName: itemName,
+        price: price,
+      );
+
+      if (result['success']) {
+        await _loadExistingItems();
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to add item: ${result['message']}'),
+              backgroundColor: Colors.red,
             ),
-            const SizedBox(height: 8),
-            Text(
-              '£${total.toStringAsFixed(2)}',
-              style: const TextStyle(
-                fontSize: 36,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF6200EE),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error adding item: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildParsedItemCard(Map<String, dynamic> item, int index) {
@@ -722,6 +761,19 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
     }
   }
 
+  // Show add item dialog
+  void _showAddItemDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => _EditItemDialog(
+        item: null, // null indicates this is for adding
+        onSave: (newName, newPrice) async {
+          await _addItemToDatabase(newName, newPrice);
+        },
+      ),
+    );
+  }
+
   // Show edit dialog for session receipt item
   Future<void> _showEditItemDialog(SessionReceiptItem item) async {
     showDialog(
@@ -730,9 +782,6 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
         item: item,
         onSave: (newName, newPrice) async {
           await _updateItem(item, newName, newPrice);
-        },
-        onDelete: () async {
-          await _deleteItem(item);
         },
       ),
     );
@@ -789,14 +838,6 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
 
       if (result['success']) {
         await _loadExistingItems();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Item deleted successfully'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -935,14 +976,12 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
 
 // Edit Item Dialog Widget with Calculator
 class _EditItemDialog extends StatefulWidget {
-  final SessionReceiptItem item;
+  final SessionReceiptItem? item;
   final Function(String, double) onSave;
-  final VoidCallback onDelete;
 
   const _EditItemDialog({
     required this.item,
     required this.onSave,
-    required this.onDelete,
   });
 
   @override
@@ -952,14 +991,15 @@ class _EditItemDialog extends StatefulWidget {
 class _EditItemDialogState extends State<_EditItemDialog> {
   late TextEditingController _nameController;
   String _displayPrice = '';
+  bool _isFirstTap = true;
 
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.item.itemName);
-    _displayPrice = widget.item.price == 0
+    _nameController = TextEditingController(text: widget.item?.itemName ?? '');
+    _displayPrice = widget.item?.price == 0 || widget.item == null
       ? ''
-      : widget.item.price.toStringAsFixed(2);
+      : widget.item!.price.toStringAsFixed(2);
   }
 
   @override
@@ -970,6 +1010,12 @@ class _EditItemDialogState extends State<_EditItemDialog> {
 
   void _onNumberTap(String number) {
     setState(() {
+      // Clear display on first tap
+      if (_isFirstTap) {
+        _displayPrice = '';
+        _isFirstTap = false;
+      }
+
       if (number == '.') {
         if (!_displayPrice.contains('.')) {
           _displayPrice = _displayPrice.isEmpty ? '0.' : '$_displayPrice.';
@@ -1007,12 +1053,12 @@ class _EditItemDialogState extends State<_EditItemDialog> {
       ),
       child: Container(
         constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.8,
-          maxWidth: 400,
+          maxHeight: MediaQuery.of(context).size.height * 0.85,
+          maxWidth: 350,
         ),
         child: SingleChildScrollView(
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(16),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -1021,7 +1067,7 @@ class _EditItemDialogState extends State<_EditItemDialog> {
               children: [
                 Expanded(
                   child: Text(
-                    'Edit Item',
+                    widget.item == null ? 'Add Item' : 'Edit Item',
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -1043,11 +1089,12 @@ class _EditItemDialogState extends State<_EditItemDialog> {
               ],
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
 
             // Item name field
             TextField(
               controller: _nameController,
+              textCapitalization: TextCapitalization.characters,
               decoration: InputDecoration(
                 labelText: 'Item Name',
                 border: OutlineInputBorder(
@@ -1062,7 +1109,7 @@ class _EditItemDialogState extends State<_EditItemDialog> {
               ),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
 
             // Price display
             Container(
@@ -1087,15 +1134,15 @@ class _EditItemDialogState extends State<_EditItemDialog> {
               ),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
 
             // Number pad
             GridView.count(
               shrinkWrap: true,
               crossAxisCount: 3,
-              childAspectRatio: 1.2,
-              mainAxisSpacing: 8,
-              crossAxisSpacing: 8,
+              childAspectRatio: 1.0,
+              mainAxisSpacing: 6,
+              crossAxisSpacing: 6,
               children: [
                 _buildNumberButton('1'),
                 _buildNumberButton('2'),
@@ -1112,47 +1159,29 @@ class _EditItemDialogState extends State<_EditItemDialog> {
               ],
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
 
             // Action buttons
-            Row(
-              children: [
-                Expanded(
-                  child: FilledButton(
-                    onPressed: _onSave,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF6200EE),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: const Text(
-                      'Save',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: _onSave,
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF6200EE),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                const SizedBox(width: 12),
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    widget.onDelete();
-                  },
-                  child: const Text(
-                    'Delete',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.red,
-                    ),
+                child: const Text(
+                  'Save',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-              ],
+              ),
             ),
               ],
             ),

@@ -1,17 +1,14 @@
 receipt_scan_screen
 
+Remove breadcrumb when saving after editing an item
 
-Popup Calculator to enter time has the save and delete buttons far too close to the bottom. Make everything smaller if have no space or increase the popup size
+The top of the screen looks awaful. Really bad. so lets start again with that.
 
-Lets adjust the TOTAL. Do not use a card now, but instead out the total in the top card underneath "Receipt Items"
+Have buttons "Add Item" and "Re-scan" the standard theme, colour and style we have buttons in the session dasboard.
 
-When deleting an item, no need for the green breadcrumb at the bottom
+Move them away from the top. perhaps lets try a fixed bottom menu.
 
-Kind of new. I want to add a new item. Can we have somewhere to add a new item and then bring up the pop to enter the values. If easier, by all means add to the database and use the edit functionality in the popup. Whichever easier.
-
-When first entering the popup to edit price. Once the user taps on a number, clear the current total and put their new number to build from. Only do this for the first tap when the window opens.
-
-No need to have delete on the popup, we do that before we get there.
+Move TOTAL away from the top now. Give it its own card, make it smaller but stick to the top. Add to it, Allocated. The allocated figure will be calculated laer but basically showing the totla bill and if everyone has paid.
 
 == Rules ==
 == Structure ==
