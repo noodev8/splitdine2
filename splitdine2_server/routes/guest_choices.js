@@ -265,6 +265,7 @@ router.post('/get_session_assignments', authenticateToken, requireSessionPartici
     const assignments = result.rows.map(row => ({
       id: row.id,
       session_id: row.session_id,
+      item_id: row.item_id,
       name: row.name,
       price: row.price,
       user_id: row.user_id,

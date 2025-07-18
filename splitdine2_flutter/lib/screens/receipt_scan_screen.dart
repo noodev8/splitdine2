@@ -1228,25 +1228,67 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
       if (result['success']) {
         final assignments = result['assignments'] as List;
 
-        // Group assignments by item_id
+        // Group assignments by item_id and track shared items
         Map<int, List<int>> assignmentsByItemId = {};
+        Set<int> sharedItemIds = {};
 
         for (final assignment in assignments) {
-          final itemId = assignment['item_id'] as int;
-          final userId = assignment['user_id'] as int;
+          final itemId = assignment['item_id'] as int?;
+          final userId = assignment['user_id'] as int?;
+          final isShared = assignment['split_item'] as bool? ?? false;
+
+          // Skip if missing required data
+          if (itemId == null || userId == null) continue;
 
           if (assignmentsByItemId[itemId] == null) {
             assignmentsByItemId[itemId] = [];
           }
           assignmentsByItemId[itemId]!.add(userId);
+
+          // Track shared items
+          if (isShared) {
+            sharedItemIds.add(itemId);
+          }
         }
 
         setState(() {
           _itemAssignments = assignmentsByItemId;
+          _sharedItems.clear();
+          _sharedItems.addAll(sharedItemIds);
         });
+
+        // Debug: Show assignment count
+        if (mounted && assignments.isNotEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Loaded ${assignments.length} assignments'),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      } else {
+        // Show error if API call failed
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to load assignments: ${result['message']}'),
+              backgroundColor: Colors.orange,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
       }
     } catch (e) {
-      // Failed to load assignments - continue without them
+      // Show error for network issues
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading assignments: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
     }
   }
 
