@@ -4,10 +4,10 @@ import 'package:image_picker/image_picker.dart';
 import '../models/session.dart';
 import '../models/session_receipt_item.dart';
 import '../models/participant.dart';
-import '../models/item_assignment.dart';
 import '../services/api_service.dart';
 import '../services/session_receipt_service.dart';
 import '../services/session_service.dart';
+import '../services/guest_choice_service.dart';
 
 class ReceiptScanScreen extends StatefulWidget {
   final Session session;
@@ -24,6 +24,7 @@ class ReceiptScanScreen extends StatefulWidget {
 class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
   final ImagePicker _picker = ImagePicker();
   final SessionService _sessionService = SessionService();
+  final GuestChoiceService _guestChoiceService = GuestChoiceService();
 
   File? _selectedImage;
   List<Map<String, dynamic>> _parsedItems = [];
@@ -33,11 +34,16 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
   bool _isLoading = false;
   String? _errorMessage;
 
+  // Track guest choices and shared items
+  final Map<int, List<int>> _itemAssignments = {}; // itemId -> list of userIds
+  final Set<int> _sharedItems = {}; // Set of item IDs that are marked as shared
+
   @override
   void initState() {
     super.initState();
     _loadExistingItems();
     _loadParticipants();
+    _loadAssignments();
   }
 
   @override
@@ -78,15 +84,9 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
             )
           : Column(
               children: [
-                // Total Card
-                if (_existingItems.isNotEmpty) ...[
-                  _buildTotalCard(),
-                  const SizedBox(height: 16),
-                ],
-
                 // Simple header
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: Text(
                     'Receipt Items (${_existingItems.length + _parsedItems.length})',
                     style: TextStyle(
@@ -226,17 +226,17 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
 
   Widget _buildSessionReceiptItemCard(SessionReceiptItem item) {
     final itemAssignments = _getItemAssignments(item.id);
-    final isShared = itemAssignments.length > 1;
-    final splitPrice = isShared ? item.price / itemAssignments.length : item.price;
+    final isShared = _sharedItems.contains(item.id) || itemAssignments.length > 1;
+    final splitPrice = isShared && itemAssignments.isNotEmpty ? item.price / itemAssignments.length : item.price;
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 16),
+      elevation: 2,
       color: Colors.white,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: Colors.grey.shade200,
+          color: Colors.grey.shade300,
           width: 1,
         ),
       ),
@@ -309,46 +309,67 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
                     ],
                   ),
                 ),
-                // Action buttons row
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Copy item button
-                    IconButton(
-                      onPressed: () => _copyItem(item),
-                      icon: const Icon(Icons.copy, size: 20),
-                      tooltip: 'Copy Item',
-                      style: IconButton.styleFrom(
-                        backgroundColor: Colors.grey.shade100,
-                        foregroundColor: Colors.grey.shade700,
-                        minimumSize: const Size(36, 36),
+                // Action menu button
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: PopupMenuButton<String>(
+                    onSelected: (value) {
+                      switch (value) {
+                        case 'copy':
+                          _copyItem(item);
+                          break;
+                        case 'edit':
+                          _showEditItemDialog(item);
+                          break;
+                        case 'delete':
+                          _deleteItem(item);
+                          break;
+                      }
+                    },
+                    itemBuilder: (BuildContext context) => [
+                      const PopupMenuItem<String>(
+                        value: 'copy',
+                        child: Row(
+                          children: [
+                            Icon(Icons.copy, size: 18, color: Colors.grey),
+                            SizedBox(width: 12),
+                            Text('Copy Item'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem<String>(
+                        value: 'edit',
+                        child: Row(
+                          children: [
+                            Icon(Icons.edit, size: 18, color: Color(0xFF6200EE)),
+                            SizedBox(width: 12),
+                            Text('Edit Item'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem<String>(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete, size: 18, color: Colors.red),
+                            SizedBox(width: 12),
+                            Text('Delete Item', style: TextStyle(color: Colors.red)),
+                          ],
+                        ),
+                      ),
+                    ],
+                    child: Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: Icon(
+                        Icons.more_vert,
+                        color: Colors.grey.shade600,
+                        size: 20,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    // Edit item button
-                    IconButton(
-                      onPressed: () => _showEditItemDialog(item),
-                      icon: const Icon(Icons.edit, size: 20),
-                      tooltip: 'Edit Item',
-                      style: IconButton.styleFrom(
-                        backgroundColor: const Color(0xFF6200EE).withValues(alpha: 0.1),
-                        foregroundColor: const Color(0xFF6200EE),
-                        minimumSize: const Size(36, 36),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // Delete item button
-                    IconButton(
-                      onPressed: () => _deleteItem(item),
-                      icon: const Icon(Icons.delete, size: 20),
-                      tooltip: 'Delete Item',
-                      style: IconButton.styleFrom(
-                        backgroundColor: Colors.red.shade50,
-                        foregroundColor: Colors.red,
-                        minimumSize: const Size(36, 36),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ],
             ),
@@ -380,13 +401,14 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
                   child: OutlinedButton.icon(
                     onPressed: () => _toggleItemType(item),
                     icon: Icon(
-                      isShared ? Icons.person : Icons.group,
+                      isShared ? Icons.group : Icons.person,
                       size: 18,
                     ),
-                    label: Text(isShared ? 'Individual' : 'Shared'),
+                    label: Text(isShared ? 'Shared' : 'Individual'),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: isShared ? Colors.orange.shade700 : Colors.blue.shade700,
-                      side: BorderSide(color: isShared ? Colors.orange.shade700 : Colors.blue.shade700),
+                      foregroundColor: isShared ? const Color(0xFFFFC629) : Colors.blue.shade700,
+                      side: BorderSide(color: isShared ? const Color(0xFFFFC629) : Colors.blue.shade700),
+                      backgroundColor: isShared ? const Color(0xFFFFC629).withValues(alpha: 0.1) : null,
                       padding: const EdgeInsets.symmetric(vertical: 8),
                     ),
                   ),
@@ -399,84 +421,9 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
     );
   }
 
-  double _calculateTotal() {
-    return _existingItems.fold(0.0, (sum, item) {
-      return sum + item.price;
-    });
-  }
 
-  Widget _buildTotalCard() {
-    final total = _calculateTotal();
-    final allocated = total; // For now, allocated equals total - will be calculated later
 
-    return Container(
-      margin: const EdgeInsets.all(16),
-      child: Card(
-        elevation: 0,
-        color: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-          side: BorderSide(
-            color: Colors.grey.shade200,
-            width: 1,
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'TOTAL',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                    Text(
-                      '£${total.toStringAsFixed(2)}',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF6200EE),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      'ALLOCATED',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                    Text(
-                      '£${allocated.toStringAsFixed(2)}',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: allocated >= total ? Colors.green : Colors.orange,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+
 
   // Add new item
   void _addNewItem() {
@@ -745,27 +692,18 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
 
   Widget _buildParticipantsSection(SessionReceiptItem item) {
     final itemAssignments = _getItemAssignments(item.id);
-    final assignedUserIds = itemAssignments.map((a) => a.userId).toSet();
+    final assignedUserIds = itemAssignments.toSet();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Text(
-              'Allocated to',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey.shade700,
-              ),
-            ),
-            const SizedBox(width: 8),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
                 color: const Color(0xFF6200EE).withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
                 '${assignedUserIds.length}',
@@ -1010,45 +948,85 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
     }
   }
 
-  // Get item assignments (placeholder - returns empty list for now)
-  List<ItemAssignment> _getItemAssignments(int itemId) {
-    // TODO: Implement actual assignment loading from API
-    return [];
+  // Get item assignments from local state
+  List<int> _getItemAssignments(int itemId) {
+    return _itemAssignments[itemId] ?? [];
   }
 
   // Toggle participant assignment
   Future<void> _toggleParticipantAssignment(SessionReceiptItem item, Participant participant, bool assign) async {
-    // TODO: Implement assignment/unassignment logic
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(assign
-          ? 'Assigned ${item.itemName} to ${participant.displayName}'
-          : 'Unassigned ${item.itemName} from ${participant.displayName}'),
-        backgroundColor: assign ? Colors.green : Colors.orange,
-      ),
-    );
+    try {
+      if (assign) {
+        // Assign item to participant
+        final result = await _guestChoiceService.assignItem(
+          sessionId: widget.session.id,
+          itemName: item.itemName,
+          price: item.price,
+          userId: participant.userId,
+          splitItem: _sharedItems.contains(item.id),
+        );
+
+        if (result['success']) {
+          setState(() {
+            _itemAssignments[item.id] = (_itemAssignments[item.id] ?? [])..add(participant.userId);
+          });
+        }
+      } else {
+        // Unassign item from participant
+        final result = await _guestChoiceService.unassignItem(
+          sessionId: widget.session.id,
+          itemName: item.itemName,
+          userId: participant.userId,
+        );
+
+        if (result['success']) {
+          setState(() {
+            _itemAssignments[item.id]?.remove(participant.userId);
+            if (_itemAssignments[item.id]?.isEmpty == true) {
+              _itemAssignments.remove(item.id);
+            }
+          });
+        }
+      }
+    } catch (e) {
+      // Handle error silently for now
+    }
   }
 
   // Assign item to all participants
   Future<void> _assignToAllParticipants(SessionReceiptItem item) async {
-    // TODO: Implement assignment logic
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Assigned ${item.itemName} to all participants'),
-        backgroundColor: Colors.green,
-      ),
-    );
+    try {
+      final currentAssignments = _getItemAssignments(item.id);
+
+      for (final participant in _participants) {
+        if (!currentAssignments.contains(participant.userId)) {
+          await _guestChoiceService.assignItem(
+            sessionId: widget.session.id,
+            itemName: item.itemName,
+            price: item.price,
+            userId: participant.userId,
+            splitItem: _sharedItems.contains(item.id),
+          );
+        }
+      }
+
+      setState(() {
+        _itemAssignments[item.id] = _participants.map((p) => p.userId).toList();
+      });
+    } catch (e) {
+      // Handle error silently for now
+    }
   }
 
   // Toggle item type between individual and shared
   Future<void> _toggleItemType(SessionReceiptItem item) async {
-    // TODO: Implement item type toggle logic
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Item type toggle coming soon'),
-        backgroundColor: Colors.orange,
-      ),
-    );
+    setState(() {
+      if (_sharedItems.contains(item.id)) {
+        _sharedItems.remove(item.id);
+      } else {
+        _sharedItems.add(item.id);
+      }
+    });
   }
 
   // Copy item
@@ -1133,6 +1111,39 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
       }
     } catch (e) {
       // Failed to load participants - continue without them
+    }
+  }
+
+  // Load existing assignments
+  Future<void> _loadAssignments() async {
+    try {
+      // Create a map to group assignments by item name
+      Map<String, List<int>> assignmentsByItem = {};
+
+      for (final item in _existingItems) {
+        final result = await _guestChoiceService.getItemAssignments(
+          sessionId: widget.session.id,
+          itemName: item.itemName,
+        );
+
+        if (result['success']) {
+          final assignments = result['assignments'] as List;
+          final userIds = assignments.map((a) => a['user_id'] as int).toList();
+          assignmentsByItem[item.itemName] = userIds;
+        }
+      }
+
+      setState(() {
+        _itemAssignments.clear();
+        for (final item in _existingItems) {
+          final userIds = assignmentsByItem[item.itemName] ?? [];
+          if (userIds.isNotEmpty) {
+            _itemAssignments[item.id] = userIds;
+          }
+        }
+      });
+    } catch (e) {
+      // Failed to load assignments - continue without them
     }
   }
 

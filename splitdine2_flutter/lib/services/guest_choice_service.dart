@@ -8,8 +8,8 @@ class GuestChoiceService {
 
   Future<Map<String, String>> _getAuthHeaders() async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token') ?? '';
-    
+    final token = prefs.getString('jwt_token') ?? '';
+
     return {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer $token',
@@ -128,6 +128,103 @@ class GuestChoiceService {
 
       if (data['return_code'] == 'SUCCESS') {
         return {'success': true, 'message': data['message']};
+      } else {
+        return {'success': false, 'message': data['message']};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  // Assign item to user (add guest choice)
+  Future<Map<String, dynamic>> assignItem({
+    required int sessionId,
+    required String itemName,
+    required double price,
+    required int userId,
+    String? description,
+    bool splitItem = false,
+  }) async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.post(
+        Uri.parse('$baseUrl/guest_choices/assign'),
+        headers: headers,
+        body: jsonEncode({
+          'session_id': sessionId,
+          'name': itemName,
+          'price': price,
+          'user_id': userId,
+          'description': description,
+          'split_item': splitItem,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (data['return_code'] == 'SUCCESS') {
+        return {'success': true, 'choice': data['choice']};
+      } else {
+        return {'success': false, 'message': data['message']};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  // Unassign item from user (remove guest choice)
+  Future<Map<String, dynamic>> unassignItem({
+    required int sessionId,
+    required String itemName,
+    required int userId,
+  }) async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.post(
+        Uri.parse('$baseUrl/guest_choices/unassign'),
+        headers: headers,
+        body: jsonEncode({
+          'session_id': sessionId,
+          'name': itemName,
+          'user_id': userId,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (data['return_code'] == 'SUCCESS') {
+        return {'success': true, 'message': data['message']};
+      } else {
+        return {'success': false, 'message': data['message']};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  // Get assignments for a specific item
+  Future<Map<String, dynamic>> getItemAssignments({
+    required int sessionId,
+    required String itemName,
+  }) async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.post(
+        Uri.parse('$baseUrl/guest_choices/get_item_assignments'),
+        headers: headers,
+        body: jsonEncode({
+          'session_id': sessionId,
+          'name': itemName,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (data['return_code'] == 'SUCCESS') {
+        return {
+          'success': true,
+          'assignments': data['assignments'],
+        };
       } else {
         return {'success': false, 'message': data['message']};
       }
