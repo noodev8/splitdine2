@@ -497,6 +497,57 @@ const participantChoiceQueries = {
   }
 };
 
+// Receipt Scan Operations
+const receiptScanQueries = {
+  // Create receipt scan record
+  create: async (scanData) => {
+    const { session_id, image_path, uploaded_by_user_id } = scanData;
+    const result = await query(
+      `INSERT INTO receipt_scans (session_id, image_path, uploaded_by_user_id, processing_status)
+       VALUES ($1, $2, $3, 'processing')
+       RETURNING *`,
+      [session_id, image_path, uploaded_by_user_id]
+    );
+    return result.rows[0];
+  },
+
+  // Update OCR results
+  updateOcrResults: async (scanId, ocrData) => {
+    const { ocr_text, ocr_confidence, parsed_items, total_amount, tax_amount, service_charge, processing_status } = ocrData;
+    const result = await query(
+      `UPDATE receipt_scans
+       SET ocr_text = $1, ocr_confidence = $2, parsed_items = $3, total_amount = $4,
+           tax_amount = $5, service_charge = $6, processing_status = $7, updated_at = NOW()
+       WHERE id = $8
+       RETURNING *`,
+      [ocr_text, ocr_confidence, parsed_items, total_amount, tax_amount, service_charge, processing_status, scanId]
+    );
+    return result.rows[0];
+  },
+
+  // Get scan by ID
+  findById: async (scanId) => {
+    const result = await query(
+      'SELECT * FROM receipt_scans WHERE id = $1',
+      [scanId]
+    );
+    return result.rows[0];
+  },
+
+  // Get scans by session
+  getBySession: async (sessionId) => {
+    const result = await query(
+      `SELECT rs.*, u.display_name as uploaded_by_name
+       FROM receipt_scans rs
+       JOIN app_user u ON rs.uploaded_by_user_id = u.id
+       WHERE rs.session_id = $1
+       ORDER BY rs.created_at DESC`,
+      [sessionId]
+    );
+    return result.rows;
+  }
+};
+
 module.exports = {
   userQueries,
   sessionQueries,
@@ -504,5 +555,6 @@ module.exports = {
   receiptQueries,
   assignmentQueries,
   splitItemQueries,
-  participantChoiceQueries
+  participantChoiceQueries,
+  receiptScanQueries
 };

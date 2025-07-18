@@ -5,7 +5,7 @@
 -- Dumped from database version 16.9 (Ubuntu 16.9-0ubuntu0.24.04.1)
 -- Dumped by pg_dump version 17.4
 
--- Started on 2025-07-16 23:24:08
+-- Started on 2025-07-18 11:11:18
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -59,7 +59,7 @@ CREATE SEQUENCE public.app_user_id_seq
 ALTER SEQUENCE public.app_user_id_seq OWNER TO splitdine_prod_user;
 
 --
--- TOC entry 3458 (class 0 OID 0)
+-- TOC entry 3483 (class 0 OID 0)
 -- Dependencies: 221
 -- Name: app_user_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: splitdine_prod_user
 --
@@ -104,12 +104,62 @@ CREATE SEQUENCE public.receipt_items_id_seq
 ALTER SEQUENCE public.receipt_items_id_seq OWNER TO splitdine_prod_user;
 
 --
--- TOC entry 3459 (class 0 OID 0)
+-- TOC entry 3484 (class 0 OID 0)
 -- Dependencies: 219
 -- Name: receipt_items_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: splitdine_prod_user
 --
 
 ALTER SEQUENCE public.receipt_items_id_seq OWNED BY public.guest_choice.id;
+
+
+--
+-- TOC entry 226 (class 1259 OID 19106)
+-- Name: receipt_scans; Type: TABLE; Schema: public; Owner: splitdine_prod_user
+--
+
+CREATE TABLE public.receipt_scans (
+    id integer NOT NULL,
+    session_id integer NOT NULL,
+    image_path text NOT NULL,
+    ocr_text text,
+    ocr_confidence numeric(3,2) DEFAULT 0.00,
+    parsed_items jsonb,
+    total_amount numeric(10,2),
+    tax_amount numeric(10,2),
+    service_charge numeric(10,2),
+    processing_status character varying(20) DEFAULT 'pending'::character varying,
+    uploaded_by_user_id integer NOT NULL,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT receipt_scans_processing_status_check CHECK (((processing_status)::text = ANY ((ARRAY['pending'::character varying, 'processing'::character varying, 'completed'::character varying, 'failed'::character varying])::text[])))
+);
+
+
+ALTER TABLE public.receipt_scans OWNER TO splitdine_prod_user;
+
+--
+-- TOC entry 225 (class 1259 OID 19105)
+-- Name: receipt_scans_id_seq; Type: SEQUENCE; Schema: public; Owner: splitdine_prod_user
+--
+
+CREATE SEQUENCE public.receipt_scans_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.receipt_scans_id_seq OWNER TO splitdine_prod_user;
+
+--
+-- TOC entry 3485 (class 0 OID 0)
+-- Dependencies: 225
+-- Name: receipt_scans_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: splitdine_prod_user
+--
+
+ALTER SEQUENCE public.receipt_scans_id_seq OWNED BY public.receipt_scans.id;
 
 
 --
@@ -172,12 +222,54 @@ CREATE SEQUENCE public.session_participants_id_seq
 ALTER SEQUENCE public.session_participants_id_seq OWNER TO splitdine_prod_user;
 
 --
--- TOC entry 3460 (class 0 OID 0)
+-- TOC entry 3486 (class 0 OID 0)
 -- Dependencies: 217
 -- Name: session_participants_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: splitdine_prod_user
 --
 
 ALTER SEQUENCE public.session_participants_id_seq OWNED BY public.session_guest.id;
+
+
+--
+-- TOC entry 228 (class 1259 OID 19145)
+-- Name: session_receipt; Type: TABLE; Schema: public; Owner: splitdine_prod_user
+--
+
+CREATE TABLE public.session_receipt (
+    id integer NOT NULL,
+    session_id integer,
+    item_name character varying(255),
+    price numeric(10,2),
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+
+ALTER TABLE public.session_receipt OWNER TO splitdine_prod_user;
+
+--
+-- TOC entry 227 (class 1259 OID 19144)
+-- Name: session_receipt_id_seq; Type: SEQUENCE; Schema: public; Owner: splitdine_prod_user
+--
+
+CREATE SEQUENCE public.session_receipt_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.session_receipt_id_seq OWNER TO splitdine_prod_user;
+
+--
+-- TOC entry 3487 (class 0 OID 0)
+-- Dependencies: 227
+-- Name: session_receipt_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: splitdine_prod_user
+--
+
+ALTER SEQUENCE public.session_receipt_id_seq OWNED BY public.session_receipt.id;
 
 
 --
@@ -197,7 +289,7 @@ CREATE SEQUENCE public.sessions_id_seq
 ALTER SEQUENCE public.sessions_id_seq OWNER TO splitdine_prod_user;
 
 --
--- TOC entry 3461 (class 0 OID 0)
+-- TOC entry 3488 (class 0 OID 0)
 -- Dependencies: 215
 -- Name: sessions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: splitdine_prod_user
 --
@@ -242,7 +334,7 @@ CREATE SEQUENCE public.split_items_id_seq
 ALTER SEQUENCE public.split_items_id_seq OWNER TO splitdine_prod_user;
 
 --
--- TOC entry 3462 (class 0 OID 0)
+-- TOC entry 3489 (class 0 OID 0)
 -- Dependencies: 223
 -- Name: split_items_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: splitdine_prod_user
 --
@@ -251,7 +343,7 @@ ALTER SEQUENCE public.split_items_id_seq OWNED BY public.split_items.id;
 
 
 --
--- TOC entry 3281 (class 2604 OID 18980)
+-- TOC entry 3291 (class 2604 OID 18980)
 -- Name: app_user id; Type: DEFAULT; Schema: public; Owner: splitdine_prod_user
 --
 
@@ -259,7 +351,7 @@ ALTER TABLE ONLY public.app_user ALTER COLUMN id SET DEFAULT nextval('public.app
 
 
 --
--- TOC entry 3278 (class 2604 OID 18904)
+-- TOC entry 3288 (class 2604 OID 18904)
 -- Name: guest_choice id; Type: DEFAULT; Schema: public; Owner: splitdine_prod_user
 --
 
@@ -267,7 +359,15 @@ ALTER TABLE ONLY public.guest_choice ALTER COLUMN id SET DEFAULT nextval('public
 
 
 --
--- TOC entry 3269 (class 2604 OID 18879)
+-- TOC entry 3298 (class 2604 OID 19109)
+-- Name: receipt_scans id; Type: DEFAULT; Schema: public; Owner: splitdine_prod_user
+--
+
+ALTER TABLE ONLY public.receipt_scans ALTER COLUMN id SET DEFAULT nextval('public.receipt_scans_id_seq'::regclass);
+
+
+--
+-- TOC entry 3279 (class 2604 OID 18879)
 -- Name: session id; Type: DEFAULT; Schema: public; Owner: splitdine_prod_user
 --
 
@@ -275,7 +375,7 @@ ALTER TABLE ONLY public.session ALTER COLUMN id SET DEFAULT nextval('public.sess
 
 
 --
--- TOC entry 3276 (class 2604 OID 18895)
+-- TOC entry 3286 (class 2604 OID 18895)
 -- Name: session_guest id; Type: DEFAULT; Schema: public; Owner: splitdine_prod_user
 --
 
@@ -283,7 +383,15 @@ ALTER TABLE ONLY public.session_guest ALTER COLUMN id SET DEFAULT nextval('publi
 
 
 --
--- TOC entry 3285 (class 2604 OID 19000)
+-- TOC entry 3303 (class 2604 OID 19148)
+-- Name: session_receipt id; Type: DEFAULT; Schema: public; Owner: splitdine_prod_user
+--
+
+ALTER TABLE ONLY public.session_receipt ALTER COLUMN id SET DEFAULT nextval('public.session_receipt_id_seq'::regclass);
+
+
+--
+-- TOC entry 3295 (class 2604 OID 19000)
 -- Name: split_items id; Type: DEFAULT; Schema: public; Owner: splitdine_prod_user
 --
 
@@ -291,7 +399,7 @@ ALTER TABLE ONLY public.split_items ALTER COLUMN id SET DEFAULT nextval('public.
 
 
 --
--- TOC entry 3304 (class 2606 OID 18987)
+-- TOC entry 3323 (class 2606 OID 18987)
 -- Name: app_user app_user_pkey; Type: CONSTRAINT; Schema: public; Owner: splitdine_prod_user
 --
 
@@ -300,7 +408,7 @@ ALTER TABLE ONLY public.app_user
 
 
 --
--- TOC entry 3302 (class 2606 OID 18914)
+-- TOC entry 3321 (class 2606 OID 18914)
 -- Name: guest_choice receipt_items_pkey; Type: CONSTRAINT; Schema: public; Owner: splitdine_prod_user
 --
 
@@ -309,7 +417,16 @@ ALTER TABLE ONLY public.guest_choice
 
 
 --
--- TOC entry 3298 (class 2606 OID 18899)
+-- TOC entry 3331 (class 2606 OID 19118)
+-- Name: receipt_scans receipt_scans_pkey; Type: CONSTRAINT; Schema: public; Owner: splitdine_prod_user
+--
+
+ALTER TABLE ONLY public.receipt_scans
+    ADD CONSTRAINT receipt_scans_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 3317 (class 2606 OID 18899)
 -- Name: session_guest session_participants_pkey; Type: CONSTRAINT; Schema: public; Owner: splitdine_prod_user
 --
 
@@ -318,7 +435,16 @@ ALTER TABLE ONLY public.session_guest
 
 
 --
--- TOC entry 3294 (class 2606 OID 18890)
+-- TOC entry 3333 (class 2606 OID 19152)
+-- Name: session_receipt session_receipt_pkey; Type: CONSTRAINT; Schema: public; Owner: splitdine_prod_user
+--
+
+ALTER TABLE ONLY public.session_receipt
+    ADD CONSTRAINT session_receipt_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 3313 (class 2606 OID 18890)
 -- Name: session sessions_pkey; Type: CONSTRAINT; Schema: public; Owner: splitdine_prod_user
 --
 
@@ -327,7 +453,7 @@ ALTER TABLE ONLY public.session
 
 
 --
--- TOC entry 3308 (class 2606 OID 19006)
+-- TOC entry 3327 (class 2606 OID 19006)
 -- Name: split_items split_items_pkey; Type: CONSTRAINT; Schema: public; Owner: splitdine_prod_user
 --
 
@@ -336,7 +462,7 @@ ALTER TABLE ONLY public.split_items
 
 
 --
--- TOC entry 3299 (class 1259 OID 18960)
+-- TOC entry 3318 (class 1259 OID 18960)
 -- Name: idx_receipt_items_added_by_user_id; Type: INDEX; Schema: public; Owner: splitdine_prod_user
 --
 
@@ -344,7 +470,7 @@ CREATE INDEX idx_receipt_items_added_by_user_id ON public.guest_choice USING btr
 
 
 --
--- TOC entry 3300 (class 1259 OID 18959)
+-- TOC entry 3319 (class 1259 OID 18959)
 -- Name: idx_receipt_items_session_id; Type: INDEX; Schema: public; Owner: splitdine_prod_user
 --
 
@@ -352,7 +478,23 @@ CREATE INDEX idx_receipt_items_session_id ON public.guest_choice USING btree (se
 
 
 --
--- TOC entry 3295 (class 1259 OID 18956)
+-- TOC entry 3328 (class 1259 OID 19119)
+-- Name: idx_receipt_scans_session_id; Type: INDEX; Schema: public; Owner: splitdine_prod_user
+--
+
+CREATE INDEX idx_receipt_scans_session_id ON public.receipt_scans USING btree (session_id);
+
+
+--
+-- TOC entry 3329 (class 1259 OID 19120)
+-- Name: idx_receipt_scans_user_id; Type: INDEX; Schema: public; Owner: splitdine_prod_user
+--
+
+CREATE INDEX idx_receipt_scans_user_id ON public.receipt_scans USING btree (uploaded_by_user_id);
+
+
+--
+-- TOC entry 3314 (class 1259 OID 18956)
 -- Name: idx_session_participants_session_id; Type: INDEX; Schema: public; Owner: splitdine_prod_user
 --
 
@@ -360,7 +502,7 @@ CREATE INDEX idx_session_participants_session_id ON public.session_guest USING b
 
 
 --
--- TOC entry 3296 (class 1259 OID 18957)
+-- TOC entry 3315 (class 1259 OID 18957)
 -- Name: idx_session_participants_user_id; Type: INDEX; Schema: public; Owner: splitdine_prod_user
 --
 
@@ -368,7 +510,7 @@ CREATE INDEX idx_session_participants_user_id ON public.session_guest USING btre
 
 
 --
--- TOC entry 3288 (class 1259 OID 18955)
+-- TOC entry 3307 (class 1259 OID 18955)
 -- Name: idx_sessions_created_at; Type: INDEX; Schema: public; Owner: splitdine_prod_user
 --
 
@@ -376,7 +518,7 @@ CREATE INDEX idx_sessions_created_at ON public.session USING btree (created_at);
 
 
 --
--- TOC entry 3289 (class 1259 OID 18952)
+-- TOC entry 3308 (class 1259 OID 18952)
 -- Name: idx_sessions_join_code; Type: INDEX; Schema: public; Owner: splitdine_prod_user
 --
 
@@ -384,7 +526,7 @@ CREATE INDEX idx_sessions_join_code ON public.session USING btree (join_code);
 
 
 --
--- TOC entry 3290 (class 1259 OID 18954)
+-- TOC entry 3309 (class 1259 OID 18954)
 -- Name: idx_sessions_location; Type: INDEX; Schema: public; Owner: splitdine_prod_user
 --
 
@@ -392,7 +534,7 @@ CREATE INDEX idx_sessions_location ON public.session USING btree (location);
 
 
 --
--- TOC entry 3291 (class 1259 OID 18951)
+-- TOC entry 3310 (class 1259 OID 18951)
 -- Name: idx_sessions_organizer_id; Type: INDEX; Schema: public; Owner: splitdine_prod_user
 --
 
@@ -400,7 +542,7 @@ CREATE INDEX idx_sessions_organizer_id ON public.session USING btree (organizer_
 
 
 --
--- TOC entry 3292 (class 1259 OID 18953)
+-- TOC entry 3311 (class 1259 OID 18953)
 -- Name: idx_sessions_session_date; Type: INDEX; Schema: public; Owner: splitdine_prod_user
 --
 
@@ -408,7 +550,7 @@ CREATE INDEX idx_sessions_session_date ON public.session USING btree (session_da
 
 
 --
--- TOC entry 3305 (class 1259 OID 19008)
+-- TOC entry 3324 (class 1259 OID 19008)
 -- Name: idx_split_items_guest_id; Type: INDEX; Schema: public; Owner: splitdine_prod_user
 --
 
@@ -416,7 +558,7 @@ CREATE INDEX idx_split_items_guest_id ON public.split_items USING btree (guest_i
 
 
 --
--- TOC entry 3306 (class 1259 OID 19007)
+-- TOC entry 3325 (class 1259 OID 19007)
 -- Name: idx_split_items_session_id; Type: INDEX; Schema: public; Owner: splitdine_prod_user
 --
 
@@ -424,7 +566,7 @@ CREATE INDEX idx_split_items_session_id ON public.split_items USING btree (sessi
 
 
 --
--- TOC entry 3457 (class 0 OID 0)
+-- TOC entry 3482 (class 0 OID 0)
 -- Dependencies: 5
 -- Name: SCHEMA public; Type: ACL; Schema: -; Owner: pg_database_owner
 --
@@ -432,7 +574,7 @@ CREATE INDEX idx_split_items_session_id ON public.split_items USING btree (sessi
 GRANT ALL ON SCHEMA public TO splitdine_prod_user;
 
 
--- Completed on 2025-07-16 23:24:09
+-- Completed on 2025-07-18 11:11:19
 
 --
 -- PostgreSQL database dump complete

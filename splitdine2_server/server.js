@@ -85,6 +85,7 @@ app.use('/api/sessions', sessionRoutes);
 app.use('/api/receipts', receiptRoutes);
 app.use('/api/assignments', assignmentRoutes);
 app.use('/api/split-items', splitItemRoutes);
+app.use('/api/receipt-scan', require('./routes/receipt_scan'));
 
 
 
