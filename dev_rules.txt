@@ -1,10 +1,17 @@
-Provide a total for the recipt at the top of the scan receipt page
+receipt_scan_screen
 
-Make the value large and stretch its own card across the width of the device
 
-Calculat the total value from the values retrieved from the receipt
+Popup Calculator to enter time has the save and delete buttons far too close to the bottom. Make everything smaller if have no space or increase the popup size
 
-Remove all £ signs from the items in the list but keep it only in the total
+Lets adjust the TOTAL. Do not use a card now, but instead out the total in the top card underneath "Receipt Items"
+
+When deleting an item, no need for the green breadcrumb at the bottom
+
+Kind of new. I want to add a new item. Can we have somewhere to add a new item and then bring up the pop to enter the values. If easier, by all means add to the database and use the edit functionality in the popup. Whichever easier.
+
+When first entering the popup to edit price. Once the user taps on a number, clear the current total and put their new number to build from. Only do this for the first tap when the window opens.
+
+No need to have delete on the popup, we do that before we get there.
 
 == Rules ==
 == Structure ==

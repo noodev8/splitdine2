@@ -20,10 +20,20 @@ class SessionReceiptItem {
       id: json['id'] as int,
       sessionId: json['session_id'] as int,
       itemName: json['item_name'] as String,
-      price: (json['price'] as num).toDouble(),
+      price: _parsePrice(json['price']),
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
+  }
+
+  static double _parsePrice(dynamic price) {
+    if (price is num) {
+      return price.toDouble();
+    } else if (price is String) {
+      return double.tryParse(price) ?? 0.0;
+    } else {
+      return 0.0;
+    }
   }
 
   Map<String, dynamic> toJson() {

@@ -74,15 +74,7 @@ const sessionRoutes = require('./routes/sessions');
 const receiptRoutes = require('./routes/receipts');
 const assignmentRoutes = require('./routes/assignments');
 const splitItemRoutes = require('./routes/split_items');
-
-// Import session receipt routes with error handling
-let sessionReceiptRoutes;
-try {
-  sessionReceiptRoutes = require('./routes/session_receipt');
-  console.log('Session receipt routes loaded successfully');
-} catch (error) {
-  console.error('Error loading session receipt routes:', error);
-}
+const sessionReceiptRoutes = require('./routes/session_receipt');
 
 // Apply rate limiting to specific routes
 app.use('/api/auth', authLimiter);

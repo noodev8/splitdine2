@@ -137,8 +137,8 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
                       : ListView(
                           padding: const EdgeInsets.all(16),
                           children: [
-                            // Total card (if there are parsed items)
-                            if (_parsedItems.isNotEmpty) ...[
+                            // Total card (if there are existing items)
+                            if (_existingItems.isNotEmpty) ...[
                               _buildTotalCard(),
                               const SizedBox(height: 16),
                             ],
@@ -247,7 +247,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
                     if (value == 'edit') {
                       _showEditItemDialog(item);
                     } else if (value == 'delete') {
-                      _showDeleteConfirmation(item);
+                      _deleteItem(item);
                     } else if (value == 'assign_all') {
                       _assignToAllParticipants(item);
                     }
@@ -303,8 +303,8 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
   }
 
   Widget _buildTotalCard() {
-    double total = _parsedItems.fold(0.0, (sum, item) {
-      return sum + ((item['price'] as num?)?.toDouble() ?? 0.0);
+    double total = _existingItems.fold(0.0, (sum, item) {
+      return sum + item.price;
     });
 
     return Card(
@@ -324,7 +324,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
         child: Column(
           children: [
             const Text(
-              'Receipt Total',
+              'TOTAL',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -780,35 +780,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
     }
   }
 
-  // Show delete confirmation dialog
-  Future<void> _showDeleteConfirmation(SessionReceiptItem item) async {
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Delete Item'),
-          content: Text('Are you sure you want to delete "${item.itemName}"?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              style: FilledButton.styleFrom(
-                backgroundColor: Colors.red,
-              ),
-              child: const Text('Delete'),
-            ),
-          ],
-        );
-      },
-    );
 
-    if (result == true) {
-      await _deleteItem(item);
-    }
-  }
 
   // Delete session receipt item
   Future<void> _deleteItem(SessionReceiptItem item) async {
@@ -1033,11 +1005,17 @@ class _EditItemDialogState extends State<_EditItemDialog> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.8,
+          maxWidth: 400,
+        ),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
             // Close button and title
             Row(
               children: [
@@ -1176,7 +1154,9 @@ class _EditItemDialogState extends State<_EditItemDialog> {
                 ),
               ],
             ),
-          ],
+              ],
+            ),
+          ),
         ),
       ),
     );
