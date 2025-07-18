@@ -84,18 +84,13 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
             )
           : Column(
               children: [
-                // Simple header
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Text(
-                    'Receipt Items (${_existingItems.length + _parsedItems.length})',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                ),
+                // Total Card
+                if (_existingItems.isNotEmpty) ...[
+                  _buildTotalCard(),
+                  const SizedBox(height: 8),
+                ],
+
+
 
                 if (_errorMessage != null) ...[
                   const SizedBox(height: 16),
@@ -309,67 +304,62 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
                     ],
                   ),
                 ),
-                // Action menu button
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: PopupMenuButton<String>(
-                    onSelected: (value) {
-                      switch (value) {
-                        case 'copy':
-                          _copyItem(item);
-                          break;
-                        case 'edit':
-                          _showEditItemDialog(item);
-                          break;
-                        case 'delete':
-                          _deleteItem(item);
-                          break;
-                      }
-                    },
-                    itemBuilder: (BuildContext context) => [
-                      const PopupMenuItem<String>(
-                        value: 'copy',
-                        child: Row(
-                          children: [
-                            Icon(Icons.copy, size: 18, color: Colors.grey),
-                            SizedBox(width: 12),
-                            Text('Copy Item'),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem<String>(
-                        value: 'edit',
-                        child: Row(
-                          children: [
-                            Icon(Icons.edit, size: 18, color: Color(0xFF6200EE)),
-                            SizedBox(width: 12),
-                            Text('Edit Item'),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem<String>(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete, size: 18, color: Colors.red),
-                            SizedBox(width: 12),
-                            Text('Delete Item', style: TextStyle(color: Colors.red)),
-                          ],
-                        ),
-                      ),
-                    ],
-                    child: Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: Icon(
-                        Icons.more_vert,
-                        color: Colors.grey.shade600,
-                        size: 20,
+                // Action buttons row
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Copy item button
+                    IconButton(
+                      onPressed: () => _copyItem(item),
+                      icon: const Icon(Icons.copy, size: 18),
+                      tooltip: 'Copy Item',
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.grey.shade100,
+                        foregroundColor: Colors.grey.shade700,
+                        minimumSize: const Size(32, 32),
                       ),
                     ),
-                  ),
+                    const SizedBox(width: 4),
+                    // Edit item button
+                    IconButton(
+                      onPressed: () => _showEditItemDialog(item),
+                      icon: const Icon(Icons.edit, size: 18),
+                      tooltip: 'Edit Item',
+                      style: IconButton.styleFrom(
+                        backgroundColor: const Color(0xFF6200EE).withValues(alpha: 0.1),
+                        foregroundColor: const Color(0xFF6200EE),
+                        minimumSize: const Size(32, 32),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    // Shared toggle button
+                    IconButton(
+                      onPressed: () => _toggleItemType(item),
+                      icon: const Icon(Icons.group, size: 18),
+                      tooltip: isShared ? 'Make Individual' : 'Make Shared',
+                      style: IconButton.styleFrom(
+                        backgroundColor: isShared
+                          ? const Color(0xFFFFC629).withValues(alpha: 0.2)
+                          : Colors.grey.shade100,
+                        foregroundColor: isShared
+                          ? const Color(0xFFFFC629)
+                          : Colors.grey.shade700,
+                        minimumSize: const Size(32, 32),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    // Delete item button
+                    IconButton(
+                      onPressed: () => _deleteItem(item),
+                      icon: const Icon(Icons.delete, size: 18),
+                      tooltip: 'Delete Item',
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.red.shade50,
+                        foregroundColor: Colors.red,
+                        minimumSize: const Size(32, 32),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -379,42 +369,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
             // Participants section
             _buildParticipantsSection(item),
 
-            const SizedBox(height: 12),
 
-            // Action buttons row
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _assignToAllParticipants(item),
-                    icon: const Icon(Icons.group_add, size: 18),
-                    label: const Text('Assign All'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF6200EE),
-                      side: const BorderSide(color: Color(0xFF6200EE)),
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _toggleItemType(item),
-                    icon: Icon(
-                      isShared ? Icons.group : Icons.person,
-                      size: 18,
-                    ),
-                    label: Text(isShared ? 'Shared' : 'Individual'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: isShared ? const Color(0xFFFFC629) : Colors.blue.shade700,
-                      side: BorderSide(color: isShared ? const Color(0xFFFFC629) : Colors.blue.shade700),
-                      backgroundColor: isShared ? const Color(0xFFFFC629).withValues(alpha: 0.1) : null,
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                    ),
-                  ),
-                ),
-              ],
-            ),
           ],
         ),
       ),
@@ -424,6 +379,105 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
 
 
 
+
+  Widget _buildTotalCard() {
+    final total = _calculateTotal();
+    final allocated = _calculateAllocatedTotal();
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: Card(
+        elevation: 0,
+        color: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: BorderSide(
+            color: Colors.grey.shade200,
+            width: 1,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'TOTAL',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '£${total.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF6200EE),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      'ALLOCATED',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '£${allocated.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: allocated >= total ? Colors.green : Colors.orange,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  double _calculateTotal() {
+    return _existingItems.fold(0.0, (sum, item) {
+      return sum + item.price;
+    });
+  }
+
+  double _calculateAllocatedTotal() {
+    double total = 0.0;
+    for (final item in _existingItems) {
+      final assignments = _getItemAssignments(item.id);
+      if (assignments.isNotEmpty) {
+        final isShared = _sharedItems.contains(item.id) || assignments.length > 1;
+        if (isShared) {
+          // For shared items, add the full price once
+          total += item.price;
+        } else {
+          // For individual items, add price for each assignment
+          total += item.price * assignments.length;
+        }
+      }
+    }
+    return total;
+  }
 
   // Add new item
   void _addNewItem() {
@@ -697,25 +751,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: const Color(0xFF6200EE).withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                '${assignedUserIds.length}',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF6200EE),
-                ),
-              ),
-            ),
-          ],
-        ),
+
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -993,30 +1029,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
     }
   }
 
-  // Assign item to all participants
-  Future<void> _assignToAllParticipants(SessionReceiptItem item) async {
-    try {
-      final currentAssignments = _getItemAssignments(item.id);
 
-      for (final participant in _participants) {
-        if (!currentAssignments.contains(participant.userId)) {
-          await _guestChoiceService.assignItem(
-            sessionId: widget.session.id,
-            itemName: item.itemName,
-            price: item.price,
-            userId: participant.userId,
-            splitItem: _sharedItems.contains(item.id),
-          );
-        }
-      }
-
-      setState(() {
-        _itemAssignments[item.id] = _participants.map((p) => p.userId).toList();
-      });
-    } catch (e) {
-      // Handle error silently for now
-    }
-  }
 
   // Toggle item type between individual and shared
   Future<void> _toggleItemType(SessionReceiptItem item) async {
