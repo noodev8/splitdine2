@@ -548,6 +548,72 @@ const receiptScanQueries = {
   }
 };
 
+// Session receipt operations
+const sessionReceiptQueries = {
+  // Create session receipt item
+  create: async (itemData) => {
+    const { session_id, item_name, price } = itemData;
+    const result = await query(
+      `INSERT INTO session_receipt (session_id, item_name, price)
+       VALUES ($1, $2, $3)
+       RETURNING *`,
+      [session_id, item_name, price]
+    );
+    return result.rows[0];
+  },
+
+  // Get session receipt items by session
+  getBySession: async (sessionId) => {
+    const result = await query(
+      `SELECT * FROM session_receipt
+       WHERE session_id = $1
+       ORDER BY created_at DESC`,
+      [sessionId]
+    );
+    return result.rows;
+  },
+
+  // Update session receipt item
+  update: async (itemId, updateData) => {
+    const { item_name, price } = updateData;
+    const result = await query(
+      `UPDATE session_receipt
+       SET item_name = $1, price = $2, updated_at = NOW()
+       WHERE id = $3
+       RETURNING *`,
+      [item_name, price, itemId]
+    );
+    return result.rows[0];
+  },
+
+  // Delete session receipt item
+  delete: async (itemId) => {
+    const result = await query(
+      'DELETE FROM session_receipt WHERE id = $1 RETURNING *',
+      [itemId]
+    );
+    return result.rows[0];
+  },
+
+  // Find session receipt item by ID
+  findById: async (itemId) => {
+    const result = await query(
+      'SELECT * FROM session_receipt WHERE id = $1',
+      [itemId]
+    );
+    return result.rows[0];
+  },
+
+  // Delete all session receipt items for a session
+  deleteBySession: async (sessionId) => {
+    const result = await query(
+      'DELETE FROM session_receipt WHERE session_id = $1 RETURNING *',
+      [sessionId]
+    );
+    return result.rows;
+  }
+};
+
 module.exports = {
   userQueries,
   sessionQueries,
@@ -556,5 +622,6 @@ module.exports = {
   assignmentQueries,
   splitItemQueries,
   participantChoiceQueries,
-  receiptScanQueries
+  receiptScanQueries,
+  sessionReceiptQueries
 };

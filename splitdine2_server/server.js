@@ -75,6 +75,15 @@ const receiptRoutes = require('./routes/receipts');
 const assignmentRoutes = require('./routes/assignments');
 const splitItemRoutes = require('./routes/split_items');
 
+// Import session receipt routes with error handling
+let sessionReceiptRoutes;
+try {
+  sessionReceiptRoutes = require('./routes/session_receipt');
+  console.log('Session receipt routes loaded successfully');
+} catch (error) {
+  console.error('Error loading session receipt routes:', error);
+}
+
 // Apply rate limiting to specific routes
 app.use('/api/auth', authLimiter);
 app.use('/api/sessions/create', sessionLimiter);
@@ -86,6 +95,14 @@ app.use('/api/receipts', receiptRoutes);
 app.use('/api/assignments', assignmentRoutes);
 app.use('/api/split-items', splitItemRoutes);
 app.use('/api/receipt_scan', require('./routes/receipt_scan'));
+
+// Use session receipt routes if loaded successfully
+if (sessionReceiptRoutes) {
+  app.use('/api/session_receipt', sessionReceiptRoutes);
+  console.log('Session receipt routes registered at /api/session_receipt');
+} else {
+  console.error('Session receipt routes not available');
+}
 
 
 
