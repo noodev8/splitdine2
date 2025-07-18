@@ -77,103 +77,29 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
             )
           : Column(
               children: [
-                // Header section with scan button
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  color: Colors.white,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                        Text(
-                                          'Receipt Items',
-                                          style: TextStyle(
-                                            fontSize: 24,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.black87,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          '${_existingItems.length + _parsedItems.length} items',
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            color: Colors.grey.shade600,
-                                          ),
-                                        ),
-                                        ],
-                                      ),
-                                    ),
-                                    if (_existingItems.isNotEmpty)
-                                      Column(
-                                        crossAxisAlignment: CrossAxisAlignment.end,
-                                        children: [
-                                          Text(
-                                            'TOTAL',
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.grey.shade600,
-                                            ),
-                                          ),
-                                          Text(
-                                            '£${_calculateTotal().toStringAsFixed(2)}',
-                                            style: TextStyle(
-                                              fontSize: 24,
-                                              fontWeight: FontWeight.bold,
-                                              color: Color(0xFF6200EE),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          FilledButton.icon(
-                            onPressed: _addNewItem,
-                            icon: const Icon(Icons.add, size: 20),
-                            label: const Text('Add Item'),
-                            style: FilledButton.styleFrom(
-                              backgroundColor: const Color(0xFF4CAF50),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          FilledButton.icon(
-                            onPressed: _showRescanDialog,
-                            icon: const Icon(Icons.camera_alt, size: 20),
-                            label: Text(_existingItems.isEmpty ? 'Scan Receipt' : 'Re-scan'),
-                            style: FilledButton.styleFrom(
-                              backgroundColor: const Color(0xFF6200EE),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                            ),
-                          ),
-                        ],
-                      ),
+                // Total Card
+                if (_existingItems.isNotEmpty) ...[
+                  _buildTotalCard(),
+                  const SizedBox(height: 16),
+                ],
 
-                      if (_errorMessage != null) ...[
-                        const SizedBox(height: 16),
-                        _buildErrorMessage(),
-                      ],
-                    ],
+                // Simple header
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    'Receipt Items (${_existingItems.length + _parsedItems.length})',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
                   ),
                 ),
+
+                if (_errorMessage != null) ...[
+                  const SizedBox(height: 16),
+                  _buildErrorMessage(),
+                ],
 
                 // Items list
                 Expanded(
@@ -202,6 +128,66 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
                 ),
               ],
             ),
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 4,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: _addNewItem,
+                icon: const Icon(Icons.add, size: 20),
+                label: const Text(
+                  'Add Item',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  elevation: 0,
+                  shadowColor: Colors.transparent,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: _showRescanDialog,
+                icon: const Icon(Icons.camera_alt, size: 20),
+                label: Text(
+                  _existingItems.isEmpty ? 'Scan Receipt' : 'Re-scan',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  elevation: 0,
+                  shadowColor: Colors.transparent,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -345,6 +331,79 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
     return _existingItems.fold(0.0, (sum, item) {
       return sum + item.price;
     });
+  }
+
+  Widget _buildTotalCard() {
+    final total = _calculateTotal();
+    final allocated = total; // For now, allocated equals total - will be calculated later
+
+    return Container(
+      margin: const EdgeInsets.all(16),
+      child: Card(
+        elevation: 0,
+        color: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: BorderSide(
+            color: Colors.grey.shade200,
+            width: 1,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'TOTAL',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                    Text(
+                      '£${total.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF6200EE),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      'ALLOCATED',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                    Text(
+                      '£${allocated.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: allocated >= total ? Colors.green : Colors.orange,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   // Add new item
@@ -799,14 +858,6 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
 
       if (result['success']) {
         await _loadExistingItems();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Item updated successfully'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
