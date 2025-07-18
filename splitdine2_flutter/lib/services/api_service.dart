@@ -42,7 +42,6 @@ class ApiService {
       }
 
       final uri = Uri.parse('$baseUrl/receipt_scan/upload');
-      print('🔍 Making receipt scan request to: $uri');
       final request = http.MultipartRequest('POST', uri);
       
       // Add headers

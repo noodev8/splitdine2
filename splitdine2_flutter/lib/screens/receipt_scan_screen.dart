@@ -284,12 +284,21 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
           width: double.infinity,
           child: OutlinedButton.icon(
             onPressed: _addNewItem,
-            icon: const Icon(Icons.add),
-            label: const Text('Add Item'),
+            icon: const Icon(Icons.add, size: 18),
+            label: const Text(
+              'Add Item',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 12),
-              side: const BorderSide(color: Color(0xFFFFC629)),
-              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              side: BorderSide(color: Colors.grey.shade300),
+              foregroundColor: Colors.grey.shade600,
             ),
           ),
         ),
@@ -331,60 +340,90 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
     final item = _parsedItems[index];
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: Colors.grey.shade200,
-          width: 1,
-        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: Column(
+      child: Row(
         children: [
-          Row(
-            children: [
-              Expanded(
-                flex: 2,
-                child: TextFormField(
-                  initialValue: item['name'] ?? '',
-                  decoration: const InputDecoration(
-                    labelText: 'Item Name',
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                  ),
-                  onChanged: (value) {
-                    setState(() {
-                      _parsedItems[index]['name'] = value;
-                    });
-                  },
+          Expanded(
+            flex: 3,
+            child: TextFormField(
+              initialValue: item['name'] ?? '',
+              decoration: InputDecoration(
+                hintText: 'Item name',
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.zero,
+                hintStyle: TextStyle(
+                  color: Colors.grey.shade400,
+                  fontSize: 16,
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextFormField(
-                  initialValue: (item['price'] ?? 0.0).toStringAsFixed(2),
-                  decoration: const InputDecoration(
-                    labelText: 'Price (£)',
-                    border: OutlineInputBorder(),
-                    isDense: true,
-                  ),
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) {
-                    setState(() {
-                      _parsedItems[index]['price'] = double.tryParse(value) ?? 0.0;
-                    });
-                  },
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+              onChanged: (value) {
+                setState(() {
+                  _parsedItems[index]['name'] = value;
+                });
+              },
+            ),
+          ),
+          const SizedBox(width: 16),
+          SizedBox(
+            width: 80,
+            child: TextFormField(
+              initialValue: (item['price'] ?? 0.0).toStringAsFixed(2),
+              decoration: InputDecoration(
+                hintText: '0.00',
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.zero,
+                prefixText: '£',
+                prefixStyle: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+                hintStyle: TextStyle(
+                  color: Colors.grey.shade400,
+                  fontSize: 16,
                 ),
               ),
-              const SizedBox(width: 8),
-              IconButton(
-                onPressed: () => _removeItem(index),
-                icon: const Icon(Icons.delete_outline),
-                color: Colors.red.shade600,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
               ),
-            ],
+              textAlign: TextAlign.right,
+              keyboardType: TextInputType.number,
+              onChanged: (value) {
+                setState(() {
+                  _parsedItems[index]['price'] = double.tryParse(value) ?? 0.0;
+                });
+              },
+            ),
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            onPressed: () => _removeItem(index),
+            icon: const Icon(Icons.delete_outline),
+            color: Colors.grey.shade400,
+            iconSize: 20,
+            constraints: const BoxConstraints(
+              minWidth: 32,
+              minHeight: 32,
+            ),
+            padding: EdgeInsets.zero,
           ),
         ],
       ),
@@ -395,12 +434,15 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: Colors.grey.shade200,
-          width: 1,
-        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -410,6 +452,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
+              color: Colors.black87,
             ),
           ),
           const SizedBox(height: 12),
@@ -428,22 +471,24 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
     if (amount == null) return const SizedBox.shrink();
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             label,
             style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade700,
+              fontSize: 15,
+              color: Colors.grey.shade600,
+              fontWeight: FontWeight.w500,
             ),
           ),
           Text(
             '£${amount.toStringAsFixed(2)}',
             style: const TextStyle(
-              fontSize: 14,
+              fontSize: 15,
               fontWeight: FontWeight.w600,
+              color: Colors.black87,
             ),
           ),
         ],
