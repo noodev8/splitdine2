@@ -185,8 +185,7 @@ router.post('/upload', authenticateToken, upload.single('image'), async (req, re
     };
     
     const updatedScan = await receiptScanQueries.updateOcrResults(receiptScan.id, updateData);
-    console.log('Receipt processing completed successfully');
-    
+
     // Return parsed results
     res.json({
       return_code: 'SUCCESS',

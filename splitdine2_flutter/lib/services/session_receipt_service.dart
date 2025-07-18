@@ -54,17 +54,9 @@ class SessionReceiptService {
 
   // Get session receipt items
   static Future<Map<String, dynamic>> getItems(int sessionId) async {
-    print('=== SessionReceiptService.getItems DEBUG ===');
-    print('Session ID: $sessionId');
-    print('Base URL: $baseUrl');
-
     try {
-      print('Getting auth headers...');
       final headers = await _getAuthHeaders();
-      print('Headers: $headers');
-
-      final url = '$baseUrl/session_receipt/get-items'; // Back to normal endpoint
-      print('Making POST request to: $url');
+      final url = '$baseUrl/session_receipt/get-items';
 
       final response = await http.post(
         Uri.parse(url),
@@ -72,13 +64,9 @@ class SessionReceiptService {
         body: jsonEncode({'session_id': sessionId}),
       );
 
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
       final data = jsonDecode(response.body);
 
       if (data['return_code'] == 'SUCCESS') {
-        // Updated to match the working receipts.js response format
         final items = (data['items'] as List)
             .map((item) => SessionReceiptItem.fromJson(item))
             .toList();
@@ -92,7 +80,6 @@ class SessionReceiptService {
         return {'success': false, 'message': data['message']};
       }
     } catch (e) {
-      print('Exception in SessionReceiptService.getItems: $e');
       return {'success': false, 'message': 'Network error: $e'};
     }
   }

@@ -10,7 +10,6 @@ const { authenticateToken, requireSessionParticipant } = require('../middleware/
 
 // Test endpoint
 router.get('/test', (req, res) => {
-  console.log('Test endpoint hit');
   res.json({
     return_code: 'SUCCESS',
     message: 'Session receipt service is working',
@@ -20,15 +19,10 @@ router.get('/test', (req, res) => {
 
 // Test endpoint without auth for debugging
 router.post('/get-items-no-auth', async (req, res) => {
-  console.log('=== GET ITEMS NO AUTH DEBUG ===');
-  console.log('Request received at:', new Date().toISOString());
-  console.log('Request body:', JSON.stringify(req.body, null, 2));
-
   try {
     const { session_id } = req.body;
 
     if (!session_id) {
-      console.log('Missing session_id');
       return res.status(400).json({
         return_code: 'MISSING_FIELDS',
         message: 'session_id is required',

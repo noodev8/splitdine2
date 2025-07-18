@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import '../models/session.dart';
 import '../models/session_receipt_item.dart';
 import '../models/participant.dart';
+import '../models/item_assignment.dart';
 import '../services/api_service.dart';
 import '../services/session_receipt_service.dart';
 import '../services/session_service.dart';
@@ -224,12 +225,16 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
   }
 
   Widget _buildSessionReceiptItemCard(SessionReceiptItem item) {
+    final itemAssignments = _getItemAssignments(item.id);
+    final isShared = itemAssignments.length > 1;
+    final splitPrice = isShared ? item.price / itemAssignments.length : item.price;
+
     return Card(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 12),
       elevation: 0,
       color: Colors.white,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         side: BorderSide(
           color: Colors.grey.shade200,
           width: 1,
@@ -240,87 +245,154 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Item header with name, price, and menu
+            // Header row with item name, price, and actions
             Row(
               children: [
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        item.itemName,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              item.itemName,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ),
+                          if (isShared) ...[
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFC629).withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                'SHARED',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.orange.shade700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        '£${item.price.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFF6200EE),
-                        ),
+                      Row(
+                        children: [
+                          Text(
+                            '£${item.price.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: isShared ? Colors.grey.shade600 : const Color(0xFF6200EE),
+                            ),
+                          ),
+                          if (isShared) ...[
+                            Text(
+                              ' (£${splitPrice.toStringAsFixed(2)} each)',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF6200EE),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ],
                   ),
                 ),
-                PopupMenuButton<String>(
-                  onSelected: (value) {
-                    if (value == 'edit') {
-                      _showEditItemDialog(item);
-                    } else if (value == 'delete') {
-                      _deleteItem(item);
-                    } else if (value == 'assign_all') {
-                      _assignToAllParticipants(item);
-                    }
-                  },
-                  itemBuilder: (BuildContext context) => [
-                    const PopupMenuItem<String>(
-                      value: 'assign_all',
-                      child: Row(
-                        children: [
-                          Icon(Icons.group_add, size: 20),
-                          SizedBox(width: 8),
-                          Text('Assign to All'),
-                        ],
+                // Action buttons row
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Copy item button
+                    IconButton(
+                      onPressed: () => _copyItem(item),
+                      icon: const Icon(Icons.copy, size: 20),
+                      tooltip: 'Copy Item',
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.grey.shade100,
+                        foregroundColor: Colors.grey.shade700,
+                        minimumSize: const Size(36, 36),
                       ),
                     ),
-                    const PopupMenuItem<String>(
-                      value: 'edit',
-                      child: Row(
-                        children: [
-                          Icon(Icons.edit, size: 20),
-                          SizedBox(width: 8),
-                          Text('Edit Item'),
-                        ],
+                    const SizedBox(width: 8),
+                    // Edit item button
+                    IconButton(
+                      onPressed: () => _showEditItemDialog(item),
+                      icon: const Icon(Icons.edit, size: 20),
+                      tooltip: 'Edit Item',
+                      style: IconButton.styleFrom(
+                        backgroundColor: const Color(0xFF6200EE).withValues(alpha: 0.1),
+                        foregroundColor: const Color(0xFF6200EE),
+                        minimumSize: const Size(36, 36),
                       ),
                     ),
-                    const PopupMenuItem<String>(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete, size: 20, color: Colors.red),
-                          SizedBox(width: 8),
-                          Text('Delete Item', style: TextStyle(color: Colors.red)),
-                        ],
+                    const SizedBox(width: 8),
+                    // Delete item button
+                    IconButton(
+                      onPressed: () => _deleteItem(item),
+                      icon: const Icon(Icons.delete, size: 20),
+                      tooltip: 'Delete Item',
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.red.shade50,
+                        foregroundColor: Colors.red,
+                        minimumSize: const Size(36, 36),
                       ),
                     ),
                   ],
-                  child: const Icon(
-                    Icons.more_vert,
-                    color: Colors.grey,
-                  ),
                 ),
               ],
             ),
 
             const SizedBox(height: 16),
 
-            // Participants list
-            _buildParticipantsList(item),
+            // Participants section
+            _buildParticipantsSection(item),
+
+            const SizedBox(height: 12),
+
+            // Action buttons row
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _assignToAllParticipants(item),
+                    icon: const Icon(Icons.group_add, size: 18),
+                    label: const Text('Assign All'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF6200EE),
+                      side: const BorderSide(color: Color(0xFF6200EE)),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _toggleItemType(item),
+                    icon: Icon(
+                      isShared ? Icons.person : Icons.group,
+                      size: 18,
+                    ),
+                    label: Text(isShared ? 'Individual' : 'Shared'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: isShared ? Colors.orange.shade700 : Colors.blue.shade700,
+                      side: BorderSide(color: isShared ? Colors.orange.shade700 : Colors.blue.shade700),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -671,29 +743,55 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
 
 
 
-  Widget _buildParticipantsList(SessionReceiptItem item) {
+  Widget _buildParticipantsSection(SessionReceiptItem item) {
+    final itemAssignments = _getItemAssignments(item.id);
+    final assignedUserIds = itemAssignments.map((a) => a.userId).toSet();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Participants',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: Colors.grey.shade700,
-          ),
+        Row(
+          children: [
+            Text(
+              'Allocated to',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey.shade700,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xFF6200EE).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                '${assignedUserIds.length}',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF6200EE),
+                ),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
           runSpacing: 8,
           children: _participants.map((participant) {
-            return _buildParticipantChip(participant, false);
+            final isAssigned = assignedUserIds.contains(participant.userId);
+            return _buildParticipantChip(participant, isAssigned, item);
           }).toList(),
         ),
       ],
     );
   }
+
+
 
   Widget _buildParticipantsListForParsed() {
     return Column(
@@ -711,18 +809,19 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
     );
   }
 
-  Widget _buildParticipantChip(Participant participant, bool isSelected) {
+  Widget _buildParticipantChip(Participant participant, bool isSelected, SessionReceiptItem item) {
     return FilterChip(
       label: Text(
         participant.displayName,
         style: TextStyle(
           fontSize: 12,
+          fontWeight: FontWeight.w500,
           color: isSelected ? Colors.white : Colors.grey.shade700,
         ),
       ),
       selected: isSelected,
       onSelected: (selected) {
-        // TODO: Implement assignment logic
+        _toggleParticipantAssignment(item, participant, selected);
       },
       selectedColor: const Color(0xFF6200EE),
       backgroundColor: Colors.grey.shade100,
@@ -911,15 +1010,86 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
     }
   }
 
-  // Assign item to all participants (placeholder)
-  void _assignToAllParticipants(SessionReceiptItem item) {
+  // Get item assignments (placeholder - returns empty list for now)
+  List<ItemAssignment> _getItemAssignments(int itemId) {
+    // TODO: Implement actual assignment loading from API
+    return [];
+  }
+
+  // Toggle participant assignment
+  Future<void> _toggleParticipantAssignment(SessionReceiptItem item, Participant participant, bool assign) async {
+    // TODO: Implement assignment/unassignment logic
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(assign
+          ? 'Assigned ${item.itemName} to ${participant.displayName}'
+          : 'Unassigned ${item.itemName} from ${participant.displayName}'),
+        backgroundColor: assign ? Colors.green : Colors.orange,
+      ),
+    );
+  }
+
+  // Assign item to all participants
+  Future<void> _assignToAllParticipants(SessionReceiptItem item) async {
     // TODO: Implement assignment logic
     ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Assigned ${item.itemName} to all participants'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
+  // Toggle item type between individual and shared
+  Future<void> _toggleItemType(SessionReceiptItem item) async {
+    // TODO: Implement item type toggle logic
+    ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Assignment feature coming soon'),
+        content: Text('Item type toggle coming soon'),
         backgroundColor: Colors.orange,
       ),
     );
+  }
+
+  // Copy item
+  Future<void> _copyItem(SessionReceiptItem item) async {
+    try {
+      final result = await SessionReceiptService.addItem(
+        sessionId: widget.session.id,
+        itemName: '${item.itemName} (Copy)',
+        price: item.price,
+      );
+
+      if (result['success']) {
+        await _loadExistingItems();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Copied ${item.itemName}'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to copy item: ${result['message']}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error copying item: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   // Load existing session receipt items
