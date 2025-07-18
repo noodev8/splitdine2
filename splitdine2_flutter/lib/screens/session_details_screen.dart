@@ -296,8 +296,8 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       elevation: 0,
-                      backgroundColor: const Color(0xFFFFC629),
-                      foregroundColor: Colors.black,
+                      shadowColor: Colors.transparent,
+                      overlayColor: Colors.black.withValues(alpha: 0.05), // Subtle press effect
                     ),
                   ),
                 ),

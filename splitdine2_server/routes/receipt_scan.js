@@ -13,6 +13,24 @@ const { authenticateToken } = require('../middleware/auth');
  * All routes use POST method and return standardized JSON responses
  */
 
+// Test endpoint
+router.get('/test', (req, res) => {
+  res.json({
+    return_code: 'SUCCESS',
+    message: 'Receipt scan service is working',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Test upload endpoint (GET for browser testing)
+router.get('/upload', (req, res) => {
+  res.json({
+    return_code: 'SUCCESS',
+    message: 'Upload endpoint is accessible (use POST with multipart/form-data for actual upload)',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Configure multer for file uploads (temporary storage)
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -49,7 +67,7 @@ const upload = multer({
 });
 
 /**
- * POST /api/receipt-scan/upload
+ * POST /api/receipt_scan/upload
  * Upload and process receipt image with OCR
  * 
  * Body: multipart/form-data
@@ -58,10 +76,27 @@ const upload = multer({
  * 
  * Returns: Parsed receipt items and totals
  */
-router.post('/upload', authenticateToken, upload.single('image'), async (req, res) => {
+// Add logging middleware for ALL requests to this router
+router.use((req, res, next) => {
+  console.log(`📱 Receipt scan route hit: ${req.method} ${req.path}`);
+  next();
+});
+
+router.post('/upload', (req, res, next) => {
+  console.log('=== RECEIPT UPLOAD REQUEST ===');
+  console.log('Method:', req.method);
+  console.log('Headers:', req.headers);
+  console.log('Content-Type:', req.get('Content-Type'));
+  next();
+}, authenticateToken, upload.single('image'), async (req, res) => {
   let tempFilePath = null;
-  
+
   try {
+    console.log('=== UPLOAD PROCESSING ===');
+    console.log('User:', req.user);
+    console.log('Body:', req.body);
+    console.log('File:', req.file ? 'Present' : 'Missing');
+
     const { session_id } = req.body;
     
     // Validate required fields

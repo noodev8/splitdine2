@@ -41,7 +41,8 @@ class ApiService {
         };
       }
 
-      final uri = Uri.parse('$baseUrl/receipt-scan/upload');
+      final uri = Uri.parse('$baseUrl/receipt_scan/upload');
+      print('🔍 Making receipt scan request to: $uri');
       final request = http.MultipartRequest('POST', uri);
       
       // Add headers
@@ -106,7 +107,7 @@ class ApiService {
       final headers = await _getHeaders();
       
       final response = await http.post(
-        Uri.parse('$baseUrl/receipt-scan/add-items'),
+        Uri.parse('$baseUrl/receipt_scan/add-items'),
         headers: headers,
         body: jsonEncode({
           'session_id': sessionId,

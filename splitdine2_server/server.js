@@ -85,7 +85,14 @@ app.use('/api/sessions', sessionRoutes);
 app.use('/api/receipts', receiptRoutes);
 app.use('/api/assignments', assignmentRoutes);
 app.use('/api/split-items', splitItemRoutes);
-app.use('/api/receipt-scan', require('./routes/receipt_scan'));
+// Load receipt scan routes with error handling
+try {
+  const receiptScanRoutes = require('./routes/receipt_scan');
+  app.use('/api/receipt_scan', receiptScanRoutes);
+  console.log('✅ Receipt scan routes loaded successfully');
+} catch (error) {
+  console.error('❌ Failed to load receipt scan routes:', error.message);
+}
 
 
 

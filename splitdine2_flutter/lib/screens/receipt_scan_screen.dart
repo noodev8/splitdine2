@@ -27,19 +27,19 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
         title: const Text(
           'Scan Receipt',
           style: TextStyle(
-            fontFamily: 'GoogleSansRounded',
+            fontSize: 20,
             fontWeight: FontWeight.bold,
-            fontSize: 24,
           ),
         ),
-        backgroundColor: const Color(0xFFFFC629),
-        foregroundColor: Colors.black,
-        elevation: 0,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+        elevation: 1,
+        shadowColor: Colors.black12,
       ),
       body: _isProcessing
           ? const Center(
@@ -130,9 +130,12 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
                     icon: const Icon(Icons.camera_alt),
                     label: const Text('Camera'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFFC629),
-                      foregroundColor: Colors.black,
                       padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      elevation: 0,
+                      shadowColor: Colors.transparent,
                     ),
                   ),
                 ),
@@ -143,9 +146,13 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
                     icon: const Icon(Icons.photo_library),
                     label: const Text('Gallery'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.grey.shade200,
-                      foregroundColor: Colors.black,
                       padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      elevation: 0,
+                      shadowColor: Colors.transparent,
+                      backgroundColor: Colors.grey.shade100,
                     ),
                   ),
                 ),
@@ -162,38 +169,46 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _processReceipt,
-                    icon: const Icon(Icons.scanner),
-                    label: const Text('Scan Receipt'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFFC629),
-                      foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+            if (_isProcessing) ...[
+              const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  SizedBox(width: 12),
+                  Text(
+                    'Processing receipt...',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                ElevatedButton.icon(
-                  onPressed: () => setState(() {
-                    _selectedImage = null;
-                    _parsedItems.clear();
-                    _totals = null;
-                    _errorMessage = null;
-                  }),
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Retake'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey.shade200,
-                    foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                ],
+              ),
+            ] else ...[
+              ElevatedButton.icon(
+                onPressed: () => setState(() {
+                  _selectedImage = null;
+                  _parsedItems.clear();
+                  _totals = null;
+                  _errorMessage = null;
+                }),
+                icon: const Icon(Icons.refresh),
+                label: const Text('Retake Photo'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
                   ),
+                  elevation: 0,
+                  shadowColor: Colors.transparent,
+                  backgroundColor: Colors.grey.shade100,
                 ),
-              ],
-            ),
+              ),
+            ],
           ],
         ],
       ),
@@ -292,12 +307,12 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
           child: ElevatedButton(
             onPressed: _parsedItems.isNotEmpty ? _addItemsToSession : null,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFFC629),
-              foregroundColor: Colors.black,
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
+              elevation: 0,
+              shadowColor: Colors.transparent,
             ),
             child: Text(
               'Add ${_parsedItems.length} Items to Session',
@@ -452,6 +467,9 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
           _totals = null;
           _errorMessage = null;
         });
+
+        // Automatically process the receipt after image selection
+        await _processReceipt();
       }
     } catch (e) {
       setState(() {
