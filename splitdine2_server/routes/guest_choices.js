@@ -52,12 +52,36 @@ router.post('/assign', authenticateToken, requireSessionParticipant, async (req,
       });
     }
 
+    // Calculate price for this assignment
+    let assignmentPrice = receiptItem.price;
+
+    if (split_item) {
+      // For shared items, get current assignment count and calculate split price
+      const countResult = await query(
+        'SELECT COUNT(*) as assignment_count FROM guest_choice WHERE session_id = $1 AND item_id = $2',
+        [req.sessionId, item_id]
+      );
+
+      const currentAssignments = parseInt(countResult.rows[0].assignment_count);
+      const totalAssignments = currentAssignments + 1; // Including this new assignment
+
+      assignmentPrice = receiptItem.price / totalAssignments;
+
+      // Update existing assignments to reflect new split price
+      if (currentAssignments > 0) {
+        await query(
+          'UPDATE guest_choice SET price = $1, updated_at = NOW() WHERE session_id = $2 AND item_id = $3',
+          [assignmentPrice, req.sessionId, item_id]
+        );
+      }
+    }
+
     // Create assignment record in guest_choice
     const result = await query(
       `INSERT INTO guest_choice (session_id, item_id, name, price, user_id, split_item, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
        RETURNING *`,
-      [req.sessionId, item_id, receiptItem.item_name, receiptItem.price, user_id, split_item || false]
+      [req.sessionId, item_id, receiptItem.item_name, assignmentPrice, user_id, split_item || false]
     );
 
     const choice = result.rows[0];
@@ -103,18 +127,57 @@ router.post('/unassign', authenticateToken, requireSessionParticipant, async (re
       });
     }
 
+    // Check if this is a shared item before deletion
+    const assignmentCheck = await query(
+      'SELECT split_item FROM guest_choice WHERE session_id = $1 AND item_id = $2 AND user_id = $3',
+      [req.sessionId, item_id, user_id]
+    );
+
+    if (assignmentCheck.rows.length === 0) {
+      return res.status(404).json({
+        return_code: 'NOT_FOUND',
+        message: 'Assignment not found',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    const isSharedItem = assignmentCheck.rows[0].split_item;
+
     // Delete assignment record from guest_choice
     const result = await query(
       'DELETE FROM guest_choice WHERE session_id = $1 AND item_id = $2 AND user_id = $3 RETURNING *',
       [req.sessionId, item_id, user_id]
     );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        return_code: 'NOT_FOUND',
-        message: 'Assignment not found',
-        timestamp: new Date().toISOString()
-      });
+    // If it was a shared item, recalculate prices for remaining assignments
+    if (isSharedItem) {
+      // Get the original item price
+      const itemResult = await query(
+        'SELECT price FROM session_receipt WHERE id = $1 AND session_id = $2',
+        [item_id, req.sessionId]
+      );
+
+      if (itemResult.rows.length > 0) {
+        const originalPrice = itemResult.rows[0].price;
+
+        // Get remaining assignment count
+        const countResult = await query(
+          'SELECT COUNT(*) as assignment_count FROM guest_choice WHERE session_id = $1 AND item_id = $2',
+          [req.sessionId, item_id]
+        );
+
+        const remainingAssignments = parseInt(countResult.rows[0].assignment_count);
+
+        if (remainingAssignments > 0) {
+          const newSplitPrice = originalPrice / remainingAssignments;
+
+          // Update remaining assignments with new split price
+          await query(
+            'UPDATE guest_choice SET price = $1, updated_at = NOW() WHERE session_id = $2 AND item_id = $3',
+            [newSplitPrice, req.sessionId, item_id]
+          );
+        }
+      }
     }
 
     res.json({
@@ -223,6 +286,156 @@ router.post('/get_session_assignments', authenticateToken, requireSessionPartici
     res.status(500).json({
       return_code: 'SERVER_ERROR',
       message: 'Failed to get session assignments',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Update prices for all assignments of an item
+router.post('/update_item_prices', authenticateToken, requireSessionParticipant, async (req, res) => {
+  try {
+    const { item_id, new_price, is_shared } = req.body;
+
+    // Validate required fields
+    if (!item_id || new_price === undefined || is_shared === undefined) {
+      return res.status(400).json({
+        return_code: 'MISSING_FIELDS',
+        message: 'Item ID, new price, and shared status are required',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Get count of assignments for this item to calculate split price
+    const countResult = await query(
+      'SELECT COUNT(*) as assignment_count FROM guest_choice WHERE session_id = $1 AND item_id = $2',
+      [req.sessionId, item_id]
+    );
+
+    const assignmentCount = parseInt(countResult.rows[0].assignment_count);
+
+    if (assignmentCount === 0) {
+      return res.json({
+        return_code: 'SUCCESS',
+        message: 'No assignments to update',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Calculate the price per assignment
+    const pricePerAssignment = is_shared && assignmentCount > 0
+      ? parseFloat(new_price) / assignmentCount
+      : parseFloat(new_price);
+
+    // Update all assignment prices for this item
+    const result = await query(
+      'UPDATE guest_choice SET price = $1, split_item = $2, updated_at = NOW() WHERE session_id = $3 AND item_id = $4',
+      [pricePerAssignment, is_shared, req.sessionId, item_id]
+    );
+
+    res.json({
+      return_code: 'SUCCESS',
+      message: `Updated ${result.rowCount} assignment prices`,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Error updating item prices:', error);
+    res.status(500).json({
+      return_code: 'SERVER_ERROR',
+      message: 'Failed to update item prices',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Delete all assignments for an item
+router.post('/delete_item_assignments', authenticateToken, requireSessionParticipant, async (req, res) => {
+  try {
+    const { item_id } = req.body;
+
+    // Validate required fields
+    if (!item_id) {
+      return res.status(400).json({
+        return_code: 'MISSING_FIELDS',
+        message: 'Item ID is required',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Delete all assignments for this item
+    const result = await query(
+      'DELETE FROM guest_choice WHERE session_id = $1 AND item_id = $2',
+      [req.sessionId, item_id]
+    );
+
+    res.json({
+      return_code: 'SUCCESS',
+      message: `Deleted ${result.rowCount} assignments`,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Error deleting item assignments:', error);
+    res.status(500).json({
+      return_code: 'SERVER_ERROR',
+      message: 'Failed to delete item assignments',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Update shared status for all assignments of an item
+router.post('/update_shared_status', authenticateToken, requireSessionParticipant, async (req, res) => {
+  try {
+    const { item_id, is_shared, item_price } = req.body;
+
+    // Validate required fields
+    if (!item_id || is_shared === undefined || item_price === undefined) {
+      return res.status(400).json({
+        return_code: 'MISSING_FIELDS',
+        message: 'Item ID, shared status, and item price are required',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Get count of assignments for this item
+    const countResult = await query(
+      'SELECT COUNT(*) as assignment_count FROM guest_choice WHERE session_id = $1 AND item_id = $2',
+      [req.sessionId, item_id]
+    );
+
+    const assignmentCount = parseInt(countResult.rows[0].assignment_count);
+
+    if (assignmentCount === 0) {
+      return res.json({
+        return_code: 'SUCCESS',
+        message: 'No assignments to update',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Calculate the price per assignment
+    const pricePerAssignment = is_shared && assignmentCount > 0
+      ? parseFloat(item_price) / assignmentCount
+      : parseFloat(item_price);
+
+    // Update shared status and recalculate prices
+    const result = await query(
+      'UPDATE guest_choice SET split_item = $1, price = $2, updated_at = NOW() WHERE session_id = $3 AND item_id = $4',
+      [is_shared, pricePerAssignment, req.sessionId, item_id]
+    );
+
+    res.json({
+      return_code: 'SUCCESS',
+      message: `Updated ${result.rowCount} assignments`,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Error updating shared status:', error);
+    res.status(500).json({
+      return_code: 'SERVER_ERROR',
+      message: 'Failed to update shared status',
       timestamp: new Date().toISOString()
     });
   }

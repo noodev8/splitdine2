@@ -255,4 +255,96 @@ class GuestChoiceService {
       return {'success': false, 'message': 'Network error: $e'};
     }
   }
+
+  // Update prices for all assignments of an item
+  Future<Map<String, dynamic>> updateItemPrices({
+    required int sessionId,
+    required int itemId,
+    required double newPrice,
+    required bool isShared,
+  }) async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.post(
+        Uri.parse('$baseUrl/guest_choices/update_item_prices'),
+        headers: headers,
+        body: jsonEncode({
+          'session_id': sessionId,
+          'item_id': itemId,
+          'new_price': newPrice,
+          'is_shared': isShared,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (data['return_code'] == 'SUCCESS') {
+        return {'success': true, 'message': data['message']};
+      } else {
+        return {'success': false, 'message': data['message']};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  // Delete all assignments for an item
+  Future<Map<String, dynamic>> deleteItemAssignments({
+    required int sessionId,
+    required int itemId,
+  }) async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.post(
+        Uri.parse('$baseUrl/guest_choices/delete_item_assignments'),
+        headers: headers,
+        body: jsonEncode({
+          'session_id': sessionId,
+          'item_id': itemId,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (data['return_code'] == 'SUCCESS') {
+        return {'success': true, 'message': data['message']};
+      } else {
+        return {'success': false, 'message': data['message']};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  // Update shared status for all assignments of an item
+  Future<Map<String, dynamic>> updateItemSharedStatus({
+    required int sessionId,
+    required int itemId,
+    required bool isShared,
+    required double itemPrice,
+  }) async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.post(
+        Uri.parse('$baseUrl/guest_choices/update_shared_status'),
+        headers: headers,
+        body: jsonEncode({
+          'session_id': sessionId,
+          'item_id': itemId,
+          'is_shared': isShared,
+          'item_price': itemPrice,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (data['return_code'] == 'SUCCESS') {
+        return {'success': true, 'message': data['message']};
+      } else {
+        return {'success': false, 'message': data['message']};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
 }
