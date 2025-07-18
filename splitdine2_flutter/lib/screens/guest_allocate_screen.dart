@@ -252,48 +252,87 @@ class _GuestAllocateScreenState extends State<GuestAllocateScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Item name header spanning full width
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade50,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(12),
-                topRight: Radius.circular(12),
-              ),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    item.itemName,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
+          // Item name and price header spanning full width
+          GestureDetector(
+            onTap: () => _showEditItemDialog(item),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(12),
+                  topRight: Radius.circular(12),
                 ),
-                if (isShared) ...[
-                  const SizedBox(width: 12),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFC629).withValues(alpha: 0.3),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      'SHARED',
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Item name row
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          item.itemName,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                      if (isShared) ...[
+                        const SizedBox(width: 12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFC629).withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            'SHARED',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.orange.shade700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+
+                  // Price row
+                  const SizedBox(height: 8),
+                  if (isShared) ...[
+                    Text(
+                      '£${item.price.toStringAsFixed(2)} total',
                       style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.orange.shade700,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey.shade600,
                       ),
                     ),
-                  ),
+                    Text(
+                      '£${splitPrice.toStringAsFixed(2)} each',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ] else ...[
+                    Text(
+                      '£${item.price.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
 
@@ -303,53 +342,9 @@ class _GuestAllocateScreenState extends State<GuestAllocateScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Price and actions row
+                // Actions row
                 Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                      const SizedBox(height: 4),
-                      // Price information - stack vertically for shared items
-                      if (isShared) ...[
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '£${item.price.toStringAsFixed(2)} total',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.grey.shade600,
-                              ),
-                            ),
-                            Text(
-                              '£${splitPrice.toStringAsFixed(2)} each',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF6200EE),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ] else ...[
-                        Text(
-                          '£${item.price.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF6200EE),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                // Action buttons row
-                Row(
-                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     // Copy item button
                     IconButton(
@@ -363,20 +358,7 @@ class _GuestAllocateScreenState extends State<GuestAllocateScreen> {
                         padding: EdgeInsets.zero,
                       ),
                     ),
-                    const SizedBox(width: 2),
-                    // Edit item button
-                    IconButton(
-                      onPressed: () => _showEditItemDialog(item),
-                      icon: const Icon(Icons.edit, size: 16),
-                      tooltip: 'Edit Item',
-                      style: IconButton.styleFrom(
-                        backgroundColor: const Color(0xFF6200EE).withValues(alpha: 0.1),
-                        foregroundColor: const Color(0xFF6200EE),
-                        minimumSize: const Size(28, 28),
-                        padding: EdgeInsets.zero,
-                      ),
-                    ),
-                    const SizedBox(width: 2),
+                    const SizedBox(width: 8),
                     // Shared toggle button
                     IconButton(
                       onPressed: () => _toggleItemType(item),
@@ -393,7 +375,7 @@ class _GuestAllocateScreenState extends State<GuestAllocateScreen> {
                         padding: EdgeInsets.zero,
                       ),
                     ),
-                    const SizedBox(width: 2),
+                    const SizedBox(width: 8),
                     // Delete item button
                     IconButton(
                       onPressed: () => _deleteItem(item),
@@ -408,10 +390,6 @@ class _GuestAllocateScreenState extends State<GuestAllocateScreen> {
                     ),
                   ],
                 ),
-              ],
-            ),
-
-            const SizedBox(height: 16),
 
                 // Participants section
                 const SizedBox(height: 16),
@@ -431,6 +409,7 @@ class _GuestAllocateScreenState extends State<GuestAllocateScreen> {
   Widget _buildTotalCard() {
     final total = _calculateTotal();
     final allocated = _calculateAllocatedTotal();
+    final progress = total > 0 ? (allocated / total).clamp(0.0, 1.0) : 0.0;
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -445,56 +424,105 @@ class _GuestAllocateScreenState extends State<GuestAllocateScreen> {
           ),
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
+          padding: const EdgeInsets.all(20),
+          child: Column(
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'TOTAL',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey.shade600,
-                      ),
+              // Total and Allocated row
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'TOTAL',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey.shade600,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '£${total.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '£${total.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF6200EE),
-                      ),
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          'ALLOCATED',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey.shade600,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '£${allocated.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      'ALLOCATED',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey.shade600,
+
+              const SizedBox(height: 16),
+
+              // Progress bar section
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Progress',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey.shade600,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '£${allocated.toStringAsFixed(2)}',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: allocated >= total ? Colors.green : Colors.orange,
+                      Text(
+                        '${(progress * 100).toInt()}%',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey.shade600,
+                        ),
                       ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  LinearProgressIndicator(
+                    value: progress,
+                    backgroundColor: Colors.grey.shade200,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      progress >= 1.0
+                        ? Colors.green.shade600
+                        : Theme.of(context).colorScheme.primary,
                     ),
-                  ],
-                ),
+                    minHeight: 6,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ],
               ),
             ],
           ),
