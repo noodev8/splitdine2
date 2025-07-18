@@ -11,18 +11,34 @@ const { authenticateToken, requireSessionParticipant } = require('../middleware/
 // Assign item to user (add guest choice)
 router.post('/assign', authenticateToken, requireSessionParticipant, async (req, res) => {
   try {
-    const { item_id, name, price, user_id, description, split_item } = req.body;
+    const { item_id, user_id, split_item } = req.body;
 
     // Validate required fields
-    if (!item_id || !name || price === undefined || !user_id) {
+    if (!item_id || !user_id) {
       return res.status(400).json({
         return_code: 'MISSING_FIELDS',
-        message: 'Item ID, name, price, and user_id are required',
+        message: 'Item ID and user_id are required',
         timestamp: new Date().toISOString()
       });
     }
 
-    // Check if assignment already exists using item_id
+    // Verify the item exists in session_receipt
+    const itemCheck = await query(
+      'SELECT id, item_name, price FROM session_receipt WHERE id = $1 AND session_id = $2',
+      [item_id, req.sessionId]
+    );
+
+    if (itemCheck.rows.length === 0) {
+      return res.status(404).json({
+        return_code: 'ITEM_NOT_FOUND',
+        message: 'Receipt item not found',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    const receiptItem = itemCheck.rows[0];
+
+    // Check if assignment already exists
     const existingChoice = await query(
       'SELECT id FROM guest_choice WHERE session_id = $1 AND item_id = $2 AND user_id = $3',
       [req.sessionId, item_id, user_id]
@@ -36,12 +52,12 @@ router.post('/assign', authenticateToken, requireSessionParticipant, async (req,
       });
     }
 
-    // Create guest choice with item_id
+    // Create assignment record in guest_choice
     const result = await query(
-      `INSERT INTO guest_choice (session_id, item_id, name, price, user_id, description, split_item, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+      `INSERT INTO guest_choice (session_id, item_id, name, price, user_id, split_item, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
        RETURNING *`,
-      [req.sessionId, item_id, name, parseFloat(price), user_id, description, split_item || false]
+      [req.sessionId, item_id, receiptItem.item_name, receiptItem.price, user_id, split_item || false]
     );
 
     const choice = result.rows[0];
@@ -76,7 +92,7 @@ router.post('/assign', authenticateToken, requireSessionParticipant, async (req,
 // Unassign item from user (remove guest choice)
 router.post('/unassign', authenticateToken, requireSessionParticipant, async (req, res) => {
   try {
-    const { item_id, name, user_id } = req.body;
+    const { item_id, user_id } = req.body;
 
     // Validate required fields
     if (!item_id || !user_id) {
@@ -87,7 +103,7 @@ router.post('/unassign', authenticateToken, requireSessionParticipant, async (re
       });
     }
 
-    // Delete guest choice using item_id
+    // Delete assignment record from guest_choice
     const result = await query(
       'DELETE FROM guest_choice WHERE session_id = $1 AND item_id = $2 AND user_id = $3 RETURNING *',
       [req.sessionId, item_id, user_id]

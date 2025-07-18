@@ -38,7 +38,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
   String? _errorMessage;
 
   // Track guest choices and shared items
-  final Map<int, List<int>> _itemAssignments = {}; // itemId -> list of userIds
+  Map<int, List<int>> _itemAssignments = {}; // itemId -> list of userIds
   final Set<int> _sharedItems = {}; // Set of item IDs that are marked as shared
 
   @override
@@ -1076,8 +1076,6 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
         final result = await _guestChoiceService.assignItem(
           sessionId: widget.session.id,
           itemId: item.id,
-          itemName: item.itemName,
-          price: item.price,
           userId: participant.userId,
           splitItem: _sharedItems.contains(item.id),
         );
@@ -1211,31 +1209,28 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
   // Load existing assignments
   Future<void> _loadAssignments() async {
     try {
-      // Create a map to group assignments by item name
-      Map<String, List<int>> assignmentsByItem = {};
+      final result = await _guestChoiceService.getSessionAssignments(widget.session.id);
 
-      for (final item in _existingItems) {
-        final result = await _guestChoiceService.getItemAssignments(
-          sessionId: widget.session.id,
-          itemId: item.id,
-        );
+      if (result['success']) {
+        final assignments = result['assignments'] as List;
 
-        if (result['success']) {
-          final assignments = result['assignments'] as List;
-          final userIds = assignments.map((a) => a['user_id'] as int).toList();
-          assignmentsByItem[item.itemName] = userIds;
-        }
-      }
+        // Group assignments by item_id
+        Map<int, List<int>> assignmentsByItemId = {};
 
-      setState(() {
-        _itemAssignments.clear();
-        for (final item in _existingItems) {
-          final userIds = assignmentsByItem[item.itemName] ?? [];
-          if (userIds.isNotEmpty) {
-            _itemAssignments[item.id] = userIds;
+        for (final assignment in assignments) {
+          final itemId = assignment['item_id'] as int;
+          final userId = assignment['user_id'] as int;
+
+          if (assignmentsByItemId[itemId] == null) {
+            assignmentsByItemId[itemId] = [];
           }
+          assignmentsByItemId[itemId]!.add(userId);
         }
-      });
+
+        setState(() {
+          _itemAssignments = assignmentsByItemId;
+        });
+      }
     } catch (e) {
       // Failed to load assignments - continue without them
     }

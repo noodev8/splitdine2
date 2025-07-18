@@ -140,10 +140,7 @@ class GuestChoiceService {
   Future<Map<String, dynamic>> assignItem({
     required int sessionId,
     required int itemId,
-    required String itemName,
-    required double price,
     required int userId,
-    String? description,
     bool splitItem = false,
   }) async {
     try {
@@ -154,10 +151,7 @@ class GuestChoiceService {
         body: jsonEncode({
           'session_id': sessionId,
           'item_id': itemId,
-          'name': itemName,
-          'price': price,
           'user_id': userId,
-          'description': description,
           'split_item': splitItem,
         }),
       );
@@ -217,6 +211,33 @@ class GuestChoiceService {
         body: jsonEncode({
           'session_id': sessionId,
           'item_id': itemId,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (data['return_code'] == 'SUCCESS') {
+        return {
+          'success': true,
+          'assignments': data['assignments'],
+        };
+      } else {
+        return {'success': false, 'message': data['message']};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  // Get all assignments for a session grouped by item_id
+  Future<Map<String, dynamic>> getSessionAssignments(int sessionId) async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.post(
+        Uri.parse('$baseUrl/guest_choices/get_session_assignments'),
+        headers: headers,
+        body: jsonEncode({
+          'session_id': sessionId,
         }),
       );
 
