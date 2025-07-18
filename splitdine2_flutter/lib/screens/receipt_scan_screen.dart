@@ -22,6 +22,8 @@ class ReceiptScanScreen extends StatefulWidget {
 }
 
 class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
+  static const int maxItemNameLength = 30;
+
   final ImagePicker _picker = ImagePicker();
   final SessionService _sessionService = SessionService();
   final GuestChoiceService _guestChoiceService = GuestChoiceService();
@@ -32,6 +34,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
   List<Participant> _participants = [];
   bool _isProcessing = false;
   bool _isLoading = false;
+  bool _isInitialLoading = true;
   String? _errorMessage;
 
   // Track guest choices and shared items
@@ -45,9 +48,17 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
   }
 
   Future<void> _initializeData() async {
+    setState(() {
+      _isInitialLoading = true;
+    });
+
     await _loadParticipants();
     await _loadExistingItems();
     await _loadAssignments();
+
+    setState(() {
+      _isInitialLoading = false;
+    });
   }
 
   @override
@@ -67,26 +78,29 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
         elevation: 1,
         shadowColor: Colors.black12,
       ),
-      body: _isProcessing || _isLoading
-          ? const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6200EE)),
-                  ),
-                  SizedBox(height: 16),
-                  Text(
-                    'Processing...',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
+      body: Stack(
+        children: [
+          // Main content
+          _isProcessing || _isLoading
+            ? const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6200EE)),
                     ),
-                  ),
-                ],
-              ),
-            )
-          : Column(
+                    SizedBox(height: 16),
+                    Text(
+                      'Processing...',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            : Column(
               children: [
                 // Total Card
                 if (_existingItems.isNotEmpty) ...[
@@ -128,6 +142,33 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
                 ),
               ],
             ),
+
+          // Loading overlay for initial loading
+          if (_isInitialLoading)
+            Container(
+              color: Colors.white.withValues(alpha: 0.8),
+              child: const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6200EE)),
+                    ),
+                    SizedBox(height: 16),
+                    Text(
+                      'Loading receipt items...',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
       bottomNavigationBar: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -225,7 +266,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
 
   Widget _buildSessionReceiptItemCard(SessionReceiptItem item) {
     final itemAssignments = _getItemAssignments(item.id);
-    final isShared = _sharedItems.contains(item.id) || itemAssignments.length > 1;
+    final isShared = _sharedItems.contains(item.id);
     final splitPrice = isShared && itemAssignments.isNotEmpty ? item.price / itemAssignments.length : item.price;
 
     return Card(
@@ -488,12 +529,12 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
     for (final item in _existingItems) {
       final assignments = _getItemAssignments(item.id);
       if (assignments.isNotEmpty) {
-        final isShared = _sharedItems.contains(item.id) || assignments.length > 1;
+        final isShared = _sharedItems.contains(item.id);
         if (isShared) {
-          // For shared items, add the full price once
+          // For shared items, add the full price once (split between guests)
           total += item.price;
         } else {
-          // For individual items, add price for each assignment
+          // For individual items, each guest has their own item
           total += item.price * assignments.length;
         }
       }
@@ -862,9 +903,13 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
   Future<void> _addItemsToSession() async {
     if (_parsedItems.isEmpty) return;
 
-    // Filter out items with empty names
+    // Filter out items with empty names and truncate long names
     final validItems = _parsedItems
         .where((item) => (item['name'] ?? '').toString().trim().isNotEmpty)
+        .map((item) => {
+          ...item,
+          'name': _truncateItemName((item['name'] ?? '').toString().trim()),
+        })
         .toList();
 
     if (validItems.isEmpty) {
@@ -1015,6 +1060,14 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
     return _itemAssignments[itemId] ?? [];
   }
 
+  // Truncate item name if too long
+  String _truncateItemName(String name) {
+    if (name.length <= maxItemNameLength) {
+      return name;
+    }
+    return '${name.substring(0, maxItemNameLength - 3)}...';
+  }
+
   // Toggle participant assignment
   Future<void> _toggleParticipantAssignment(SessionReceiptItem item, Participant participant, bool assign) async {
     try {
@@ -1022,6 +1075,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
         // Assign item to participant
         final result = await _guestChoiceService.assignItem(
           sessionId: widget.session.id,
+          itemId: item.id,
           itemName: item.itemName,
           price: item.price,
           userId: participant.userId,
@@ -1037,7 +1091,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
         // Unassign item from participant
         final result = await _guestChoiceService.unassignItem(
           sessionId: widget.session.id,
-          itemName: item.itemName,
+          itemId: item.id,
           userId: participant.userId,
         );
 
@@ -1163,7 +1217,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
       for (final item in _existingItems) {
         final result = await _guestChoiceService.getItemAssignments(
           sessionId: widget.session.id,
-          itemName: item.itemName,
+          itemId: item.id,
         );
 
         if (result['success']) {
@@ -1311,7 +1365,9 @@ class _EditItemDialogState extends State<_EditItemDialog> {
     final price = double.tryParse(_displayPrice) ?? 0.0;
 
     if (name.isNotEmpty) {
-      widget.onSave(name, price);
+      // Truncate name if too long
+      final truncatedName = name.length > 30 ? '${name.substring(0, 27)}...' : name;
+      widget.onSave(truncatedName, price);
       Navigator.of(context).pop();
     }
   }

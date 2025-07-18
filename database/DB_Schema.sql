@@ -5,7 +5,7 @@
 -- Dumped from database version 16.9 (Ubuntu 16.9-0ubuntu0.24.04.1)
 -- Dumped by pg_dump version 17.4
 
--- Started on 2025-07-18 11:11:18
+-- Started on 2025-07-18 23:03:07
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -81,7 +81,8 @@ CREATE TABLE public.guest_choice (
     user_id integer,
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now(),
-    split_item boolean
+    split_item boolean,
+    item_id integer
 );
 
 
@@ -574,7 +575,7 @@ CREATE INDEX idx_split_items_session_id ON public.split_items USING btree (sessi
 GRANT ALL ON SCHEMA public TO splitdine_prod_user;
 
 
--- Completed on 2025-07-18 11:11:19
+-- Completed on 2025-07-18 23:03:09
 
 --
 -- PostgreSQL database dump complete

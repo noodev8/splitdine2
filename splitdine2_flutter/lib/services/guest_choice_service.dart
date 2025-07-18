@@ -139,6 +139,7 @@ class GuestChoiceService {
   // Assign item to user (add guest choice)
   Future<Map<String, dynamic>> assignItem({
     required int sessionId,
+    required int itemId,
     required String itemName,
     required double price,
     required int userId,
@@ -152,6 +153,7 @@ class GuestChoiceService {
         headers: headers,
         body: jsonEncode({
           'session_id': sessionId,
+          'item_id': itemId,
           'name': itemName,
           'price': price,
           'user_id': userId,
@@ -175,7 +177,7 @@ class GuestChoiceService {
   // Unassign item from user (remove guest choice)
   Future<Map<String, dynamic>> unassignItem({
     required int sessionId,
-    required String itemName,
+    required int itemId,
     required int userId,
   }) async {
     try {
@@ -185,7 +187,7 @@ class GuestChoiceService {
         headers: headers,
         body: jsonEncode({
           'session_id': sessionId,
-          'name': itemName,
+          'item_id': itemId,
           'user_id': userId,
         }),
       );
@@ -205,7 +207,7 @@ class GuestChoiceService {
   // Get assignments for a specific item
   Future<Map<String, dynamic>> getItemAssignments({
     required int sessionId,
-    required String itemName,
+    required int itemId,
   }) async {
     try {
       final headers = await _getAuthHeaders();
@@ -214,7 +216,7 @@ class GuestChoiceService {
         headers: headers,
         body: jsonEncode({
           'session_id': sessionId,
-          'name': itemName,
+          'item_id': itemId,
         }),
       );
 

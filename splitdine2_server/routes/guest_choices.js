@@ -11,21 +11,21 @@ const { authenticateToken, requireSessionParticipant } = require('../middleware/
 // Assign item to user (add guest choice)
 router.post('/assign', authenticateToken, requireSessionParticipant, async (req, res) => {
   try {
-    const { name, price, user_id, description, split_item } = req.body;
+    const { item_id, name, price, user_id, description, split_item } = req.body;
 
     // Validate required fields
-    if (!name || price === undefined || !user_id) {
+    if (!item_id || !name || price === undefined || !user_id) {
       return res.status(400).json({
         return_code: 'MISSING_FIELDS',
-        message: 'Item name, price, and user_id are required',
+        message: 'Item ID, name, price, and user_id are required',
         timestamp: new Date().toISOString()
       });
     }
 
-    // Check if assignment already exists
+    // Check if assignment already exists using item_id
     const existingChoice = await query(
-      'SELECT id FROM guest_choice WHERE session_id = $1 AND name = $2 AND user_id = $3',
-      [req.sessionId, name, user_id]
+      'SELECT id FROM guest_choice WHERE session_id = $1 AND item_id = $2 AND user_id = $3',
+      [req.sessionId, item_id, user_id]
     );
 
     if (existingChoice.rows.length > 0) {
@@ -36,12 +36,12 @@ router.post('/assign', authenticateToken, requireSessionParticipant, async (req,
       });
     }
 
-    // Create guest choice
+    // Create guest choice with item_id
     const result = await query(
-      `INSERT INTO guest_choice (session_id, name, price, user_id, description, split_item, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+      `INSERT INTO guest_choice (session_id, item_id, name, price, user_id, description, split_item, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
        RETURNING *`,
-      [req.sessionId, name, parseFloat(price), user_id, description, split_item || false]
+      [req.sessionId, item_id, name, parseFloat(price), user_id, description, split_item || false]
     );
 
     const choice = result.rows[0];
@@ -76,21 +76,21 @@ router.post('/assign', authenticateToken, requireSessionParticipant, async (req,
 // Unassign item from user (remove guest choice)
 router.post('/unassign', authenticateToken, requireSessionParticipant, async (req, res) => {
   try {
-    const { name, user_id } = req.body;
+    const { item_id, name, user_id } = req.body;
 
     // Validate required fields
-    if (!name || !user_id) {
+    if (!item_id || !user_id) {
       return res.status(400).json({
         return_code: 'MISSING_FIELDS',
-        message: 'Item name and user_id are required',
+        message: 'Item ID and user_id are required',
         timestamp: new Date().toISOString()
       });
     }
 
-    // Delete guest choice
+    // Delete guest choice using item_id
     const result = await query(
-      'DELETE FROM guest_choice WHERE session_id = $1 AND name = $2 AND user_id = $3 RETURNING *',
-      [req.sessionId, name, user_id]
+      'DELETE FROM guest_choice WHERE session_id = $1 AND item_id = $2 AND user_id = $3 RETURNING *',
+      [req.sessionId, item_id, user_id]
     );
 
     if (result.rows.length === 0) {
@@ -120,25 +120,25 @@ router.post('/unassign', authenticateToken, requireSessionParticipant, async (re
 // Get assignments for a specific item
 router.post('/get_item_assignments', authenticateToken, requireSessionParticipant, async (req, res) => {
   try {
-    const { name } = req.body;
+    const { item_id } = req.body;
 
     // Validate required fields
-    if (!name) {
+    if (!item_id) {
       return res.status(400).json({
         return_code: 'MISSING_FIELDS',
-        message: 'Item name is required',
+        message: 'Item ID is required',
         timestamp: new Date().toISOString()
       });
     }
 
-    // Get all assignments for the item
+    // Get all assignments for the item using item_id
     const result = await query(
       `SELECT gc.*, u.display_name as user_name
        FROM guest_choice gc
        JOIN app_user u ON gc.user_id = u.id
-       WHERE gc.session_id = $1 AND gc.name = $2
+       WHERE gc.session_id = $1 AND gc.item_id = $2
        ORDER BY gc.created_at`,
-      [req.sessionId, name]
+      [req.sessionId, item_id]
     );
 
     const assignments = result.rows.map(row => ({
