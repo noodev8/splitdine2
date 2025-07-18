@@ -28,7 +28,6 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
   List<Map<String, dynamic>> _parsedItems = [];
   List<SessionReceiptItem> _existingItems = [];
   List<Participant> _participants = [];
-  Map<String, dynamic>? _totals;
   bool _isProcessing = false;
   bool _isLoading = false;
   String? _errorMessage;
@@ -138,6 +137,12 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
                       : ListView(
                           padding: const EdgeInsets.all(16),
                           children: [
+                            // Total card (if there are parsed items)
+                            if (_parsedItems.isNotEmpty) ...[
+                              _buildTotalCard(),
+                              const SizedBox(height: 16),
+                            ],
+
                             // Existing items
                             ..._existingItems.map((item) => _buildSessionReceiptItemCard(item)),
 
@@ -297,15 +302,59 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
     );
   }
 
+  Widget _buildTotalCard() {
+    double total = _parsedItems.fold(0.0, (sum, item) {
+      return sum + ((item['price'] as num?)?.toDouble() ?? 0.0);
+    });
+
+    return Card(
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(
+          color: Colors.grey.shade200,
+          width: 1,
+        ),
+      ),
+      margin: EdgeInsets.zero,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            const Text(
+              'Receipt Total',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '£${total.toStringAsFixed(2)}',
+              style: const TextStyle(
+                fontSize: 36,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF6200EE),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildParsedItemCard(Map<String, dynamic> item, int index) {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 0,
-      color: const Color(0xFFF8F9FA),
+      color: Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: const Color(0xFF6200EE).withOpacity(0.3),
+          color: Colors.grey.shade200,
           width: 1,
         ),
       ),
@@ -340,38 +389,24 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
                         },
                       ),
                       const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          const Text(
-                            '£',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                              color: Color(0xFF6200EE),
-                            ),
-                          ),
-                          Expanded(
-                            child: TextFormField(
-                              initialValue: item['price']?.toString() ?? '0.00',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                                color: Color(0xFF6200EE),
-                              ),
-                              decoration: const InputDecoration(
-                                border: InputBorder.none,
-                                hintText: '0.00',
-                                contentPadding: EdgeInsets.zero,
-                              ),
-                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                              onChanged: (value) {
-                                setState(() {
-                                  _parsedItems[index]['price'] = double.tryParse(value) ?? 0.0;
-                                });
-                              },
-                            ),
-                          ),
-                        ],
+                      TextFormField(
+                        initialValue: item['price']?.toString() ?? '0.00',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF6200EE),
+                        ),
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          hintText: '0.00',
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        onChanged: (value) {
+                          setState(() {
+                            _parsedItems[index]['price'] = double.tryParse(value) ?? 0.0;
+                          });
+                        },
                       ),
                     ],
                   ),
@@ -396,137 +431,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
     );
   }
 
-  Widget _buildImageSection() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.grey.shade200,
-          width: 1,
-        ),
-      ),
-      child: Column(
-        children: [
-          if (_selectedImage == null) ...[
-            Icon(
-              Icons.camera_alt,
-              size: 64,
-              color: Colors.grey.shade400,
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Take a photo of your receipt',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Make sure the receipt is well-lit and all text is clearly visible',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade600,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => _pickImage(ImageSource.camera),
-                    icon: const Icon(Icons.camera_alt),
-                    label: const Text('Camera'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      elevation: 0,
-                      shadowColor: Colors.transparent,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => _pickImage(ImageSource.gallery),
-                    icon: const Icon(Icons.photo_library),
-                    label: const Text('Gallery'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      elevation: 0,
-                      shadowColor: Colors.transparent,
-                      backgroundColor: Colors.grey.shade100,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ] else ...[
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.file(
-                _selectedImage!,
-                height: 200,
-                width: double.infinity,
-                fit: BoxFit.cover,
-              ),
-            ),
-            const SizedBox(height: 16),
-            if (_isProcessing) ...[
-              const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                  SizedBox(width: 12),
-                  Text(
-                    'Processing receipt...',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ] else ...[
-              ElevatedButton.icon(
-                onPressed: () => setState(() {
-                  _selectedImage = null;
-                  _parsedItems.clear();
-                  _totals = null;
-                  _errorMessage = null;
-                }),
-                icon: const Icon(Icons.refresh),
-                label: const Text('Retake Photo'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  elevation: 0,
-                  shadowColor: Colors.transparent,
-                  backgroundColor: Colors.grey.shade100,
-                ),
-              ),
-            ],
-          ],
-        ],
-      ),
-    );
-  }
+
 
   Widget _buildErrorMessage() {
     return Container(
@@ -563,251 +468,11 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
     );
   }
 
-  Widget _buildParsedItemsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Scanned Items',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            fontFamily: 'GoogleSansRounded',
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Review and edit the items below, then add them to your session',
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.grey.shade600,
-          ),
-        ),
-        const SizedBox(height: 16),
-        
-        // Items list
-        ...List.generate(_parsedItems.length, (index) {
-          return _buildEditableItemCard(index);
-        }),
-        
-        const SizedBox(height: 16),
-        
-        // Add item button
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: _addNewItem,
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text(
-              'Add Item',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              side: BorderSide(color: Colors.grey.shade300),
-              foregroundColor: Colors.grey.shade600,
-            ),
-          ),
-        ),
-        
-        const SizedBox(height: 24),
-        
-        // Totals section
-        if (_totals != null) _buildTotalsSection(),
-        
-        const SizedBox(height: 24),
-        
-        // Add to session button
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: _parsedItems.isNotEmpty ? _addItemsToSession : null,
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              elevation: 0,
-              shadowColor: Colors.transparent,
-            ),
-            child: Text(
-              'Add ${_parsedItems.length} Items to Session',
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
 
-  Widget _buildEditableItemCard(int index) {
-    final item = _parsedItems[index];
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 3,
-            child: TextFormField(
-              initialValue: item['name'] ?? '',
-              decoration: InputDecoration(
-                hintText: 'Item name',
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.zero,
-                hintStyle: TextStyle(
-                  color: Colors.grey.shade400,
-                  fontSize: 16,
-                ),
-              ),
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
-              onChanged: (value) {
-                setState(() {
-                  _parsedItems[index]['name'] = value;
-                });
-              },
-            ),
-          ),
-          const SizedBox(width: 16),
-          SizedBox(
-            width: 80,
-            child: TextFormField(
-              initialValue: (item['price'] ?? 0.0).toStringAsFixed(2),
-              decoration: InputDecoration(
-                hintText: '0.00',
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.zero,
-                prefixText: '£',
-                prefixStyle: TextStyle(
-                  color: Colors.grey.shade600,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
-                hintStyle: TextStyle(
-                  color: Colors.grey.shade400,
-                  fontSize: 16,
-                ),
-              ),
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
-              textAlign: TextAlign.right,
-              keyboardType: TextInputType.number,
-              onChanged: (value) {
-                setState(() {
-                  _parsedItems[index]['price'] = double.tryParse(value) ?? 0.0;
-                });
-              },
-            ),
-          ),
-          const SizedBox(width: 8),
-          IconButton(
-            onPressed: () => _removeItem(index),
-            icon: const Icon(Icons.delete_outline),
-            color: Colors.grey.shade400,
-            iconSize: 20,
-            constraints: const BoxConstraints(
-              minWidth: 32,
-              minHeight: 32,
-            ),
-            padding: EdgeInsets.zero,
-          ),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildTotalsSection() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Receipt Totals',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 12),
-          if (_totals!['total_amount'] != null)
-            _buildTotalRow('Total', _totals!['total_amount']),
-          if (_totals!['tax_amount'] != null)
-            _buildTotalRow('Tax', _totals!['tax_amount']),
-          if (_totals!['service_charge'] != null)
-            _buildTotalRow('Service Charge', _totals!['service_charge']),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildTotalRow(String label, double? amount) {
-    if (amount == null) return const SizedBox.shrink();
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 15,
-              color: Colors.grey.shade600,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          Text(
-            '£${amount.toStringAsFixed(2)}',
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Future<void> _pickImage([ImageSource? source]) async {
     try {
@@ -824,7 +489,6 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
         setState(() {
           _selectedImage = File(image.path);
           _parsedItems.clear();
-          _totals = null;
           _errorMessage = null;
         });
 
@@ -890,7 +554,6 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
               'quantity': item['quantity'] ?? 1,
             })
           );
-          _totals = data['totals'];
         });
       } else {
         setState(() {
@@ -908,15 +571,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
     }
   }
 
-  void _addNewItem() {
-    setState(() {
-      _parsedItems.add({
-        'name': '',
-        'price': 0.0,
-        'quantity': 1,
-      });
-    });
-  }
+
 
   Widget _buildParticipantsList(SessionReceiptItem item) {
     return Column(
@@ -1069,63 +724,18 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
 
   // Show edit dialog for session receipt item
   Future<void> _showEditItemDialog(SessionReceiptItem item) async {
-    final nameController = TextEditingController(text: item.itemName);
-    final priceController = TextEditingController(text: item.price.toString());
-
-    final result = await showDialog<Map<String, dynamic>>(
+    showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Edit Item'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Item Name',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: priceController,
-                decoration: const InputDecoration(
-                  labelText: 'Price',
-                  border: OutlineInputBorder(),
-                  prefixText: '£',
-                ),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () {
-                final name = nameController.text.trim();
-                final price = double.tryParse(priceController.text) ?? 0.0;
-
-                if (name.isNotEmpty && price >= 0) {
-                  Navigator.of(context).pop({
-                    'name': name,
-                    'price': price,
-                  });
-                }
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        );
-      },
+      builder: (context) => _EditItemDialog(
+        item: item,
+        onSave: (newName, newPrice) async {
+          await _updateItem(item, newName, newPrice);
+        },
+        onDelete: () async {
+          await _deleteItem(item);
+        },
+      ),
     );
-
-    if (result != null) {
-      await _updateItem(item, result['name'], result['price']);
-    }
   }
 
   // Update session receipt item
@@ -1133,6 +743,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
     try {
       final result = await SessionReceiptService.updateItem(
         itemId: item.id,
+        sessionId: widget.session.id,
         itemName: name,
         price: price,
       );
@@ -1202,7 +813,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
   // Delete session receipt item
   Future<void> _deleteItem(SessionReceiptItem item) async {
     try {
-      final result = await SessionReceiptService.deleteItem(item.id);
+      final result = await SessionReceiptService.deleteItem(item.id, widget.session.id);
 
       if (result['success']) {
         await _loadExistingItems();
@@ -1249,30 +860,24 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
 
   // Load existing session receipt items
   Future<void> _loadExistingItems() async {
-    print('=== FLUTTER DEBUG: _loadExistingItems called ===');
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      print('Calling SessionReceiptService.getItems with session ID: ${widget.session.id}');
       final result = await SessionReceiptService.getItems(widget.session.id);
-      print('SessionReceiptService.getItems result: $result');
 
       if (result['success']) {
         setState(() {
           _existingItems = result['items'] as List<SessionReceiptItem>;
         });
-        print('Successfully loaded ${_existingItems.length} existing items');
       } else {
         setState(() {
           _errorMessage = result['message'];
         });
-        print('Failed to load items: ${result['message']}');
       }
     } catch (e) {
-      print('Exception in _loadExistingItems: $e');
       setState(() {
         _errorMessage = 'Failed to load existing items: $e';
       });
@@ -1293,7 +898,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
         });
       }
     } catch (e) {
-      print('Failed to load participants: $e');
+      // Failed to load participants - continue without them
     }
   }
 
@@ -1351,7 +956,268 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
         });
       }
     } catch (e) {
-      print('Failed to clear existing items: $e');
+      // Failed to clear existing items - continue
     }
+  }
+}
+
+// Edit Item Dialog Widget with Calculator
+class _EditItemDialog extends StatefulWidget {
+  final SessionReceiptItem item;
+  final Function(String, double) onSave;
+  final VoidCallback onDelete;
+
+  const _EditItemDialog({
+    required this.item,
+    required this.onSave,
+    required this.onDelete,
+  });
+
+  @override
+  State<_EditItemDialog> createState() => _EditItemDialogState();
+}
+
+class _EditItemDialogState extends State<_EditItemDialog> {
+  late TextEditingController _nameController;
+  String _displayPrice = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.item.itemName);
+    _displayPrice = widget.item.price == 0
+      ? ''
+      : widget.item.price.toStringAsFixed(2);
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  void _onNumberTap(String number) {
+    setState(() {
+      if (number == '.') {
+        if (!_displayPrice.contains('.')) {
+          _displayPrice = _displayPrice.isEmpty ? '0.' : '$_displayPrice.';
+        }
+      } else {
+        _displayPrice += number;
+      }
+    });
+  }
+
+  void _onBackspace() {
+    setState(() {
+      if (_displayPrice.isNotEmpty) {
+        _displayPrice = _displayPrice.substring(0, _displayPrice.length - 1);
+      }
+    });
+  }
+
+  void _onSave() {
+    final name = _nameController.text.trim();
+    final price = double.tryParse(_displayPrice) ?? 0.0;
+
+    if (name.isNotEmpty) {
+      widget.onSave(name, price);
+      Navigator.of(context).pop();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Close button and title
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Edit Item',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close),
+                  iconSize: 20,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 32,
+                    minHeight: 32,
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 24),
+
+            // Item name field
+            TextField(
+              controller: _nameController,
+              decoration: InputDecoration(
+                labelText: 'Item Name',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                filled: true,
+                fillColor: Colors.grey.shade50,
+              ),
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Price display
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: Colors.grey.shade200,
+                  width: 1,
+                ),
+              ),
+              child: Text(
+                '£${_displayPrice.isEmpty ? '0.00' : _displayPrice}',
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF6200EE),
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Number pad
+            GridView.count(
+              shrinkWrap: true,
+              crossAxisCount: 3,
+              childAspectRatio: 1.2,
+              mainAxisSpacing: 8,
+              crossAxisSpacing: 8,
+              children: [
+                _buildNumberButton('1'),
+                _buildNumberButton('2'),
+                _buildNumberButton('3'),
+                _buildNumberButton('4'),
+                _buildNumberButton('5'),
+                _buildNumberButton('6'),
+                _buildNumberButton('7'),
+                _buildNumberButton('8'),
+                _buildNumberButton('9'),
+                _buildNumberButton('.'),
+                _buildNumberButton('0'),
+                _buildBackspaceButton(),
+              ],
+            ),
+
+            const SizedBox(height: 24),
+
+            // Action buttons
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton(
+                    onPressed: _onSave,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFF6200EE),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text(
+                      'Save',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    widget.onDelete();
+                  },
+                  child: const Text(
+                    'Delete',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.red,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNumberButton(String number) {
+    return FilledButton.tonal(
+      onPressed: () => _onNumberTap(number),
+      style: FilledButton.styleFrom(
+        backgroundColor: Colors.grey.shade100,
+        foregroundColor: Colors.black87,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+      child: Text(
+        number,
+        style: const TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBackspaceButton() {
+    return FilledButton.tonal(
+      onPressed: _onBackspace,
+      style: FilledButton.styleFrom(
+        backgroundColor: Colors.grey.shade200,
+        foregroundColor: Colors.black87,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+      child: const Icon(
+        Icons.backspace_outlined,
+        color: Colors.black87,
+      ),
+    );
   }
 }

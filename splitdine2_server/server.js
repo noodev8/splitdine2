@@ -95,14 +95,7 @@ app.use('/api/receipts', receiptRoutes);
 app.use('/api/assignments', assignmentRoutes);
 app.use('/api/split-items', splitItemRoutes);
 app.use('/api/receipt_scan', require('./routes/receipt_scan'));
-
-// Use session receipt routes if loaded successfully
-if (sessionReceiptRoutes) {
-  app.use('/api/session_receipt', sessionReceiptRoutes);
-  console.log('Session receipt routes registered at /api/session_receipt');
-} else {
-  console.error('Session receipt routes not available');
-}
+app.use('/api/session_receipt', sessionReceiptRoutes);
 
 
 

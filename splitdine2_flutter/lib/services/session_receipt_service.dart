@@ -100,6 +100,7 @@ class SessionReceiptService {
   // Update session receipt item
   static Future<Map<String, dynamic>> updateItem({
     required int itemId,
+    required int sessionId,
     required String itemName,
     required double price,
   }) async {
@@ -108,6 +109,7 @@ class SessionReceiptService {
 
       final requestBody = {
         'item_id': itemId,
+        'session_id': sessionId,
         'item_name': itemName,
         'price': price,
       };
@@ -132,14 +134,17 @@ class SessionReceiptService {
   }
 
   // Delete session receipt item
-  static Future<Map<String, dynamic>> deleteItem(int itemId) async {
+  static Future<Map<String, dynamic>> deleteItem(int itemId, int sessionId) async {
     try {
       final headers = await _getAuthHeaders();
 
       final response = await http.post(
         Uri.parse('$baseUrl/session_receipt/delete-item'),
         headers: headers,
-        body: jsonEncode({'item_id': itemId}),
+        body: jsonEncode({
+          'item_id': itemId,
+          'session_id': sessionId,
+        }),
       );
 
       final data = jsonDecode(response.body);

@@ -1,0 +1,37 @@
+Provide a total for the recipt at the top of the scan receipt page
+
+Make the value large and stretch its own card across the width of the device
+
+Calculat the total value from the values retrieved from the receipt
+
+Remove all £ signs from the items in the list but keep it only in the total
+
+== Rules ==
+== Structure ==
+
+splitdine2_flutter - All the flutter code
+splitdine2_server - All the express code
+docs - Project documentation
+datatabse - Holds DB_Schema whch is the latest schema for our project. You do not need to modify this. I refresh from DB
+We use postgres and connect directly without a model abstraction
+Test, diagnose and analyze the code to help you ensure it is released without bugs as much as possible
+
+Do not run the server or flutter. I will do that.
+
+Once you are done testing, clean up your logs and unused functions, files and methods
+use underscore "_" for filenames, not dash "-"
+Use AWT session ID for new screens to ensure correct route calls
+Check the route parms before coding/calling them
+
+
+== Flutter ==
+Always use app_config.dart to identify which IP to use when calling APIs. Do not hard code an IP address
+
+Use the them, colour, design style from the session_lobby_screen.dart file. Use materal 3.
+
+Keep all UI widgets, styles in the same file as the screen itself. Do not import styles.
+
+== Express Server ==
+Always use POST
+Always return a standard result "SUCCESS" or error message
+
