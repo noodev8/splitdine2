@@ -217,10 +217,10 @@ const receiptQueries = {
 
     // Create a single item (no quantity - multiple items are separate rows)
     const result = await query(
-      `INSERT INTO guest_choice (session_id, name, price, description, user_id, split_item)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO guest_choice (session_id, name, price, user_id, split_item)
+       VALUES ($1, $2, $3, $4, $5)
        RETURNING *`,
-      [session_id, item_name, price, share, added_by_user_id, false]
+      [session_id, item_name, price, added_by_user_id, false]
     );
 
     const newItem = result.rows[0];
@@ -237,7 +237,6 @@ const receiptQueries = {
       price: newItem.price,
       added_by_user_id: newItem.user_id,
       added_by_name: addedByName,
-      share: newItem.description,
       created_at: newItem.created_at,
       updated_at: newItem.updated_at
     };
@@ -246,7 +245,7 @@ const receiptQueries = {
   // Get items by session
   getBySession: async (sessionId) => {
     const result = await query(
-      `SELECT gc.id, gc.session_id, gc.name as item_name, gc.price, gc.description as share,
+      `SELECT gc.id, gc.session_id, gc.name as item_name, gc.price,
               gc.user_id as added_by_user_id, u.display_name as added_by_name,
               gc.created_at, gc.updated_at
        FROM guest_choice gc
@@ -283,13 +282,13 @@ const receiptQueries = {
 
   // Update receipt item
   update: async (itemId, updateData) => {
-    const { item_name, price, share } = updateData;
+    const { item_name, price } = updateData;
     const result = await query(
       `UPDATE guest_choice
-       SET name = $1, price = $2, description = $3, updated_at = NOW()
-       WHERE id = $4
+       SET name = $1, price = $2, updated_at = NOW()
+       WHERE id = $3
        RETURNING *`,
-      [item_name, price, share, itemId]
+      [item_name, price, itemId]
     );
 
     // Get the user name for the response
@@ -306,7 +305,6 @@ const receiptQueries = {
       quantity: 1, // Always 1 in new structure
       added_by_user_id: item.user_id,
       added_by_name: addedByName,
-      share: item.description,
       created_at: item.created_at,
       updated_at: item.updated_at
     };
@@ -432,12 +430,12 @@ const splitItemQueries = {
 const participantChoiceQueries = {
   // Create a participant choice for a split item
   create: async (choiceData) => {
-    const { session_id, name, price, description, user_id, split_item } = choiceData;
+    const { session_id, name, price, user_id, split_item } = choiceData;
     const result = await query(
-      `INSERT INTO guest_choice (session_id, name, price, description, user_id, split_item, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+      `INSERT INTO guest_choice (session_id, name, price, user_id, split_item, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
        RETURNING *`,
-      [session_id, name, price, description, user_id, split_item]
+      [session_id, name, price, user_id, split_item]
     );
     return result.rows[0];
   },

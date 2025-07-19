@@ -46,6 +46,24 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
     _initializeData();
   }
 
+  String _getLoadingMessage() {
+    if (_isProcessing && _selectedImage != null) {
+      return 'Scanning receipt...';
+    } else if (_isLoading) {
+      return 'Loading items...';
+    }
+    return 'Processing...';
+  }
+
+  String _getLoadingSubMessage() {
+    if (_isProcessing && _selectedImage != null) {
+      return 'Extracting text and identifying items';
+    } else if (_isLoading) {
+      return 'Please wait while we load your data';
+    }
+    return 'This won\'t take long';
+  }
+
   Future<void> _initializeData() async {
     setState(() {
       _isLoading = true;
@@ -66,7 +84,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
         title: const Text(
-          'Scan Receipt',
+          'Guest Choices',
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -78,19 +96,27 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
         shadowColor: Colors.black12,
       ),
       body: _isProcessing || _isLoading
-        ? const Center(
+        ? Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6200EE)),
+                const CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF7A8471)),
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 Text(
-                  'Processing...',
-                  style: TextStyle(
+                  _getLoadingMessage(),
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _getLoadingSubMessage(),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade600,
                   ),
                 ),
               ],
@@ -178,9 +204,9 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
               child: ElevatedButton.icon(
                 onPressed: _showRescanDialog,
                 icon: const Icon(Icons.camera_alt, size: 20),
-                label: Text(
-                  _existingItems.isEmpty ? 'Scan Receipt' : 'Re-scan',
-                  style: const TextStyle(
+                label: const Text(
+                  'Scan',
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
@@ -203,32 +229,149 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
 
   Widget _buildEmptyState() {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.receipt_long,
-            size: 64,
-            color: Colors.grey.shade400,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'No receipt items yet',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w500,
-              color: Colors.grey.shade600,
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Icon stack for visual interest
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF7A8471).withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                Icon(
+                  Icons.receipt_long,
+                  size: 64,
+                  color: const Color(0xFF7A8471),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Scan a receipt to get started',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade500,
+            const SizedBox(height: 24),
+            Text(
+              'No receipt items yet',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey.shade800,
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 8),
+            Text(
+              'Get started by scanning your receipt\nor adding items manually',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 32),
+            // Quick action buttons
+            Column(
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: () => _pickImage(),
+                    icon: const Icon(Icons.camera_alt),
+                    label: const Text(
+                      'Scan Receipt',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFF7A8471),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _addNewItem,
+                    icon: const Icon(Icons.add),
+                    label: const Text(
+                      'Add Item Manually',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF7A8471),
+                      side: const BorderSide(color: Color(0xFF7A8471)),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            // Tips section
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: Colors.blue.shade200,
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.lightbulb_outline,
+                        color: Colors.blue.shade700,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Tips for better results',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.blue.shade700,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '• Make sure the receipt is well-lit and flat\n'
+                    '• Include all items and prices in the photo\n'
+                    '• You can edit items after scanning',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.blue.shade700,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -237,15 +380,16 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
     final itemAssignments = _getItemAssignments(item.id);
     final isShared = _sharedItems.contains(item.id);
     final splitPrice = isShared && itemAssignments.isNotEmpty ? item.price / itemAssignments.length : item.price;
+    final isAssigned = itemAssignments.isNotEmpty;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 2,
-      color: Colors.white,
+      color: isAssigned ? Colors.blue.shade50 : Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: Colors.grey.shade300,
+          color: isAssigned ? Colors.blue.shade200 : Colors.grey.shade300,
           width: 1,
         ),
       ),
@@ -278,17 +422,17 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
                           if (isShared) ...[
                             const SizedBox(width: 8),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFFFC629).withValues(alpha: 0.3),
-                                borderRadius: BorderRadius.circular(3),
+                                color: Colors.grey.shade200,
+                                borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
                                 'SHARED',
                                 style: TextStyle(
-                                  fontSize: 9,
+                                  fontSize: 10,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.orange.shade700,
+                                  color: Colors.grey.shade700,
                                 ),
                               ),
                             ),
@@ -314,7 +458,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
-                                color: Color(0xFF6200EE),
+                                color: Color(0xFF7A8471),
                               ),
                             ),
                           ],
@@ -325,7 +469,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF6200EE),
+                            color: Color(0xFF7A8471),
                           ),
                         ),
                       ],
@@ -333,65 +477,72 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
                   ),
                 ),
                 // Action buttons row
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Copy item button
-                    IconButton(
-                      onPressed: () => _copyItem(item),
-                      icon: const Icon(Icons.copy, size: 16),
-                      tooltip: 'Copy Item',
-                      style: IconButton.styleFrom(
-                        backgroundColor: Colors.grey.shade100,
-                        foregroundColor: Colors.grey.shade700,
-                        minimumSize: const Size(28, 28),
-                        padding: EdgeInsets.zero,
+                PopupMenuButton<String>(
+                  onSelected: (value) {
+                    switch (value) {
+                      case 'edit':
+                        _showEditItemDialog(item);
+                        break;
+                      case 'copy':
+                        _copyItem(item);
+                        break;
+                      case 'toggle_type':
+                        _toggleItemType(item);
+                        break;
+                      case 'delete':
+                        _deleteItem(item);
+                        break;
+                    }
+                  },
+                  itemBuilder: (BuildContext context) => [
+                    const PopupMenuItem<String>(
+                      value: 'edit',
+                      child: ListTile(
+                        dense: true,
+                        leading: Icon(Icons.edit, size: 20),
+                        title: Text('Edit Item'),
+                        contentPadding: EdgeInsets.zero,
                       ),
                     ),
-                    const SizedBox(width: 2),
-                    // Edit item button
-                    IconButton(
-                      onPressed: () => _showEditItemDialog(item),
-                      icon: const Icon(Icons.edit, size: 16),
-                      tooltip: 'Edit Item',
-                      style: IconButton.styleFrom(
-                        backgroundColor: const Color(0xFF6200EE).withValues(alpha: 0.1),
-                        foregroundColor: const Color(0xFF6200EE),
-                        minimumSize: const Size(28, 28),
-                        padding: EdgeInsets.zero,
+                    const PopupMenuItem<String>(
+                      value: 'copy',
+                      child: ListTile(
+                        dense: true,
+                        leading: Icon(Icons.copy, size: 20),
+                        title: Text('Copy Item'),
+                        contentPadding: EdgeInsets.zero,
                       ),
                     ),
-                    const SizedBox(width: 2),
-                    // Shared toggle button
-                    IconButton(
-                      onPressed: () => _toggleItemType(item),
-                      icon: const Icon(Icons.group, size: 16),
-                      tooltip: isShared ? 'Make Individual' : 'Make Shared',
-                      style: IconButton.styleFrom(
-                        backgroundColor: isShared
-                          ? const Color(0xFFFFC629).withValues(alpha: 0.2)
-                          : Colors.grey.shade100,
-                        foregroundColor: isShared
-                          ? const Color(0xFFFFC629)
-                          : Colors.grey.shade700,
-                        minimumSize: const Size(28, 28),
-                        padding: EdgeInsets.zero,
+                    const PopupMenuDivider(),
+                    PopupMenuItem<String>(
+                      value: 'toggle_type',
+                      child: ListTile(
+                        dense: true,
+                        leading: Icon(
+                          isShared ? Icons.person : Icons.group,
+                          size: 20,
+                          color: isShared ? Colors.grey.shade700 : Colors.orange.shade700,
+                        ),
+                        title: Text(isShared ? 'Make Individual' : 'Make Shared'),
+                        contentPadding: EdgeInsets.zero,
                       ),
                     ),
-                    const SizedBox(width: 2),
-                    // Delete item button
-                    IconButton(
-                      onPressed: () => _deleteItem(item),
-                      icon: const Icon(Icons.delete, size: 16),
-                      tooltip: 'Delete Item',
-                      style: IconButton.styleFrom(
-                        backgroundColor: Colors.red.shade50,
-                        foregroundColor: Colors.red,
-                        minimumSize: const Size(28, 28),
-                        padding: EdgeInsets.zero,
+                    const PopupMenuDivider(),
+                    const PopupMenuItem<String>(
+                      value: 'delete',
+                      child: ListTile(
+                        dense: true,
+                        leading: Icon(Icons.delete, color: Colors.red, size: 20),
+                        title: Text('Delete Item', style: TextStyle(color: Colors.red)),
+                        contentPadding: EdgeInsets.zero,
                       ),
                     ),
                   ],
+                  icon: Icon(
+                    Icons.more_vert,
+                    color: Colors.grey.shade600,
+                    size: 20,
+                  ),
                 ),
               ],
             ),
@@ -415,6 +566,24 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
   Widget _buildTotalCard() {
     final total = _calculateTotal();
     final allocated = _calculateAllocatedTotal();
+    final progress = total > 0 ? allocated / total : 0.0;
+    final percentage = (progress * 100).toInt();
+    final isComplete = allocated == total && total > 0;
+    final isOverspent = allocated > total && total > 0;
+    
+    // Determine colors and status
+    Color statusColor;
+    String statusText;
+    if (isOverspent) {
+      statusColor = Colors.red;
+      statusText = 'OVERSPENT';
+    } else if (isComplete) {
+      statusColor = Colors.green;
+      statusText = 'COMPLETE';
+    } else {
+      statusColor = const Color(0xFF7A8471); // Use sage green instead of orange
+      statusText = 'PROGRESS';
+    }
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -429,56 +598,112 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
           ),
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
+          padding: const EdgeInsets.all(16),
+          child: Column(
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'TOTAL',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey.shade600,
-                      ),
+              // Total and allocated amounts
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'TOTAL',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '£${total.toStringAsFixed(2)}',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey.shade800,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '£${total.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF6200EE),
-                      ),
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          'ALLOCATED',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '£${allocated.toStringAsFixed(2)}',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: statusColor,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      'ALLOCATED',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey.shade600,
+              
+              const SizedBox(height: 12),
+              
+              // Progress bar
+              Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        statusText,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: statusColor,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '£${allocated.toStringAsFixed(2)}',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: allocated >= total ? Colors.green : Colors.orange,
+                      Text(
+                        '${percentage.clamp(0, 999)}%',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: statusColor,
+                        ),
                       ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: progress.clamp(0.0, 1.0),
+                      minHeight: 8,
+                      backgroundColor: Colors.grey.shade200,
+                      valueColor: AlwaysStoppedAnimation<Color>(statusColor),
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    isOverspent 
+                      ? '£${(allocated - total).toStringAsFixed(2)} over budget'
+                      : isComplete
+                        ? 'All items allocated'
+                        : '£${(total - allocated).toStringAsFixed(2)} remaining to allocate',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -640,6 +865,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
   Widget _buildErrorMessage() {
     return Container(
       width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.red.shade50,
@@ -649,27 +875,102 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
           width: 1,
         ),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.error_outline,
-            color: Colors.red.shade600,
-            size: 20,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              _errorMessage!,
-              style: TextStyle(
-                color: Colors.red.shade700,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
+          Row(
+            children: [
+              Icon(
+                Icons.error_outline,
+                color: Colors.red.shade600,
+                size: 20,
               ),
-            ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  _errorMessage!,
+                  style: TextStyle(
+                    color: Colors.red.shade700,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: () {
+                  setState(() {
+                    _errorMessage = null;
+                  });
+                },
+                icon: Icon(
+                  Icons.close,
+                  color: Colors.red.shade600,
+                  size: 18,
+                ),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(
+                  minWidth: 32,
+                  minHeight: 32,
+                ),
+              ),
+            ],
           ),
+          if (_shouldShowRetryAction()) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                TextButton.icon(
+                  onPressed: _retryLastAction,
+                  icon: const Icon(Icons.refresh, size: 16),
+                  label: const Text('Retry'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.red.shade700,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                if (_selectedImage != null)
+                  TextButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _selectedImage = null;
+                        _errorMessage = null;
+                      });
+                    },
+                    icon: const Icon(Icons.photo_camera, size: 16),
+                    label: const Text('Try Different Image'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.red.shade700,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    ),
+                  ),
+              ],
+            ),
+          ],
         ],
       ),
     );
+  }
+
+  bool _shouldShowRetryAction() {
+    return _errorMessage != null && 
+           (_errorMessage!.contains('receipt') || 
+            _errorMessage!.contains('process') || 
+            _errorMessage!.contains('scan') ||
+            _errorMessage!.contains('network') ||
+            _errorMessage!.contains('failed'));
+  }
+
+  void _retryLastAction() {
+    setState(() {
+      _errorMessage = null;
+    });
+    
+    if (_selectedImage != null) {
+      _processReceipt();
+    } else {
+      _loadExistingItems();
+    }
   }
 
 
@@ -780,20 +1081,82 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
   Widget _buildParticipantsSection(SessionReceiptItem item) {
     final itemAssignments = _getItemAssignments(item.id);
     final assignedUserIds = itemAssignments.toSet();
+    final isShared = _sharedItems.contains(item.id);
+    
+    // Group participants
+    final assignedParticipants = _participants.where((p) => assignedUserIds.contains(p.userId)).toList();
+    final unassignedParticipants = _participants.where((p) => !assignedUserIds.contains(p.userId)).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: _participants.map((participant) {
-            final isAssigned = assignedUserIds.contains(participant.userId);
-            return _buildParticipantChip(participant, isAssigned, item);
-          }).toList(),
-        ),
+        
+        // All participants
+        if (_participants.isNotEmpty)
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _participants.map((participant) {
+              final isAssigned = assignedUserIds.contains(participant.userId);
+              return _buildParticipantChip(participant, isAssigned, item);
+            }).toList(),
+          ),
+        
+        // Fallback message when no participants loaded
+        if (_participants.isEmpty) ...[
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.amber.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.amber.shade200),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.warning_amber,
+                  color: Colors.amber.shade700,
+                  size: 16,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'No participants loaded. Check your internet connection or try refreshing.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.amber.shade700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+        
+        // Info text for shared items
+        if (isShared && itemAssignments.length > 1) ...[
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(
+                Icons.info_outline,
+                size: 14,
+                color: Colors.grey.shade600,
+              ),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  'Price will be split equally among ${itemAssignments.length} people',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey.shade600,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }
@@ -830,11 +1193,11 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
       onSelected: (selected) {
         _toggleParticipantAssignment(item, participant, selected);
       },
-      selectedColor: const Color(0xFF6200EE),
+      selectedColor: const Color(0xFF7A8471),
       backgroundColor: Colors.grey.shade100,
       checkmarkColor: Colors.white,
       side: BorderSide(
-        color: isSelected ? const Color(0xFF6200EE) : Colors.grey.shade300,
+        color: isSelected ? const Color(0xFF7A8471) : Colors.grey.shade300,
       ),
     );
   }
@@ -845,7 +1208,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
       child: FilledButton(
         onPressed: _addItemsToSession,
         style: FilledButton.styleFrom(
-          backgroundColor: const Color(0xFF6200EE),
+          backgroundColor: const Color(0xFF7A8471),
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
@@ -1101,6 +1464,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
 
 
 
+
   // Toggle item type between individual and shared
   Future<void> _toggleItemType(SessionReceiptItem item) async {
     final wasShared = _sharedItems.contains(item.id);
@@ -1210,9 +1574,11 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
   Future<void> _loadParticipants() async {
     try {
       final result = await _sessionService.getSessionParticipants(widget.session.id);
+      
       if (result['success']) {
+        final participantList = result['participants'] as List<Participant>;
         setState(() {
-          _participants = result['participants'] as List<Participant>;
+          _participants = participantList;
         });
       }
     } catch (e) {
@@ -1256,39 +1622,9 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
           _sharedItems.clear();
           _sharedItems.addAll(sharedItemIds);
         });
-
-        // Debug: Show assignment count
-        if (mounted && assignments.isNotEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Loaded ${assignments.length} assignments'),
-              duration: const Duration(seconds: 2),
-            ),
-          );
-        }
-      } else {
-        // Show error if API call failed
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Failed to load assignments: ${result['message']}'),
-              backgroundColor: Colors.orange,
-              duration: const Duration(seconds: 3),
-            ),
-          );
-        }
       }
     } catch (e) {
-      // Show error for network issues
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error loading assignments: $e'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
+      // Failed to load assignments - continue without them
     }
   }
 
@@ -1546,7 +1882,7 @@ class _EditItemDialogState extends State<_EditItemDialog> {
               child: FilledButton(
                 onPressed: _onSave,
                 style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF6200EE),
+                  backgroundColor: const Color(0xFF7A8471),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
