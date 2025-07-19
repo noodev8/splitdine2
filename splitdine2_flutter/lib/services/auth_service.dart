@@ -87,6 +87,32 @@ class AuthService {
     }
   }
 
+  // Create anonymous user without storing auth data (for adding guests to sessions)
+  Future<Map<String, dynamic>> createAnonymousUserForSession(String displayName) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/anonymous'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'display_name': displayName,
+        }),
+      );
+      final data = jsonDecode(response.body);
+      if (data['return_code'] == 'SUCCESS') {
+        // Return both token and user data without storing
+        return {
+          'success': true, 
+          'user': data['user'], 
+          'token': data['token']
+        };
+      } else {
+        return {'success': false, 'message': data['message']};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
   // Check if user is logged in
   Future<bool> isLoggedIn() async {
     final prefs = await SharedPreferences.getInstance();

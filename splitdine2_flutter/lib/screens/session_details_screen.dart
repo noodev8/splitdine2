@@ -7,6 +7,7 @@ import '../services/session_provider.dart';
 
 import 'payment_summary_screen.dart';
 import 'receipt_scan_screen.dart';
+import 'add_guest_screen.dart';
 
 class SessionDetailsScreen extends StatefulWidget {
   final Session session;
@@ -185,7 +186,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     onPressed: () => _navigateToReceiptScan(context),
-                    icon: const Icon(Icons.camera_alt, size: 20),
+                    icon: const Icon(Icons.receipt, size: 20),
                     label: const Text(
                       'Receipt',
                       style: TextStyle(
@@ -215,6 +216,33 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                     icon: const Icon(Icons.payment, size: 20),
                     label: const Text(
                       'Payment Summary',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      elevation: 0,
+                      shadowColor: Colors.transparent,
+                      overlayColor: Colors.black.withValues(alpha: 0.05), // Subtle press effect
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                // Add Guest button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _navigateToAddGuest(context),
+                    icon: const Icon(Icons.person_add, size: 20),
+                    label: const Text(
+                      'Add Guest',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -436,6 +464,14 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => ReceiptScanScreen(session: widget.session),
+      ),
+    );
+  }
+
+  void _navigateToAddGuest(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => AddGuestScreen(session: widget.session),
       ),
     );
   }

@@ -155,6 +155,55 @@ class SessionService {
     }
   }
 
+  // Join session with specific token (for adding guests)
+  Future<Map<String, dynamic>> joinSessionWithToken(String sessionCode, String token) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/sessions/join'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'session_code': sessionCode.toUpperCase(),
+        }),
+      );
+      final data = jsonDecode(response.body);
+      if (data['return_code'] == 'SUCCESS') {
+        final session = Session.fromJson(data['session']);
+        return {'success': true, 'session': session};
+      } else {
+        return {'success': false, 'message': data['message']};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  // Remove participant from session (host only)
+  Future<Map<String, dynamic>> removeParticipant(int sessionId, int userId) async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.post(
+        Uri.parse('$baseUrl/sessions/remove-participant'),
+        headers: headers,
+        body: jsonEncode({
+          'session_id': sessionId,
+          'user_id': userId,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+      if (data['return_code'] == 'SUCCESS') {
+        return {'success': true, 'message': data['message']};
+      } else {
+        return {'success': false, 'message': data['message']};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
   // Get session participants
   Future<Map<String, dynamic>> getSessionParticipants(int sessionId) async {
     try {
@@ -191,31 +240,6 @@ class SessionService {
         headers: headers,
         body: jsonEncode({
           'session_id': sessionId,
-        }),
-      );
-
-      final data = jsonDecode(response.body);
-
-      if (data['return_code'] == 'SUCCESS') {
-        return {'success': true, 'message': data['message']};
-      } else {
-        return {'success': false, 'message': data['message']};
-      }
-    } catch (e) {
-      return {'success': false, 'message': 'Network error: $e'};
-    }
-  }
-
-  // Remove participant from session (organizer only)
-  Future<Map<String, dynamic>> removeParticipant(int sessionId, int userId) async {
-    try {
-      final headers = await _getAuthHeaders();
-      final response = await http.post(
-        Uri.parse('$baseUrl/sessions/remove-participant'),
-        headers: headers,
-        body: jsonEncode({
-          'session_id': sessionId,
-          'user_id': userId,
         }),
       );
 

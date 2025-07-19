@@ -462,14 +462,15 @@ router.post('/get_payment_summary', authenticateToken, requireSessionParticipant
     const allocatedTotal = parseFloat(allocatedTotalResult.rows[0].allocated_total);
     const remainingTotal = billTotal - allocatedTotal;
 
-    // Get participant totals
+    // Get participant totals - include all session participants, even those with no allocations
     const participantTotalsResult = await query(
-      `SELECT gc.user_id, u.display_name as user_name, u.email,
+      `SELECT sg.user_id, u.display_name as user_name, u.email,
               COALESCE(SUM(gc.price), 0) as total_amount
-       FROM guest_choice gc
-       JOIN app_user u ON gc.user_id = u.id
-       WHERE gc.session_id = $1
-       GROUP BY gc.user_id, u.display_name, u.email
+       FROM session_guest sg
+       JOIN app_user u ON sg.user_id = u.id
+       LEFT JOIN guest_choice gc ON sg.user_id = gc.user_id AND gc.session_id = sg.session_id
+       WHERE sg.session_id = $1 AND sg.left_at IS NULL
+       GROUP BY sg.user_id, u.display_name, u.email
        ORDER BY u.display_name`,
       [req.sessionId]
     );
