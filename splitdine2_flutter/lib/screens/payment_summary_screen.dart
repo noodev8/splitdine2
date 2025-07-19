@@ -348,7 +348,7 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
 
                           // Participants Payment List
                           const Text(
-                            'Who Owes What',
+                            'Balance',
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
@@ -394,16 +394,16 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
                                       child: ListTile(
                                 leading: CircleAvatar(
                                   backgroundColor: amount > 0 
-                                      ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
-                                      : Colors.grey.withValues(alpha: 0.1),
+                                      ? Colors.red.withValues(alpha: 0.1)
+                                      : Colors.green.withValues(alpha: 0.1),
                                   child: Text(
                                     userName.isNotEmpty 
                                         ? userName[0].toUpperCase()
                                         : '?',
                                     style: TextStyle(
                                       color: amount > 0 
-                                          ? Theme.of(context).colorScheme.primary
-                                          : Colors.grey,
+                                          ? Colors.red
+                                          : Colors.green,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -443,12 +443,14 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
                                   ),
                                 ),
                                 trailing: Text(
-                                  '£${amount.toStringAsFixed(2)}',
+                                  amount > 0 
+                                      ? '-£${amount.toStringAsFixed(2)}'
+                                      : '£${amount.abs().toStringAsFixed(2)}',
                                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                     fontWeight: FontWeight.bold,
                                     color: amount > 0
-                                        ? Theme.of(context).colorScheme.primary
-                                        : Colors.grey,
+                                        ? Colors.red
+                                        : Colors.green,
                                   ),
                                 ),
                               ),
@@ -456,16 +458,16 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
                                   : ListTile(
                                       leading: CircleAvatar(
                                         backgroundColor: amount > 0 
-                                            ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
-                                            : Colors.grey.withValues(alpha: 0.1),
+                                            ? Colors.red.withValues(alpha: 0.1)
+                                            : Colors.green.withValues(alpha: 0.1),
                                         child: Text(
                                           userName.isNotEmpty 
                                               ? userName[0].toUpperCase()
                                               : '?',
                                           style: TextStyle(
                                             color: amount > 0 
-                                                ? Theme.of(context).colorScheme.primary
-                                                : Colors.grey,
+                                                ? Colors.red
+                                                : Colors.green,
                                             fontWeight: FontWeight.bold,
                                           ),
                                         ),
@@ -505,12 +507,14 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
                                         ),
                                       ),
                                       trailing: Text(
-                                        '£${amount.toStringAsFixed(2)}',
+                                        amount > 0 
+                                            ? '-£${amount.toStringAsFixed(2)}'
+                                            : '£${amount.abs().toStringAsFixed(2)}',
                                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                           fontWeight: FontWeight.bold,
                                           color: amount > 0
-                                              ? Theme.of(context).colorScheme.primary
-                                              : Colors.grey,
+                                              ? Colors.red
+                                              : Colors.green,
                                         ),
                                       ),
                                     ),

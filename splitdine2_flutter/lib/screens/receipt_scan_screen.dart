@@ -409,14 +409,17 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
                       Row(
                         children: [
                           Expanded(
-                            child: Text(
-                              item.itemName,
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black87,
+                            child: GestureDetector(
+                              onTap: () => _showEditItemDialog(item),
+                              child: Text(
+                                item.itemName,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black87,
+                                ),
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           if (isShared) ...[
@@ -442,34 +445,40 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
                       const SizedBox(height: 4),
                       // Price information - stack vertically for shared items
                       if (isShared) ...[
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '£${item.price.toStringAsFixed(2)} total',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.grey.shade600,
+                        GestureDetector(
+                          onTap: () => _showEditItemDialog(item),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '£${item.price.toStringAsFixed(2)} total',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.grey.shade600,
+                                ),
                               ),
-                            ),
-                            Text(
-                              '£${splitPrice.toStringAsFixed(2)} each',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF7A8471),
+                              Text(
+                                '£${splitPrice.toStringAsFixed(2)} each',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF7A8471),
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ] else ...[
-                        Text(
-                          '£${item.price.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF7A8471),
+                        GestureDetector(
+                          onTap: () => _showEditItemDialog(item),
+                          child: Text(
+                            '£${item.price.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF7A8471),
+                            ),
                           ),
                         ),
                       ],
@@ -1480,12 +1489,31 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
   Future<void> _toggleParticipantAssignment(SessionReceiptItem item, Participant participant, bool assign) async {
     try {
       if (assign) {
+        final isShared = _sharedItems.contains(item.id);
+        
+        // For individual items, remove all existing assignments first
+        if (!isShared) {
+          final existingAssignments = _getItemAssignments(item.id);
+          for (final existingUserId in existingAssignments) {
+            await _guestChoiceService.unassignItem(
+              sessionId: widget.session.id,
+              itemId: item.id,
+              userId: existingUserId,
+            );
+          }
+          
+          // Clear local assignments for individual items
+          setState(() {
+            _itemAssignments[item.id] = [];
+          });
+        }
+        
         // Assign item to participant
         final result = await _guestChoiceService.assignItem(
           sessionId: widget.session.id,
           itemId: item.id,
           userId: participant.userId,
-          splitItem: _sharedItems.contains(item.id),
+          splitItem: isShared,
         );
 
         if (result['success']) {

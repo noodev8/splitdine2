@@ -74,7 +74,7 @@ async function extractTextFromReceipt(imagePath) {
 function parseTableFormatReceipt(lines, addItem, classifyLine, priceRegex, totals) {
   const items = [];
   
-  // Local addItem function
+  // Local addItem function - creates individual lines for each quantity
   const localAddItem = (name, price, quantity = 1) => {
     if (!name) return;
     
@@ -84,11 +84,15 @@ function parseTableFormatReceipt(lines, addItem, classifyLine, priceRegex, total
     cleanedName = cleanedName.replace('BRGR', 'BURGER');
     
     if (cleanedName) {
-      items.push({ 
-        quantity: quantity || 1, 
-        name: cleanedName, 
-        price: price || 0.00
-      });
+      // Create separate line for each quantity
+      const itemPrice = price || 0.00;
+      for (let i = 0; i < (quantity || 1); i++) {
+        items.push({ 
+          quantity: 1, 
+          name: cleanedName, 
+          price: itemPrice
+        });
+      }
     }
   };
   
@@ -192,7 +196,7 @@ function parseTableFormatReceipt(lines, addItem, classifyLine, priceRegex, total
 function parseColumnBasedReceipt(lines, addItem, classifyLine, priceRegex, totals) {
   const items = [];
   
-  // Local addItem function that updates our items array
+  // Local addItem function that updates our items array - creates individual lines for each quantity
   const localAddItem = (name, price) => {
     if (!name) return;
     const nameParts = name.trim().split(' ');
@@ -211,11 +215,15 @@ function parseColumnBasedReceipt(lines, addItem, classifyLine, priceRegex, total
     cleanedName = cleanedName.replace('CHCK%', 'CHICKEN');
     
     if (cleanedName) {
-      items.push({ 
-        quantity, 
-        name: cleanedName, 
-        price: price || 0.00
-      });
+      // Create separate line for each quantity
+      const itemPrice = price || 0.00;
+      for (let i = 0; i < quantity; i++) {
+        items.push({ 
+          quantity: 1, 
+          name: cleanedName, 
+          price: itemPrice
+        });
+      }
     }
   };
   
@@ -385,11 +393,15 @@ function parseReceiptText(text) {
 
       // Only add if the name isn't empty after cleaning.
       if (cleanedName) {
-        items.push({ 
-          quantity, 
-          name: cleanedName, 
-          price: price || 0.00 // Default to 0 if no price
-        });
+        // Create separate line for each quantity
+        const itemPrice = price || 0.00;
+        for (let i = 0; i < quantity; i++) {
+          items.push({ 
+            quantity: 1, 
+            name: cleanedName, 
+            price: itemPrice
+          });
+        }
       }
     };
 

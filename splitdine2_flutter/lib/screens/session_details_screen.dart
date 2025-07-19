@@ -54,9 +54,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
         actions: [
           PopupMenuButton<String>(
             onSelected: (value) {
-              if (value == 'delete') {
-                _deleteSession(context);
-              } else if (value == 'share_code') {
+              if (value == 'share_code') {
                 _copyJoinCode(context);
               } else if (value == 'add_guest') {
                 _navigateToAddGuest(context);
@@ -69,7 +67,13 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
             itemBuilder: (BuildContext context) => [
               const PopupMenuItem<String>(
                 value: 'share_code',
-                child: Text('Session Code'),
+                child: Row(
+                  children: [
+                    Icon(Icons.qr_code),
+                    SizedBox(width: 8),
+                    Text('Session Code'),
+                  ],
+                ),
               ),
               if (widget.session.isHost)
                 const PopupMenuItem<String>(
@@ -101,17 +105,6 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                       Icon(Icons.logout, color: Colors.red),
                       SizedBox(width: 8),
                       Text('Leave Session (Transfer Host)', style: TextStyle(color: Colors.red)),
-                    ],
-                  ),
-                ),
-              if (widget.session.isHost)
-                const PopupMenuItem<String>(
-                  value: 'delete',
-                  child: Row(
-                    children: [
-                      Icon(Icons.delete, color: Colors.red),
-                      SizedBox(width: 8),
-                      Text('Delete Session', style: TextStyle(color: Colors.red)),
                     ],
                   ),
                 ),
@@ -220,14 +213,14 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
             // Action Buttons
             Column(
               children: [
-                // Guest Choices button (manages items and assignments)
+                // Receipt button (manages items and assignments)
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     onPressed: () => _navigateToReceiptScan(context),
                     icon: const Icon(Icons.receipt, size: 20),
                     label: const Text(
-                      'Guest Choices',
+                      'Receipt',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
