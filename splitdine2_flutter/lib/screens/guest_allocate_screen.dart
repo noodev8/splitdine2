@@ -65,9 +65,9 @@ class _GuestAllocateScreenState extends State<GuestAllocateScreen> {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text(
-          'Scan Receipt',
-          style: TextStyle(
+        title: Text(
+          widget.session.sessionName ?? 'Guest Allocate',
+          style: const TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
@@ -240,14 +240,14 @@ class _GuestAllocateScreenState extends State<GuestAllocateScreen> {
     final hasAllocations = itemAssignments.isNotEmpty;
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 1,
       color: Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
         side: BorderSide(
-          color: Colors.grey.shade200,
-          width: 1,
+          color: Colors.grey.shade300,
+          width: 1.5,
         ),
       ),
       child: Column(
@@ -363,11 +363,11 @@ class _GuestAllocateScreenState extends State<GuestAllocateScreen> {
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Card(
         elevation: 0,
-        color: Colors.white,
+        color: Colors.blue.shade50,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
           side: BorderSide(
-            color: Colors.grey.shade200,
+            color: Colors.blue.shade100,
             width: 1,
           ),
         ),
@@ -375,6 +375,16 @@ class _GuestAllocateScreenState extends State<GuestAllocateScreen> {
           padding: const EdgeInsets.all(20),
           child: Column(
             children: [
+              // Receipt Items heading
+              Text(
+                'Receipt Items',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue.shade800,
+                ),
+              ),
+              const SizedBox(height: 16),
               // Total and Allocated row
               Row(
                 children: [
@@ -815,18 +825,18 @@ class _GuestAllocateScreenState extends State<GuestAllocateScreen> {
         style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w500,
-          color: Colors.grey.shade700,
+          color: isSelected ? Colors.green.shade700 : Colors.grey.shade700,
         ),
       ),
       selected: isSelected,
       onSelected: (selected) {
         _toggleParticipantAssignment(item, participant, selected);
       },
-      selectedColor: Colors.grey.shade100,
+      selectedColor: Colors.green.shade50,
       backgroundColor: Colors.grey.shade100,
       checkmarkColor: Colors.green.shade600,
       side: BorderSide(
-        color: Colors.grey.shade300,
+        color: isSelected ? Colors.green.shade200 : Colors.grey.shade300,
       ),
     );
   }
