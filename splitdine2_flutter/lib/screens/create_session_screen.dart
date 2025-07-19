@@ -14,20 +14,28 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
   final _sessionNameController = TextEditingController();
   final _locationController = TextEditingController();
   final _descriptionController = TextEditingController();
-  final _manualTimeController = TextEditingController();
 
   DateTime? _selectedDate;
   String? _selectedTimeSlot;
   String? _selectedFoodType;
   bool _isLoading = false;
-  bool _useManualTime = false;
 
-  // Time slots in 30-minute intervals
-  final List<String> _timeSlots = [
-    '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
-    '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30',
-    '19:00', '19:30', '20:00', '20:30', '21:00', '21:30', '22:00', '22:30'
-  ];
+  // Time slots grouped by meal periods
+  final Map<String, Map<String, dynamic>> _timePeriods = {
+    'Lunch': {
+      'icon': Icons.wb_sunny,
+      'color': Colors.orange,
+      'times': ['11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00']
+    },
+    'Dinner': {
+      'icon': Icons.restaurant,
+      'color': Colors.blue,
+      'times': ['17:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00', '20:30', '21:00']
+    }
+  };
+
+  final _customTimeController = TextEditingController();
+  bool _useCustomTime = false;
 
   // Food types
   final List<String> _foodTypes = [
@@ -41,7 +49,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
     _sessionNameController.dispose();
     _locationController.dispose();
     _descriptionController.dispose();
-    _manualTimeController.dispose();
+    _customTimeController.dispose();
     super.dispose();
   }
 
@@ -122,33 +130,19 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
               
               const SizedBox(height: 24),
               
-              // Session Name
+              // Session Name (Required)
               TextFormField(
                 controller: _sessionNameController,
                 decoration: const InputDecoration(
-                  labelText: 'Session Name',
+                  labelText: 'Session Name *',
                   hintText: 'e.g., Birthday Dinner, Team Lunch',
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.edit),
                 ),
                 textCapitalization: TextCapitalization.words,
-              ),
-              
-              const SizedBox(height: 16),
-              
-              // Location (Required)
-              TextFormField(
-                controller: _locationController,
-                decoration: const InputDecoration(
-                  labelText: 'Location *',
-                  hintText: 'Restaurant name or address',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.location_on),
-                ),
-                textCapitalization: TextCapitalization.words,
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
-                    return 'Location is required';
+                    return 'Session name is required';
                   }
                   return null;
                 },
@@ -156,15 +150,28 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
               
               const SizedBox(height: 16),
               
-              // Date (Required)
+              // Location (Optional)
+              TextFormField(
+                controller: _locationController,
+                decoration: const InputDecoration(
+                  labelText: 'Location',
+                  hintText: 'Restaurant name or address',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.location_on),
+                ),
+                textCapitalization: TextCapitalization.words,
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // Date (Optional)
               InkWell(
                 onTap: _selectDate,
                 child: InputDecorator(
-                  decoration: InputDecoration(
-                    labelText: 'Date *',
-                    border: const OutlineInputBorder(),
-                    prefixIcon: const Icon(Icons.calendar_today),
-                    errorText: _selectedDate == null ? 'Date is required' : null,
+                  decoration: const InputDecoration(
+                    labelText: 'Date',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.calendar_today),
                   ),
                   child: Text(
                     _selectedDate == null
@@ -179,73 +186,119 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
               
               const SizedBox(height: 16),
               
-              // Time Selection
+              // Time Selection (Optional)
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Start Time (Optional)',
+                    'Start Time',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
                       color: Colors.black87,
                     ),
                   ),
-                  const SizedBox(height: 12),
-
-                  // Time slot buttons
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: _timeSlots.map((time) {
-                      final isSelected = _selectedTimeSlot == time && !_useManualTime;
-                      return GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _selectedTimeSlot = time;
-                            _useManualTime = false;
-                            _manualTimeController.clear();
-                          });
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? Theme.of(context).colorScheme.primary
-                                : Colors.white,
-                            border: Border.all(
-                              color: isSelected
-                                  ? Theme.of(context).colorScheme.primary
-                                  : Colors.grey.shade300,
-                            ),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            time,
-                            style: TextStyle(
-                              color: isSelected ? Colors.white : Colors.black87,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-
                   const SizedBox(height: 16),
 
-                  // Manual time option
+                  // Time periods with icons
+                  ..._timePeriods.entries.map((period) {
+                    final periodName = period.key;
+                    final periodData = period.value;
+                    final icon = periodData['icon'] as IconData;
+                    final color = periodData['color'] as Color;
+                    final times = periodData['times'] as List<String>;
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Period header
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: color.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Icon(
+                                icon,
+                                size: 18,
+                                color: color,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              periodName,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: color,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+
+                        // Time buttons for this period
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: times.map((time) {
+                            final isSelected = _selectedTimeSlot == time && !_useCustomTime;
+                            return GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _selectedTimeSlot = time;
+                                  _useCustomTime = false;
+                                  _customTimeController.clear();
+                                });
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: isSelected ? color : Colors.white,
+                                  border: Border.all(
+                                    color: isSelected ? color : Colors.grey.shade300,
+                                    width: isSelected ? 2 : 1,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                  boxShadow: isSelected ? [
+                                    BoxShadow(
+                                      color: color.withValues(alpha: 0.3),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ] : null,
+                                ),
+                                child: Text(
+                                  time,
+                                  style: TextStyle(
+                                    color: isSelected ? Colors.white : Colors.black87,
+                                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                    );
+                  }).toList(),
+
+                  // Custom time option
                   Row(
                     children: [
                       Checkbox(
-                        value: _useManualTime,
+                        value: _useCustomTime,
                         onChanged: (value) {
                           setState(() {
-                            _useManualTime = value ?? false;
-                            if (_useManualTime) {
+                            _useCustomTime = value ?? false;
+                            if (_useCustomTime) {
                               _selectedTimeSlot = null;
                             } else {
-                              _manualTimeController.clear();
+                              _customTimeController.clear();
                             }
                           });
                         },
@@ -254,18 +307,18 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
                     ],
                   ),
 
-                  if (_useManualTime) ...[
+                  if (_useCustomTime) ...[
                     const SizedBox(height: 8),
                     TextFormField(
-                      controller: _manualTimeController,
+                      controller: _customTimeController,
                       decoration: const InputDecoration(
                         labelText: 'Custom Time',
-                        hintText: 'e.g., 19:30',
+                        hintText: 'e.g., 19:30, 23:15',
                         border: OutlineInputBorder(),
                         prefixIcon: Icon(Icons.access_time),
                       ),
                       validator: (value) {
-                        if (_useManualTime && (value == null || value.trim().isEmpty)) {
+                        if (_useCustomTime && (value == null || value.trim().isEmpty)) {
                           return 'Please enter a time';
                         }
                         return null;
@@ -370,12 +423,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
 
 
   Future<void> _handleCreateSession() async {
-    if (!_formKey.currentState!.validate() || _selectedDate == null) {
-      if (_selectedDate == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please select a date')),
-        );
-      }
+    if (!_formKey.currentState!.validate()) {
       return;
     }
 
@@ -386,20 +434,20 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
     try {
       final sessionProvider = Provider.of<SessionProvider>(context, listen: false);
 
-      // Format time as string if provided
+      // Use selected time slot or custom time (if provided)
       String? timeString;
-      if (_useManualTime) {
-        timeString = _manualTimeController.text.trim();
+      if (_useCustomTime && _customTimeController.text.trim().isNotEmpty) {
+        timeString = _customTimeController.text.trim();
       } else if (_selectedTimeSlot != null) {
         timeString = _selectedTimeSlot;
       }
 
       final success = await sessionProvider.createSession(
-        sessionName: _sessionNameController.text.trim().isEmpty
-            ? null
-            : _sessionNameController.text.trim(),
-        location: _locationController.text.trim(),
-        sessionDate: _selectedDate!,
+        sessionName: _sessionNameController.text.trim(),
+        location: _locationController.text.trim().isEmpty
+            ? 'TBD'
+            : _locationController.text.trim(),
+        sessionDate: _selectedDate ?? DateTime.now(),
         sessionTime: timeString,
         description: _descriptionController.text.trim().isEmpty
             ? null
