@@ -442,4 +442,62 @@ router.post('/update_shared_status', authenticateToken, requireSessionParticipan
   }
 });
 
+// Get payment summary for session
+router.post('/get_payment_summary', authenticateToken, requireSessionParticipant, async (req, res) => {
+  try {
+    // Get bill total from session_receipt
+    const billTotalResult = await query(
+      'SELECT COALESCE(SUM(price), 0) as bill_total FROM session_receipt WHERE session_id = $1',
+      [req.sessionId]
+    );
+    
+    const billTotal = parseFloat(billTotalResult.rows[0].bill_total);
+
+    // Get allocated total from guest_choice
+    const allocatedTotalResult = await query(
+      'SELECT COALESCE(SUM(price), 0) as allocated_total FROM guest_choice WHERE session_id = $1',
+      [req.sessionId]
+    );
+    
+    const allocatedTotal = parseFloat(allocatedTotalResult.rows[0].allocated_total);
+    const remainingTotal = billTotal - allocatedTotal;
+
+    // Get participant totals
+    const participantTotalsResult = await query(
+      `SELECT gc.user_id, u.display_name as user_name, u.email,
+              COALESCE(SUM(gc.price), 0) as total_amount
+       FROM guest_choice gc
+       JOIN app_user u ON gc.user_id = u.id
+       WHERE gc.session_id = $1
+       GROUP BY gc.user_id, u.display_name, u.email
+       ORDER BY u.display_name`,
+      [req.sessionId]
+    );
+
+    const participantTotals = participantTotalsResult.rows.map(row => ({
+      user_id: row.user_id,
+      user_name: row.user_name,
+      email: row.email,
+      total_amount: parseFloat(row.total_amount)
+    }));
+
+    res.json({
+      return_code: 'SUCCESS',
+      bill_total: billTotal,
+      allocated_total: allocatedTotal,
+      remaining_total: remainingTotal,
+      participant_totals: participantTotals,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Error getting payment summary:', error);
+    res.status(500).json({
+      return_code: 'SERVER_ERROR',
+      message: 'Failed to get payment summary',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 module.exports = router;

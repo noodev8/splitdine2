@@ -3,13 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../models/session.dart';
-import '../services/receipt_provider.dart';
-import '../services/assignment_provider.dart';
 import '../services/session_provider.dart';
 
 import 'payment_summary_screen.dart';
-import 'my_items_screen.dart';
-import 'receipt_total_screen.dart';
 import 'receipt_scan_screen.dart';
 
 class SessionDetailsScreen extends StatefulWidget {
@@ -28,20 +24,8 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
   @override
   void initState() {
     super.initState();
-    // Schedule data loading after the build is complete
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadData();
-    });
   }
 
-  Future<void> _loadData() async {
-    final receiptProvider = Provider.of<ReceiptProvider>(context, listen: false);
-    final assignmentProvider = Provider.of<AssignmentProvider>(context, listen: false);
-
-    // Load items and assignments for this session
-    await receiptProvider.loadItems(widget.session.id);
-    await assignmentProvider.loadSessionAssignments(widget.session.id);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -196,14 +180,14 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
             // Action Buttons
             Column(
               children: [
-                // My Items button
+                // Receipt button (formerly Scan Receipt, moved to top)
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
-                    onPressed: () => _navigateToMyItems(context),
-                    icon: const Icon(Icons.person, size: 20),
+                    onPressed: () => _navigateToReceiptScan(context),
+                    icon: const Icon(Icons.camera_alt, size: 20),
                     label: const Text(
-                      'My Items',
+                      'Receipt',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -231,60 +215,6 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                     icon: const Icon(Icons.payment, size: 20),
                     label: const Text(
                       'Payment Summary',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      elevation: 0,
-                      shadowColor: Colors.transparent,
-                      overlayColor: Colors.black.withValues(alpha: 0.05), // Subtle press effect
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 12),
-
-                // Bill Total button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () => _navigateToReceiptTotal(context),
-                    icon: const Icon(Icons.receipt_long, size: 20),
-                    label: const Text(
-                      'Bill Total',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      elevation: 0,
-                      shadowColor: Colors.transparent,
-                      overlayColor: Colors.black.withValues(alpha: 0.05), // Subtle press effect
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 12),
-
-                // Scan Receipt button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () => _navigateToReceiptScan(context),
-                    icon: const Icon(Icons.camera_alt, size: 20),
-                    label: const Text(
-                      'Scan Receipt',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -501,23 +431,6 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
     );
   }
 
-  void _navigateToMyItems(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => MyItemsScreen(session: widget.session),
-      ),
-    );
-  }
-
-
-
-  void _navigateToReceiptTotal(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => ReceiptTotalScreen(session: widget.session),
-      ),
-    );
-  }
 
   void _navigateToReceiptScan(BuildContext context) {
     Navigator.of(context).push(

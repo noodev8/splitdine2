@@ -347,4 +347,34 @@ class GuestChoiceService {
       return {'success': false, 'message': 'Network error: $e'};
     }
   }
+
+  // Get payment summary for session
+  Future<Map<String, dynamic>> getPaymentSummary(int sessionId) async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.post(
+        Uri.parse('$baseUrl/guest_choices/get_payment_summary'),
+        headers: headers,
+        body: jsonEncode({
+          'session_id': sessionId,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (data['return_code'] == 'SUCCESS') {
+        return {
+          'success': true,
+          'bill_total': data['bill_total'],
+          'allocated_total': data['allocated_total'],
+          'remaining_total': data['remaining_total'],
+          'participant_totals': data['participant_totals'],
+        };
+      } else {
+        return {'success': false, 'message': data['message']};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
 }

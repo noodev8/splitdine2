@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/session.dart';
-import '../models/participant.dart';
-import '../services/receipt_provider.dart';
-import '../services/assignment_provider.dart';
-import '../services/session_service.dart';
+import '../services/guest_choice_service.dart';
 import '../services/session_provider.dart';
-import 'my_items_screen.dart';
 
 class PaymentSummaryScreen extends StatefulWidget {
   final Session session;
@@ -21,8 +17,8 @@ class PaymentSummaryScreen extends StatefulWidget {
 }
 
 class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
-  final SessionService _sessionService = SessionService();
-  List<Participant> _participants = [];
+  final GuestChoiceService _guestChoiceService = GuestChoiceService();
+  Map<String, dynamic>? _paymentSummary;
   bool _isLoading = true;
   String? _errorMessage;
 
@@ -30,44 +26,27 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadData();
+      _loadPaymentSummary();
       _refreshSessionData();
     });
   }
 
-  Future<void> _loadData() async {
+  Future<void> _loadPaymentSummary() async {
     if (!mounted) return;
 
-    try {
-      final receiptProvider = Provider.of<ReceiptProvider>(context, listen: false);
-      final assignmentProvider = Provider.of<AssignmentProvider>(context, listen: false);
-
-      // Load items and assignments for this session
-      await receiptProvider.loadItems(widget.session.id);
-      await assignmentProvider.loadSessionAssignments(widget.session.id);
-
-      // Load participants
-      await _loadParticipants();
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = 'Failed to load data: $e';
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _loadParticipants() async {
-    if (!mounted) return;
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
     try {
-      final result = await _sessionService.getSessionParticipants(widget.session.id);
+      final result = await _guestChoiceService.getPaymentSummary(widget.session.id);
+      
       if (!mounted) return;
 
       if (result['success']) {
         setState(() {
-          _participants = result['participants'] as List<Participant>;
+          _paymentSummary = result;
           _isLoading = false;
         });
       } else {
@@ -79,7 +58,7 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = 'Failed to load participants: $e';
+          _errorMessage = 'Failed to load payment summary: $e';
           _isLoading = false;
         });
       }
@@ -134,25 +113,18 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
                       ),
                       const SizedBox(height: 16),
                       ElevatedButton(
-                        onPressed: _loadData,
+                        onPressed: _loadPaymentSummary,
                         child: const Text('Retry'),
                       ),
                     ],
                   ),
                 )
-              : Consumer2<ReceiptProvider, AssignmentProvider>(
-                  builder: (context, receiptProvider, assignmentProvider, child) {
-                    final items = receiptProvider.items;
-                    final billTotal = widget.session.totalAmount; // Use session's total amount from database
-                    final allocatedAmount = assignmentProvider.getTotalAllocatedAmount(items);
-                    final remainingAmount = billTotal - allocatedAmount;
-
-                    // Calculate each participant's total
-                    final participantTotals = <int, double>{};
-                    for (final participant in _participants) {
-                      participantTotals[participant.userId] = 
-                          assignmentProvider.getUserAssignedTotal(participant.userId, items);
-                    }
+              : _paymentSummary != null ? Builder(
+                  builder: (context) {
+                    final billTotal = (_paymentSummary!['bill_total'] as num).toDouble();
+                    final allocatedAmount = (_paymentSummary!['allocated_total'] as num).toDouble();
+                    final remainingAmount = (_paymentSummary!['remaining_total'] as num).toDouble();
+                    final participantTotals = _paymentSummary!['participant_totals'] as List<dynamic>;
 
                     return SingleChildScrollView(
                       padding: const EdgeInsets.all(16),
@@ -243,9 +215,11 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
                           ),
                           const SizedBox(height: 12),
 
-                          ..._participants.map((participant) {
-                            final amount = participantTotals[participant.userId] ?? 0.0;
-                            final isOrganizer = participant.userId == widget.session.organizerId;
+                          ...participantTotals.map<Widget>((participantData) {
+                            final userName = participantData['user_name'] as String;
+                            final userEmail = participantData['email'] as String?;
+                            final amount = (participantData['total_amount'] as num).toDouble();
+                            final isOrganizer = participantData['user_id'] == widget.session.organizerId;
 
                             return Card(
                               elevation: 0,
@@ -259,14 +233,13 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
                               ),
                               margin: const EdgeInsets.only(bottom: 8),
                               child: ListTile(
-                                onTap: amount > 0 ? () => _navigateToItemsWithFilter(context, participant.displayName) : null,
                                 leading: CircleAvatar(
                                   backgroundColor: amount > 0 
                                       ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
                                       : Colors.grey.withValues(alpha: 0.1),
                                   child: Text(
-                                    participant.displayName.isNotEmpty 
-                                        ? participant.displayName[0].toUpperCase()
+                                    userName.isNotEmpty 
+                                        ? userName[0].toUpperCase()
                                         : '?',
                                     style: TextStyle(
                                       color: amount > 0 
@@ -280,7 +253,7 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
                                   children: [
                                     Expanded(
                                       child: Text(
-                                        participant.displayName,
+                                        userName,
                                         style: TextStyle(
                                           fontWeight: isOrganizer ? FontWeight.bold : FontWeight.normal,
                                         ),
@@ -305,39 +278,19 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
                                   ],
                                 ),
                                 subtitle: Text(
-                                  participant.email ?? 'Guest user',
+                                  userEmail ?? 'Guest user',
                                   style: TextStyle(
                                     color: Colors.grey.shade600,
                                   ),
                                 ),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      crossAxisAlignment: CrossAxisAlignment.end,
-                                      children: [
-                                        Text(
-                                          '£${amount.toStringAsFixed(2)}',
-                                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                            color: amount > 0
-                                                ? Theme.of(context).colorScheme.primary
-                                                : Colors.grey,
-                                          ),
-                                        ),
-                                        // "owes" text removed as requested
-                                      ],
-                                    ),
-                                    if (amount > 0) ...[
-                                      const SizedBox(width: 8),
-                                      Icon(
-                                        Icons.arrow_forward_ios,
-                                        size: 16,
-                                        color: Colors.grey.shade400,
-                                      ),
-                                    ],
-                                  ],
+                                trailing: Text(
+                                  '£${amount.toStringAsFixed(2)}',
+                                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: amount > 0
+                                        ? Theme.of(context).colorScheme.primary
+                                        : Colors.grey,
+                                  ),
                                 ),
                               ),
                             );
@@ -348,27 +301,8 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
                       ),
                     );
                   },
-                ),
+                ) : const Center(child: Text('No payment data available')),
     );
   }
 
-  void _navigateToItemsWithFilter(BuildContext context, String userName) {
-    // Find the participant with the given name
-    final participant = _participants.firstWhere(
-      (p) => p.displayName == userName,
-      orElse: () => _participants.first,
-    );
-
-    // Navigate to My Items screen with the guest's user ID and name
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (context) => MyItemsScreen(
-          session: widget.session,
-          guestUserId: participant.userId,
-          guestName: participant.displayName,
-          fromPaymentSummary: true,
-        ),
-      ),
-    );
-  }
 }
