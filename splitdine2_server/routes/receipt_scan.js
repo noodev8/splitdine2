@@ -192,7 +192,6 @@ router.post('/upload', authenticateToken, upload.single('image'), async (req, re
     }
     
     tempFilePath = req.file.path;
-    console.log('Processing receipt upload for session:', session_id);
     
     // Verify session exists and user is participant
     const session = await sessionQueries.findById(parseInt(session_id));
@@ -224,10 +223,8 @@ router.post('/upload', authenticateToken, upload.single('image'), async (req, re
     };
     
     const receiptScan = await receiptScanQueries.create(scanData);
-    console.log('Created receipt scan record:', receiptScan.id);
     
     // Process image with OCR
-    console.log('Starting OCR processing...');
     const ocrResult = await extractTextFromReceipt(tempFilePath);
     
     if (!ocrResult.success) {
@@ -250,7 +247,6 @@ router.post('/upload', authenticateToken, upload.single('image'), async (req, re
     }
     
     // Parse the OCR text to extract items and totals
-    console.log('Parsing receipt text...');
     const parseResult = parseReceiptText(ocrResult.text);
     
     if (!parseResult.success) {
@@ -319,7 +315,6 @@ router.post('/upload', authenticateToken, upload.single('image'), async (req, re
     if (tempFilePath && fs.existsSync(tempFilePath)) {
       try {
         fs.unlinkSync(tempFilePath);
-        console.log('Cleaned up temp file:', tempFilePath);
       } catch (cleanupError) {
         console.error('Failed to cleanup temp file:', cleanupError);
       }
