@@ -58,6 +58,12 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                 _deleteSession(context);
               } else if (value == 'share_code') {
                 _copyJoinCode(context);
+              } else if (value == 'add_guest') {
+                _navigateToAddGuest(context);
+              } else if (value == 'leave') {
+                _leaveSession(context);
+              } else if (value == 'leave_host') {
+                _leaveAsHost(context);
               }
             },
             itemBuilder: (BuildContext context) => [
@@ -65,6 +71,39 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                 value: 'share_code',
                 child: Text('Session Code'),
               ),
+              if (widget.session.isHost)
+                const PopupMenuItem<String>(
+                  value: 'add_guest',
+                  child: Row(
+                    children: [
+                      Icon(Icons.person_add),
+                      SizedBox(width: 8),
+                      Text('Add Guest'),
+                    ],
+                  ),
+                ),
+              if (!widget.session.isHost)
+                const PopupMenuItem<String>(
+                  value: 'leave',
+                  child: Row(
+                    children: [
+                      Icon(Icons.logout, color: Colors.red),
+                      SizedBox(width: 8),
+                      Text('Leave Session', style: TextStyle(color: Colors.red)),
+                    ],
+                  ),
+                ),
+              if (widget.session.isHost)
+                const PopupMenuItem<String>(
+                  value: 'leave_host',
+                  child: Row(
+                    children: [
+                      Icon(Icons.logout, color: Colors.red),
+                      SizedBox(width: 8),
+                      Text('Leave Session (Transfer Host)', style: TextStyle(color: Colors.red)),
+                    ],
+                  ),
+                ),
               if (widget.session.isHost)
                 const PopupMenuItem<String>(
                   value: 'delete',
@@ -235,31 +274,6 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
 
                 const SizedBox(height: 12),
 
-                // Add Guest button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () => _navigateToAddGuest(context),
-                    icon: const Icon(Icons.person_add, size: 20),
-                    label: const Text(
-                      'Add Guest',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      elevation: 0,
-                      shadowColor: Colors.transparent,
-                      overlayColor: Colors.black.withValues(alpha: 0.05), // Subtle press effect
-                    ),
-                  ),
-                ),
-
                 // Description section (moved from header)
                 if (widget.session.description != null && widget.session.description!.isNotEmpty) ...[
                   const SizedBox(height: 16),
@@ -285,62 +299,6 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                   ),
                 ],
 
-                const SizedBox(height: 24),
-
-                // Leave Session button (danger style)
-                if (!widget.session.isHost) ...[
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: () => _leaveSession(context),
-                      icon: const Icon(Icons.logout, size: 20),
-                      label: const Text(
-                        'Leave Session',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        foregroundColor: Colors.red,
-                        side: const BorderSide(
-                          color: Colors.red,
-                          width: 1,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                    ),
-                  ),
-                ] else ...[
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: () => _leaveAsHost(context),
-                      icon: const Icon(Icons.logout, size: 20),
-                      label: const Text(
-                        'Leave Session (Transfer Host)',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        foregroundColor: Colors.red,
-                        side: const BorderSide(
-                          color: Colors.red,
-                          width: 1,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
               ],
             ),
 
