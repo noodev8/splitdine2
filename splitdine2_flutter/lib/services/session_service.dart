@@ -35,7 +35,17 @@ class SessionService {
             .map((sessionJson) => Session.fromJson(sessionJson))
             .toList();
         
-        return {'success': true, 'sessions': sessions};
+        // Extract app version info if available
+        String? requiredVersion;
+        if (data['app_info'] != null && data['app_info']['required_version'] != null) {
+          requiredVersion = data['app_info']['required_version'];
+        }
+        
+        return {
+          'success': true, 
+          'sessions': sessions,
+          'required_version': requiredVersion
+        };
       } else {
         return {'success': false, 'message': data['message']};
       }

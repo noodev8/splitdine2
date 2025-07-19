@@ -10,11 +10,13 @@ class SessionProvider with ChangeNotifier {
   List<Participant> _participants = [];
   bool _isLoading = false;
   String? _errorMessage;
+  String? _requiredAppVersion;
 
   List<Session> get sessions => _sessions;
   List<Participant> get participants => _participants;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  String? get requiredAppVersion => _requiredAppVersion;
 
   // Get upcoming sessions (date >= today)
   List<Session> get upcomingSessions {
@@ -54,6 +56,7 @@ class SessionProvider with ChangeNotifier {
       
       if (result['success']) {
         _sessions = result['sessions'] as List<Session>;
+        _requiredAppVersion = result['required_version'];
       } else {
         _setError(result['message']);
       }

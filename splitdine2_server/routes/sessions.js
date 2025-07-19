@@ -299,6 +299,9 @@ router.post('/my-sessions', authenticateToken, async (req, res) => {
     res.json({
       return_code: 'SUCCESS',
       sessions: result.rows,
+      app_info: {
+        required_version: process.env.REQUIRED_APP_VERSION || '1.0.0'
+      },
       timestamp: new Date().toISOString()
     });
 
