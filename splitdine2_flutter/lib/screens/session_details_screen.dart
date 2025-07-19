@@ -220,14 +220,14 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
             // Action Buttons
             Column(
               children: [
-                // Receipt button (formerly Scan Receipt, moved to top)
+                // Guest Choices button (manages items and assignments)
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     onPressed: () => _navigateToReceiptScan(context),
                     icon: const Icon(Icons.receipt, size: 20),
                     label: const Text(
-                      'Receipt',
+                      'Guest Choices',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -433,6 +433,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
       ),
     );
   }
+
 
 
 

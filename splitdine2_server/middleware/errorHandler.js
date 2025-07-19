@@ -60,15 +60,16 @@ const errorHandler = (err, req, res, next) => {
   }
 
   // Don't leak error details in production
-  if (config.server.env === 'production' && statusCode === 500) {
-    message = 'Internal server error';
-  }
+  // Temporarily disabled for debugging
+  // if (config.server && config.server.env === 'production' && statusCode === 500) {
+  //   message = 'Internal server error';
+  // }
 
   res.status(statusCode).json({
     return_code: returnCode,
     message,
     timestamp: new Date().toISOString(),
-    ...(config.server.env === 'development' && { stack: err.stack })
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });
 };
 

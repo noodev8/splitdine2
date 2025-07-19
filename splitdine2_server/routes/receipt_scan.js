@@ -24,6 +24,7 @@ router.get('/test', (req, res) => {
 
 
 
+
 // Configure multer for file uploads (temporary storage)
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -55,6 +56,104 @@ const upload = multer({
       cb(null, true);
     } else {
       cb(new Error('Only image files are allowed'), false);
+    }
+  }
+});
+
+/**
+ * POST /api/receipt_scan/debug
+ * Debug endpoint to capture OCR and parsing results for analysis
+ * Does not require authentication - for testing purposes only
+ * 
+ * Body: multipart/form-data
+ * - image: File (required) - Receipt image file
+ * 
+ * Returns: Complete OCR and parsing data including raw Vision API response
+ */
+router.post('/debug', upload.single('image'), async (req, res) => {
+  let tempFilePath = null;
+
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        return_code: 'MISSING_IMAGE',
+        message: 'Receipt image is required',
+        timestamp: new Date().toISOString()
+      });
+    }
+    
+    tempFilePath = req.file.path;
+    
+    // Process image with OCR
+    const ocrResult = await extractTextFromReceipt(tempFilePath);
+    
+    let parseResult = null;
+    if (ocrResult.success) {
+      // Parse the OCR text to extract items and totals
+      parseResult = parseReceiptText(ocrResult.text);
+      
+      // Convert items to unit prices for consistency with main API
+      if (parseResult && parseResult.success && parseResult.items) {
+        const itemsWithUnitPrices = parseResult.items.map(item => ({
+          name: item.name,
+          price: item.quantity > 1 ? Math.round((item.price / item.quantity) * 100) / 100 : item.price, // Unit price with rounding
+          quantity: item.quantity,
+          total: item.price // Original total
+        }));
+        parseResult = {
+          ...parseResult,
+          items: itemsWithUnitPrices
+        };
+      }
+    }
+    
+    // Create comprehensive debug response
+    const debugData = {
+      filename: req.file.originalname,
+      filesize: req.file.size,
+      ocr_result: ocrResult,
+      parse_result: parseResult,
+      timestamp: new Date().toISOString()
+    };
+    
+    // Save debug data to file for analysis
+    try {
+      const debugDir = path.join(__dirname, '../debug_receipts');
+      if (!fs.existsSync(debugDir)) {
+        fs.mkdirSync(debugDir, { recursive: true });
+      }
+      
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const debugFileName = `receipt_debug_${timestamp}.json`;
+      const debugFilePath = path.join(debugDir, debugFileName);
+      
+      fs.writeFileSync(debugFilePath, JSON.stringify(debugData, null, 2));
+    } catch (saveError) {
+      // Silent fail for debug data saving
+    }
+    
+    // Return all data for analysis
+    res.json({
+      return_code: 'SUCCESS',
+      message: 'Debug processing complete',
+      data: debugData,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    res.status(500).json({
+      return_code: 'SERVER_ERROR',
+      message: 'Internal server error during debug processing',
+      timestamp: new Date().toISOString()
+    });
+  } finally {
+    // Clean up temporary file
+    if (tempFilePath && fs.existsSync(tempFilePath)) {
+      try {
+        fs.unlinkSync(tempFilePath);
+      } catch (cleanupError) {
+        // Silent fail for cleanup
+      }
     }
   }
 });
@@ -186,13 +285,21 @@ router.post('/upload', authenticateToken, upload.single('image'), async (req, re
     
     const updatedScan = await receiptScanQueries.updateOcrResults(receiptScan.id, updateData);
 
+    // Convert items to unit prices for Flutter frontend
+    const itemsWithUnitPrices = parseResult.items.map(item => ({
+      name: item.name,
+      price: item.quantity > 1 ? Math.round((item.price / item.quantity) * 100) / 100 : item.price, // Unit price with rounding
+      quantity: item.quantity,
+      total: item.price // Original total for reference
+    }));
+
     // Return parsed results
     res.json({
       return_code: 'SUCCESS',
       message: 'Receipt processed successfully',
       data: {
         scan_id: updatedScan.id,
-        items: parseResult.items,
+        items: itemsWithUnitPrices,
         totals: parseResult.totals,
         ocr_confidence: ocrResult.confidence,
         raw_text: ocrResult.text

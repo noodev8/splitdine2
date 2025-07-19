@@ -1051,15 +1051,68 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
 
       if (result['success']) {
         final data = result['data'];
-        setState(() {
-          _parsedItems = List<Map<String, dynamic>>.from(
-            (data['items'] ?? []).map((item) => {
-              'name': item['name'] ?? '',
-              'price': (item['price'] as num?)?.toDouble() ?? 0.0,
-              'quantity': item['quantity'] ?? 1,
+        final parsedItems = List<Map<String, dynamic>>.from(
+          (data['items'] ?? []).map((item) => {
+            'name': item['name'] ?? '',
+            'price': (item['price'] as num?)?.toDouble() ?? 0.0,
+            'quantity': item['quantity'] ?? 1,
+          })
+        );
+
+        // Filter out empty items and truncate names
+        final validItems = parsedItems
+            .where((item) => (item['name'] ?? '').toString().trim().isNotEmpty)
+            .map((item) => {
+              ...item,
+              'name': _truncateItemName((item['name'] ?? '').toString().trim()),
             })
+            .toList();
+
+        if (validItems.isEmpty) {
+          setState(() {
+            _errorMessage = 'No valid items found in receipt';
+          });
+          return;
+        }
+
+        // Automatically add items to session
+        try {
+          final addResult = await SessionReceiptService.addItemsFromReceipt(
+            sessionId: widget.session.id,
+            items: validItems,
           );
-        });
+
+          if (addResult['success']) {
+            if (mounted) {
+              // Show success message
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Added ${validItems.length} items from receipt'),
+                  backgroundColor: Colors.green,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+
+              // Clear the selected image and reload the items
+              setState(() {
+                _selectedImage = null;
+                _parsedItems.clear();
+              });
+              
+              // Reload the existing items to show the newly added ones
+              await _loadExistingItems();
+              await _loadAssignments();
+            }
+          } else {
+            setState(() {
+              _errorMessage = addResult['message'] ?? 'Failed to add items to session';
+            });
+          }
+        } catch (e) {
+          setState(() {
+            _errorMessage = 'Error adding items: $e';
+          });
+        }
       } else {
         setState(() {
           _errorMessage = result['error'] ?? 'Failed to process receipt';
