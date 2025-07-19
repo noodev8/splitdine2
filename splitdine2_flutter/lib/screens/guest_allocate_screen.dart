@@ -237,15 +237,16 @@ class _GuestAllocateScreenState extends State<GuestAllocateScreen> {
     final itemAssignments = _getItemAssignments(item.id);
     final isShared = _sharedItems.contains(item.id);
     final splitPrice = isShared && itemAssignments.isNotEmpty ? item.price / itemAssignments.length : item.price;
+    final hasAllocations = itemAssignments.isNotEmpty;
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 2,
+      margin: const EdgeInsets.only(bottom: 8),
+      elevation: 0,
       color: Colors.white,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         side: BorderSide(
-          color: Colors.grey.shade300,
+          color: Colors.grey.shade200,
           width: 1,
         ),
       ),
@@ -257,12 +258,14 @@ class _GuestAllocateScreenState extends State<GuestAllocateScreen> {
             onTap: () => _showEditItemDialog(item),
             child: Container(
               width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
               decoration: BoxDecoration(
-                color: Colors.grey.shade50,
+                color: hasAllocations
+                  ? Colors.green.shade50
+                  : Colors.grey.shade50,
                 borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(12),
-                  topRight: Radius.circular(12),
+                  topLeft: Radius.circular(8),
+                  topRight: Radius.circular(8),
                 ),
               ),
               child: Column(
@@ -275,7 +278,7 @@ class _GuestAllocateScreenState extends State<GuestAllocateScreen> {
                         child: Text(
                           item.itemName,
                           style: const TextStyle(
-                            fontSize: 18,
+                            fontSize: 22,
                             fontWeight: FontWeight.bold,
                             color: Colors.black87,
                           ),
@@ -299,16 +302,17 @@ class _GuestAllocateScreenState extends State<GuestAllocateScreen> {
                           ),
                         ),
                       ],
+
                     ],
                   ),
 
                   // Price row
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
                   if (isShared) ...[
                     Text(
                       '£${item.price.toStringAsFixed(2)} total',
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: 12,
                         fontWeight: FontWeight.w500,
                         color: Colors.grey.shade600,
                       ),
@@ -316,7 +320,7 @@ class _GuestAllocateScreenState extends State<GuestAllocateScreen> {
                     Text(
                       '£${splitPrice.toStringAsFixed(2)} each',
                       style: const TextStyle(
-                        fontSize: 20,
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: Colors.black87,
                       ),
@@ -325,7 +329,7 @@ class _GuestAllocateScreenState extends State<GuestAllocateScreen> {
                     Text(
                       '£${item.price.toStringAsFixed(2)}',
                       style: const TextStyle(
-                        fontSize: 20,
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: Colors.black87,
                       ),
@@ -336,66 +340,10 @@ class _GuestAllocateScreenState extends State<GuestAllocateScreen> {
             ),
           ),
 
-          // Content area
+          // Content area - just participants
           Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Actions row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    // Copy item button
-                    IconButton(
-                      onPressed: () => _copyItem(item),
-                      icon: const Icon(Icons.copy, size: 16),
-                      tooltip: 'Copy Item',
-                      style: IconButton.styleFrom(
-                        backgroundColor: Colors.grey.shade100,
-                        foregroundColor: Colors.grey.shade700,
-                        minimumSize: const Size(28, 28),
-                        padding: EdgeInsets.zero,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // Shared toggle button
-                    IconButton(
-                      onPressed: () => _toggleItemType(item),
-                      icon: const Icon(Icons.group, size: 16),
-                      tooltip: isShared ? 'Make Individual' : 'Make Shared',
-                      style: IconButton.styleFrom(
-                        backgroundColor: isShared
-                          ? const Color(0xFFFFC629).withValues(alpha: 0.2)
-                          : Colors.grey.shade100,
-                        foregroundColor: isShared
-                          ? const Color(0xFFFFC629)
-                          : Colors.grey.shade700,
-                        minimumSize: const Size(28, 28),
-                        padding: EdgeInsets.zero,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // Delete item button
-                    IconButton(
-                      onPressed: () => _deleteItem(item),
-                      icon: const Icon(Icons.delete, size: 16),
-                      tooltip: 'Delete Item',
-                      style: IconButton.styleFrom(
-                        backgroundColor: Colors.red.shade50,
-                        foregroundColor: Colors.red,
-                        minimumSize: const Size(28, 28),
-                        padding: EdgeInsets.zero,
-                      ),
-                    ),
-                  ],
-                ),
-
-                // Participants section
-                const SizedBox(height: 16),
-                _buildParticipantsSection(item),
-              ],
-            ),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            child: _buildParticipantsSection(item),
           ),
         ],
       ),
@@ -867,18 +815,18 @@ class _GuestAllocateScreenState extends State<GuestAllocateScreen> {
         style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w500,
-          color: isSelected ? Colors.white : Colors.grey.shade700,
+          color: Colors.grey.shade700,
         ),
       ),
       selected: isSelected,
       onSelected: (selected) {
         _toggleParticipantAssignment(item, participant, selected);
       },
-      selectedColor: const Color(0xFF6200EE),
+      selectedColor: Colors.grey.shade100,
       backgroundColor: Colors.grey.shade100,
-      checkmarkColor: Colors.white,
+      checkmarkColor: Colors.green.shade600,
       side: BorderSide(
-        color: isSelected ? const Color(0xFF6200EE) : Colors.grey.shade300,
+        color: Colors.grey.shade300,
       ),
     );
   }
@@ -997,6 +945,16 @@ class _GuestAllocateScreenState extends State<GuestAllocateScreen> {
         onSave: (newName, newPrice) async {
           await _updateItem(item, newName, newPrice);
         },
+        onDelete: () async {
+          await _deleteItem(item);
+        },
+        onCopy: () async {
+          await _copyItem(item);
+        },
+        onToggleShared: () async {
+          await _toggleItemType(item);
+        },
+        isShared: _sharedItems.contains(item.id),
       ),
     );
   }
@@ -1399,10 +1357,18 @@ class _GuestAllocateScreenState extends State<GuestAllocateScreen> {
 class _EditItemDialog extends StatefulWidget {
   final SessionReceiptItem? item;
   final Function(String, double) onSave;
+  final VoidCallback? onDelete;
+  final VoidCallback? onCopy;
+  final VoidCallback? onToggleShared;
+  final bool isShared;
 
   const _EditItemDialog({
     required this.item,
     required this.onSave,
+    this.onDelete,
+    this.onCopy,
+    this.onToggleShared,
+    this.isShared = false,
   });
 
   @override
@@ -1485,7 +1451,7 @@ class _EditItemDialogState extends State<_EditItemDialog> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-            // Close button and title
+            // Title and action buttons
             Row(
               children: [
                 Expanded(
@@ -1499,6 +1465,44 @@ class _EditItemDialogState extends State<_EditItemDialog> {
                     textAlign: TextAlign.center,
                   ),
                 ),
+                // Copy button (only for existing items)
+                if (widget.item != null && widget.onCopy != null)
+                  IconButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      widget.onCopy!();
+                    },
+                    icon: const Icon(Icons.copy),
+                    iconSize: 20,
+                    tooltip: 'Copy Item',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 32,
+                      minHeight: 32,
+                    ),
+                  ),
+                // Share toggle button (only for existing items)
+                if (widget.item != null && widget.onToggleShared != null)
+                  IconButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      widget.onToggleShared!();
+                    },
+                    icon: const Icon(Icons.group),
+                    iconSize: 20,
+                    tooltip: widget.isShared ? 'Make Individual' : 'Make Shared',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 32,
+                      minHeight: 32,
+                    ),
+                    style: IconButton.styleFrom(
+                      foregroundColor: widget.isShared
+                        ? const Color(0xFFFFC629)
+                        : Colors.grey.shade600,
+                    ),
+                  ),
+                // Close button
                 IconButton(
                   onPressed: () => Navigator.of(context).pop(),
                   icon: const Icon(Icons.close),
@@ -1585,26 +1589,57 @@ class _EditItemDialogState extends State<_EditItemDialog> {
             const SizedBox(height: 16),
 
             // Action buttons
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: _onSave,
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF6200EE),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+            Row(
+              children: [
+                // Delete button (only show for existing items)
+                if (widget.item != null && widget.onDelete != null) ...[
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        widget.onDelete!();
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red,
+                        side: const BorderSide(color: Colors.red),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text(
+                        'Delete',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                ],
+                // Save button
+                Expanded(
+                  child: FilledButton(
+                    onPressed: _onSave,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFF6200EE),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text(
+                      'Save',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ),
-                child: const Text(
-                  'Save',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
+              ],
             ),
               ],
             ),
