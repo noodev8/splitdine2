@@ -320,6 +320,8 @@ Both pages feature:
 - Modify HTML/CSS in `emailService.js`
 - Add company branding
 - Customize messaging and styling
+- Button colors: Use `#2563eb` for blue buttons (matches form styling)
+- Consistent color scheme across email and web pages
 
 ### Token Expiration
 - Adjust in `tokenUtils.js`

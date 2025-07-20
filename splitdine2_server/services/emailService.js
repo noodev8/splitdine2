@@ -81,7 +81,7 @@ const sendPasswordResetEmail = async (email, resetToken) => {
       <p>You requested to reset your password for your ${process.env.EMAIL_NAME} account.</p>
       <div style="margin: 30px 0;">
         <a href="${resetUrl}" 
-           style="background-color: #dc3545; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
+           style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
           Reset Password
         </a>
       </div>

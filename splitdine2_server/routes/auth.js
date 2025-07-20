@@ -859,7 +859,7 @@ router.get('/reset-password', async (req, res) => {
           
           <div id="message"></div>
           
-          <form id="resetForm">
+          <form id="resetForm" method="post" action="javascript:void(0)">
             <div class="form-group">
               <label for="password">New Password</label>
               <input type="password" id="password" name="password" required>
