@@ -34,12 +34,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         elevation: 1,
         shadowColor: Colors.black12,
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: MediaQuery.of(context).size.height -
+                      MediaQuery.of(context).padding.top -
+                      kToolbarHeight - 40,
+          ),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Icon(
                 Icons.lock_reset,
@@ -142,6 +148,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 ),
               ),
             ],
+            ),
           ),
         ),
       ),
