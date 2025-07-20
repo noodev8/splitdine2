@@ -21,7 +21,7 @@ class ReceiptScanScreen extends StatefulWidget {
   State<ReceiptScanScreen> createState() => _ReceiptScanScreenState();
 }
 
-class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindingObserver {
+class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindingObserver, TickerProviderStateMixin {
   static const int maxItemNameLength = 30;
 
   final ImagePicker _picker = ImagePicker();
@@ -41,11 +41,17 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
   Map<int, List<int>> _itemAssignments = {}; // itemId -> list of userIds
   final Set<int> _sharedItems = {}; // Set of item IDs that are marked as shared
 
+  // Animation controllers for participant chips
+  late Map<String, AnimationController> _chipAnimationControllers;
+  late Map<String, Animation<double>> _chipScaleAnimations;
+
   @override
   void initState() {
     super.initState();
     print('[DEBUG] ReceiptScanScreen initState called');
     WidgetsBinding.instance.addObserver(this);
+    _chipAnimationControllers = {};
+    _chipScaleAnimations = {};
     _initializeData();
   }
 
@@ -53,6 +59,12 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
   void dispose() {
     print('[DEBUG] ReceiptScanScreen dispose called');
     WidgetsBinding.instance.removeObserver(this);
+    // Clean up animation controllers
+    for (final controller in _chipAnimationControllers.values) {
+      controller.dispose();
+    }
+    _chipAnimationControllers.clear();
+    _chipScaleAnimations.clear();
     // Clean up resources
     _selectedImage = null;
     _parsedItems.clear();
@@ -99,6 +111,47 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
       return 'Please wait while we load your data';
     }
     return 'This won\'t take long';
+  }
+
+  // Helper method to get or create animation controller for a participant
+  AnimationController _getChipAnimationController(String participantKey) {
+    if (!_chipAnimationControllers.containsKey(participantKey)) {
+      _chipAnimationControllers[participantKey] = AnimationController(
+        duration: const Duration(milliseconds: 150),
+        vsync: this,
+      );
+      _chipScaleAnimations[participantKey] = Tween<double>(
+        begin: 1.0,
+        end: 1.1,
+      ).animate(CurvedAnimation(
+        parent: _chipAnimationControllers[participantKey]!,
+        curve: Curves.elasticOut,
+      ));
+    }
+    return _chipAnimationControllers[participantKey]!;
+  }
+
+  // Trigger bounce animation for chip selection
+  void _animateChipSelection(String participantKey) {
+    final controller = _getChipAnimationController(participantKey);
+    controller.forward().then((_) {
+      controller.reverse();
+    });
+  }
+
+  // Animated number widget for smooth price transitions
+  Widget _buildAnimatedPrice(double value, TextStyle style, {String prefix = '£', String suffix = '', int decimals = 2}) {
+    return TweenAnimationBuilder<double>(
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeOutCubic,
+      tween: Tween<double>(begin: 0, end: value),
+      builder: (context, animatedValue, child) {
+        return Text(
+          '$prefix${animatedValue.toStringAsFixed(decimals)}$suffix',
+          style: style,
+        );
+      },
+    );
   }
 
   Future<void> _initializeData() async {
@@ -621,9 +674,9 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
                           ),
                         ),
                         const SizedBox(height: 2),
-                        Text(
-                          '£${total.toStringAsFixed(2)}',
-                          style: TextStyle(
+                        _buildAnimatedPrice(
+                          total,
+                          TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                             color: Colors.grey.shade800,
@@ -645,9 +698,9 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
                           ),
                         ),
                         const SizedBox(height: 2),
-                        Text(
-                          '£${allocated.toStringAsFixed(2)}',
-                          style: TextStyle(
+                        _buildAnimatedPrice(
+                          allocated,
+                          TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                             color: statusColor,
@@ -688,25 +741,38 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
                   const SizedBox(height: 6),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: progress.clamp(0.0, 1.0),
-                      minHeight: 8,
-                      backgroundColor: Colors.grey.shade200,
-                      valueColor: AlwaysStoppedAnimation<Color>(statusColor),
+                    child: TweenAnimationBuilder<double>(
+                      duration: const Duration(milliseconds: 800),
+                      curve: Curves.easeOutCubic,
+                      tween: Tween<double>(begin: 0, end: progress.clamp(0.0, 1.0)),
+                      builder: (context, animatedProgress, child) {
+                        return LinearProgressIndicator(
+                          value: animatedProgress,
+                          minHeight: 8,
+                          backgroundColor: Colors.grey.shade200,
+                          valueColor: AlwaysStoppedAnimation<Color>(statusColor),
+                        );
+                      },
                     ),
                   ),
                   const SizedBox(height: 6),
-                  Text(
-                    isOverspent 
-                      ? '£${(allocated - total).toStringAsFixed(2)} over budget'
-                      : isComplete
-                        ? 'All items allocated'
-                        : '£${(total - allocated).toStringAsFixed(2)} remaining to allocate',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
+                  isComplete
+                    ? Text(
+                        'All items allocated',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: statusColor,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      )
+                    : _buildAnimatedPrice(
+                        isOverspent ? (allocated - total) : (total - allocated),
+                        TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey.shade600,
+                        ),
+                        suffix: isOverspent ? ' over budget' : ' remaining to allocate',
+                      ),
                 ],
               ),
             ],
@@ -1318,25 +1384,44 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
   }
 
   Widget _buildParticipantChip(Participant participant, bool isSelected, SessionReceiptItem item) {
-    return FilterChip(
-      label: Text(
-        participant.displayName,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-          color: isSelected ? Colors.white : Colors.grey.shade700,
-        ),
-      ),
-      selected: isSelected,
-      onSelected: (selected) {
-        _toggleParticipantAssignment(item, participant, selected);
+    final participantKey = '${item.id}_${participant.id}';
+    _getChipAnimationController(participantKey); // Initialize animation controller
+    final scaleAnimation = _chipScaleAnimations[participantKey]!;
+    
+    return AnimatedBuilder(
+      animation: scaleAnimation,
+      builder: (context, child) {
+        return Transform.scale(
+          scale: scaleAnimation.value,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            child: FilterChip(
+              label: AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 150),
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: isSelected ? Colors.white : Colors.grey.shade700,
+                ),
+                child: Text(participant.displayName),
+              ),
+              selected: isSelected,
+              onSelected: (selected) {
+                // Trigger bounce animation on selection
+                _animateChipSelection(participantKey);
+                _toggleParticipantAssignment(item, participant, selected);
+              },
+              selectedColor: const Color(0xFF7A8471),
+              backgroundColor: Colors.grey.shade100,
+              checkmarkColor: Colors.white,
+              side: BorderSide(
+                color: isSelected ? const Color(0xFF7A8471) : Colors.grey.shade300,
+              ),
+            ),
+          ),
+        );
       },
-      selectedColor: const Color(0xFF7A8471),
-      backgroundColor: Colors.grey.shade100,
-      checkmarkColor: Colors.white,
-      side: BorderSide(
-        color: isSelected ? const Color(0xFF7A8471) : Colors.grey.shade300,
-      ),
     );
   }
 
