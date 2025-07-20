@@ -423,27 +423,13 @@ router.get('/verify-email', async (req, res) => {
             margin-bottom: 30px;
             line-height: 1.6;
           }
-          .button {
-            background: #3182ce;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 8px;
-            text-decoration: none;
-            display: inline-block;
-            font-weight: 500;
-            transition: background 0.2s;
-          }
-          .button:hover {
-            background: #2c5aa0;
-          }
         </style>
       </head>
       <body>
         <div class="container">
           <div class="icon">✅</div>
           <h1>Email Verified!</h1>
-          <p>Your email address has been successfully verified. You can now enjoy all features of SplitDine.</p>
-          <a href="https://splitdine.noodev8.com" class="button">Open SplitDine App</a>
+          <p>Your email address has been successfully verified. You can now return to the SplitDine app and enjoy all features.</p>
         </div>
       </body>
       </html>
