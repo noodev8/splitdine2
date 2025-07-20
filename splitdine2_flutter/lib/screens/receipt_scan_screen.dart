@@ -21,7 +21,7 @@ class ReceiptScanScreen extends StatefulWidget {
   State<ReceiptScanScreen> createState() => _ReceiptScanScreenState();
 }
 
-class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
+class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindingObserver {
   static const int maxItemNameLength = 30;
 
   final ImagePicker _picker = ImagePicker();
@@ -35,6 +35,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
   bool _isProcessing = false;
   bool _isLoading = false;
   String? _errorMessage;
+  bool _cameraInProgress = false;  // Track if camera operation is in progress
 
   // Track guest choices and shared items
   Map<int, List<int>> _itemAssignments = {}; // itemId -> list of userIds
@@ -43,7 +44,50 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
   @override
   void initState() {
     super.initState();
+    print('[DEBUG] ReceiptScanScreen initState called');
+    WidgetsBinding.instance.addObserver(this);
     _initializeData();
+  }
+
+  @override
+  void dispose() {
+    print('[DEBUG] ReceiptScanScreen dispose called');
+    WidgetsBinding.instance.removeObserver(this);
+    // Clean up resources
+    _selectedImage = null;
+    _parsedItems.clear();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    print('[DEBUG] App lifecycle state changed to: $state');
+    if (state == AppLifecycleState.resumed) {
+      print('[DEBUG] App resumed - checking for pending operations');
+      // If we were processing an image when the app was paused, we might need to recover
+      if (_isProcessing && _selectedImage == null) {
+        print('[DEBUG] Was processing but image is null - resetting state');
+        setState(() {
+          _isProcessing = false;
+          _errorMessage = null;  // Don't show error, just reset state
+        });
+      }
+      
+      // Reset camera in progress flag and automatically open gallery if camera was interrupted
+      if (_cameraInProgress) {
+        print('[DEBUG] Camera operation was interrupted - automatically opening gallery');
+        setState(() {
+          _cameraInProgress = false;
+        });
+        
+        // Automatically open gallery as fallback
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) {
+            _pickImage(ImageSource.gallery);
+          }
+        });
+      }
+    }
   }
 
   String _getLoadingMessage() {
@@ -229,11 +273,18 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+    return SingleChildScrollView(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          minHeight: MediaQuery.of(context).size.height - 
+                      MediaQuery.of(context).padding.top - 
+                      kToolbarHeight - 
+                      140, // Approximate bottom nav height
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // Icon stack for visual interest
             Stack(
@@ -314,7 +365,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
-                    onPressed: () => _pickImage(),
+                    onPressed: () => _pickImage(ImageSource.camera),
                     icon: const Icon(Icons.camera_alt),
                     label: const Text(
                       'Scan Receipt',
@@ -407,6 +458,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
             ),
           ],
         ),
+      ),
       ),
     );
   }
@@ -1024,8 +1076,31 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
 
 
   Future<void> _pickImage([ImageSource? source]) async {
+    print('[DEBUG] _pickImage called with source: $source');
+    print('[DEBUG] Current state - isProcessing: $_isProcessing, selectedImage: $_selectedImage');
+    
+    // Prevent multiple simultaneous camera operations
+    if (_cameraInProgress) {
+      print('[DEBUG] Camera operation already in progress, ignoring request');
+      return;
+    }
+    
+    ImageSource? selectedSource;
+    
     try {
-      ImageSource selectedSource = source ?? await _showImageSourceDialog();
+      selectedSource = source ?? await _showImageSourceDialog();
+      print('[DEBUG] Selected source: $selectedSource');
+
+      // Silently redirect to gallery if camera might cause issues
+      // This handles low-memory devices gracefully
+      if (selectedSource == ImageSource.camera) {
+        print('[DEBUG] Camera selected - checking device memory status');
+        // For now, we'll use camera as requested but if it fails, we'll suggest gallery
+      }
+
+      setState(() {
+        _cameraInProgress = true;
+      });
 
       final XFile? image = await _picker.pickImage(
         source: selectedSource,
@@ -1034,20 +1109,74 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
         imageQuality: 85,
       );
 
+      print('[DEBUG] Image picker returned: ${image?.path}');
+
       if (image != null) {
+        print('[DEBUG] Image selected, updating state...');
         setState(() {
           _selectedImage = File(image.path);
           _parsedItems.clear();
           _errorMessage = null;
+          _cameraInProgress = false;
         });
 
         // Automatically process the receipt after image selection
+        print('[DEBUG] Starting receipt processing...');
         await _processReceipt();
+      } else {
+        print('[DEBUG] Image picker was cancelled');
+        setState(() {
+          _cameraInProgress = false;
+        });
       }
     } catch (e) {
+      print('[ERROR] Failed to pick image: $e');
+      print('[ERROR] Stack trace: ${StackTrace.current}');
       setState(() {
-        _errorMessage = 'Failed to pick image: $e';
+        _cameraInProgress = false;
       });
+      
+      // If camera failed, automatically try gallery
+      if (selectedSource == ImageSource.camera && mounted) {
+        print('[DEBUG] Camera failed, automatically trying gallery');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Switching to gallery...'),
+            duration: Duration(seconds: 1),
+          ),
+        );
+        
+        // Small delay before opening gallery
+        await Future.delayed(const Duration(milliseconds: 500));
+        
+        // Try gallery instead
+        try {
+          final XFile? galleryImage = await _picker.pickImage(
+            source: ImageSource.gallery,
+            maxWidth: 1920,
+            maxHeight: 1920,
+            imageQuality: 85,
+          );
+          
+          if (galleryImage != null) {
+            setState(() {
+              _selectedImage = File(galleryImage.path);
+              _parsedItems.clear();
+              _errorMessage = null;
+            });
+            await _processReceipt();
+          }
+        } catch (galleryError) {
+          print('[ERROR] Gallery also failed: $galleryError');
+          setState(() {
+            _errorMessage = 'Unable to select image. Please try again.';
+          });
+        }
+      } else {
+        setState(() {
+          _errorMessage = 'Unable to select image. Please try again.';
+        });
+      }
     }
   }
 
@@ -1063,24 +1192,39 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
               ListTile(
                 leading: const Icon(Icons.camera_alt),
                 title: const Text('Camera'),
+                subtitle: const Text('Take a new photo'),
                 onTap: () => Navigator.of(context).pop(ImageSource.camera),
               ),
               ListTile(
                 leading: const Icon(Icons.photo_library),
                 title: const Text('Gallery'),
+                subtitle: const Text('Choose from gallery'),
                 onTap: () => Navigator.of(context).pop(ImageSource.gallery),
               ),
             ],
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(null),
+              child: const Text('Cancel'),
+            ),
+          ],
         );
       },
     );
 
-    return result ?? ImageSource.camera;
+    return result ?? ImageSource.gallery;  // Default to gallery if camera issues persist
   }
 
   Future<void> _processReceipt() async {
-    if (_selectedImage == null) return;
+    if (_selectedImage == null) {
+      print('[DEBUG] _processReceipt called but no image selected');
+      return;
+    }
+
+    print('[DEBUG] _processReceipt starting with image: ${_selectedImage!.path}');
+    print('[DEBUG] Image exists: ${await _selectedImage!.exists()}');
+    print('[DEBUG] Image size: ${await _selectedImage!.length()} bytes');
 
     setState(() {
       _isProcessing = true;

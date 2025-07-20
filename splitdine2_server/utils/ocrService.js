@@ -3,7 +3,7 @@ const path = require('path');
 
 // Initialize Google Vision client with service account
 const client = new vision.ImageAnnotatorClient({
-  keyFilename: path.join(__dirname, '../../docs/splitdine-ocr-6921886ed122.json')
+  keyFilename: path.join(__dirname, '../splitdine-ocr-6921886ed122.json')
 });
 
 /**

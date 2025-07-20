@@ -525,12 +525,23 @@ class _JoinSessionDialog extends StatefulWidget {
 
 class _JoinSessionDialogState extends State<_JoinSessionDialog> {
   final TextEditingController _codeController = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
   bool _isLoading = false;
   String? _errorMessage;
 
   @override
+  void initState() {
+    super.initState();
+    // Auto-focus the text field when dialog opens
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _focusNode.requestFocus();
+    });
+  }
+
+  @override
   void dispose() {
     _codeController.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -633,6 +644,7 @@ class _JoinSessionDialogState extends State<_JoinSessionDialog> {
           const SizedBox(height: 16),
           TextField(
             controller: _codeController,
+            focusNode: _focusNode,
             decoration: InputDecoration(
               labelText: 'Session Code',
               hintText: 'e.g., 123456',
@@ -642,6 +654,7 @@ class _JoinSessionDialogState extends State<_JoinSessionDialog> {
             ),
             keyboardType: TextInputType.number,
             maxLength: 6,
+            autofocus: true,
             onChanged: (value) {
               if (_errorMessage != null) {
                 setState(() {
