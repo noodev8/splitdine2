@@ -197,8 +197,9 @@ routes: {
 ### Password Reset Email
 - Security-focused messaging
 - 1-hour expiry notice
-- Clear reset button
+- Blue reset button (consistent with web form)
 - Safety instructions
+- Proper token-based URL generation
 
 ## Testing the Implementation
 
@@ -301,11 +302,12 @@ The implementation includes beautiful, responsive HTML pages served directly by 
 #### Password Reset Form Page  
 - Accessible via: `GET /api/auth/reset-password?token={reset_token}`
 - Interactive password reset form with validation
-- Real-time password strength checking
+- Simplified password requirements (8+ characters only)
 - Responsive design for desktop and mobile
 - Handles invalid/expired tokens gracefully
-- JavaScript form submission to API endpoint
+- JavaScript form submission to API endpoint with proper preventDefault
 - Success/error message display
+- Blue button styling consistent with email template
 
 Both pages feature:
 - Consistent SplitDine branding
@@ -341,6 +343,8 @@ Both pages feature:
 2. **Links not working**: Verify FRONTEND_URL and EMAIL_VERIFICATION_URL
 3. **Token errors**: Check token expiration and database timezone settings
 4. **Navigation issues**: Ensure Flutter routes are properly configured
+5. **Form submission issues**: Ensure form has `method="post" action="javascript:void(0)"` to prevent URL parameter pollution
+6. **Password validation**: Backend uses simplified 8+ character validation only
 
 ### Debug Steps
 1. Check server logs for email service errors

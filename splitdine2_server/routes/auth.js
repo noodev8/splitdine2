@@ -906,16 +906,23 @@ router.get('/reset-password', async (req, res) => {
           }
           
           function validatePassword() {
-            const password = passwordInput.value;
-            let allValid = true;
-            
-            for (const [key, req] of Object.entries(requirements)) {
-              const isValid = req.test(password);
-              req.element.className = \`requirement \${isValid ? 'valid' : 'invalid'}\`;
-              if (!isValid) allValid = false;
+            try {
+              const password = passwordInput.value;
+              let allValid = true;
+              
+              for (const [key, req] of Object.entries(requirements)) {
+                if (req.element) {
+                  const isValid = req.test(password);
+                  req.element.className = \`requirement \${isValid ? 'valid' : 'invalid'}\`;
+                  if (!isValid) allValid = false;
+                }
+              }
+              
+              return allValid;
+            } catch (error) {
+              console.error('Validation error:', error);
+              return password && password.length >= 8; // Fallback validation
             }
-            
-            return allValid;
           }
           
           function validateForm() {
@@ -938,9 +945,11 @@ router.get('/reset-password', async (req, res) => {
           
           form.addEventListener('submit', async (e) => {
             e.preventDefault();
+            console.log('Form submitted');
             
             const password = passwordInput.value;
             const confirmPassword = confirmPasswordInput.value;
+            console.log('Password length:', password.length);
             
             if (password !== confirmPassword) {
               showMessage('Passwords do not match', 'error');
