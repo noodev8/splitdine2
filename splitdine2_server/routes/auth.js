@@ -381,11 +381,73 @@ router.get('/verify-email', async (req, res) => {
     // Mark email as verified
     await userQueries.markEmailVerified(user.id);
 
-    res.json({
-      return_code: 'SUCCESS',
-      message: 'Email verified successfully',
-      timestamp: new Date().toISOString()
-    });
+    // Return a nice HTML page instead of JSON
+    res.send(`
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Email Verified - SplitDine</title>
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .container {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+          }
+          .icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+          }
+          h1 {
+            color: #2d3748;
+            margin-bottom: 16px;
+            font-size: 24px;
+          }
+          p {
+            color: #718096;
+            margin-bottom: 30px;
+            line-height: 1.6;
+          }
+          .button {
+            background: #3182ce;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            display: inline-block;
+            font-weight: 500;
+            transition: background 0.2s;
+          }
+          .button:hover {
+            background: #2c5aa0;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="icon">✅</div>
+          <h1>Email Verified!</h1>
+          <p>Your email address has been successfully verified. You can now enjoy all features of SplitDine.</p>
+          <a href="https://splitdine.noodev8.com" class="button">Open SplitDine App</a>
+        </div>
+      </body>
+      </html>
+    `);
 
   } catch (error) {
     console.error('Email verification error:', error.message);
