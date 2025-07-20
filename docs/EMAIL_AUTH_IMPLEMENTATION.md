@@ -336,22 +336,65 @@ Both pages feature:
 - Welcome email sequences
 - Email preferences management
 
+## Pre-Implementation Checklist
+
+Before starting, ensure these are ready:
+
+### Backend Requirements
+- [ ] Resend API key and domain verification completed
+- [ ] Environment variables configured (`RESEND_API_KEY`, `EMAIL_VERIFICATION_URL`, `EMAIL_FROM`, `EMAIL_NAME`)
+- [ ] Database schema includes `email_verified`, `auth_token`, `auth_token_expires` columns
+- [ ] Content Security Policy allows `'unsafe-inline'` for `scriptSrc` (for HTML forms)
+
+### Frontend Requirements  
+- [ ] User model includes `emailVerified` field
+- [ ] Email verification screen exists for post-registration flow
+- [ ] Auth provider handles verification check in login method only
+
 ## Troubleshooting
 
-### Common Issues
-1. **Emails not sending**: Check Resend API key and domain verification
-2. **Links not working**: Verify FRONTEND_URL and EMAIL_VERIFICATION_URL
-3. **Token errors**: Check token expiration and database timezone settings
-4. **Navigation issues**: Ensure Flutter routes are properly configured
-5. **Form submission issues**: Ensure form has `method="post" action="javascript:void(0)"` to prevent URL parameter pollution
-6. **Password validation**: Backend uses simplified 8+ character validation only
-7. **CSP inline script errors**: Add `'unsafe-inline'` to `scriptSrc` in Content Security Policy for HTML form JavaScript to work
+### Critical Issues (Most Common)
+
+#### 1. **Content Security Policy Blocking Scripts**
+**Error**: `Refused to execute inline script because it violates CSP directive`
+**Solution**: Add `'unsafe-inline'` to `scriptSrc` in server CSP configuration
+```javascript
+scriptSrc: ["'self'", "'unsafe-inline'"]
+```
+
+#### 2. **Password Reset Form Not Submitting**
+**Symptoms**: Button clicks do nothing, URL changes with password parameters
+**Solutions**:
+- Add `method="post" action="javascript:void(0)"` to form element
+- Ensure `e.preventDefault()` in JavaScript event handler
+- Add error handling to validation functions
+
+#### 3. **Email Verification Not Enforcing**
+**Symptoms**: Unverified users can access app normally
+**Solution**: Add verification check in `AuthProvider.login()` method:
+```dart
+if (!user.isAnonymous && !user.emailVerified) {
+  _setError('Email not verified. Please check your email or continue as guest.');
+  return false;
+}
+```
+
+#### 4. **Password Validation Mismatch**
+**Symptoms**: Form shows complex requirements but backend rejects simple passwords
+**Solution**: Ensure HTML form validation matches backend rules (8+ characters only)
+
+### Other Common Issues
+5. **Emails not sending**: Check Resend API key and domain verification
+6. **Links not working**: Verify FRONTEND_URL and EMAIL_VERIFICATION_URL environment variables
+7. **Token errors**: Check token expiration and database timezone settings  
+8. **Color inconsistency**: Use `#2563eb` for blue buttons across email and web forms
 
 ### Debug Steps
-1. Check server logs for email service errors
-2. Verify environment variables are loaded
-3. Test database token operations
-4. Validate email template rendering
+1. **Check browser console** for JavaScript errors (F12 → Console)
+2. **Verify server logs** for email service errors and API responses
+3. **Test environment variables** are loaded correctly
+4. **Validate database operations** for token storage and retrieval
+5. **Check email delivery** in Resend dashboard or email logs
 
 ## Future Enhancements
 
