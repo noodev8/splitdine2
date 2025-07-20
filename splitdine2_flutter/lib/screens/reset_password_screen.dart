@@ -35,9 +35,13 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
         title: const Text('Reset Password'),
-        backgroundColor: Colors.orange,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+        elevation: 1,
+        shadowColor: Colors.black12,
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -49,7 +53,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               const Icon(
                 Icons.lock_reset,
                 size: 80,
-                color: Colors.orange,
+                color: Colors.blue,
               ),
               const SizedBox(height: 30),
               const Text(
@@ -152,8 +156,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _resetPassword,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    backgroundColor: Colors.blue.shade700,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
                   child: _isLoading
                       ? const SizedBox(
@@ -166,7 +171,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         )
                       : const Text(
                           'Reset Password',
-                          style: TextStyle(fontSize: 16, color: Colors.white),
+                          style: TextStyle(fontSize: 16),
                         ),
                 ),
               ),
@@ -176,11 +181,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   onPressed: () {
                     Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
                   },
-                  child: const Text(
+                  child: Text(
                     'Go to Login',
                     style: TextStyle(
                       fontSize: 16,
-                      color: Colors.orange,
+                      color: Colors.blue.shade700,
                     ),
                   ),
                 ),

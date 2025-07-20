@@ -26,9 +26,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
         title: const Text('Reset Password'),
-        backgroundColor: Colors.orange,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+        elevation: 1,
+        shadowColor: Colors.black12,
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -40,7 +44,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               const Icon(
                 Icons.lock_reset,
                 size: 80,
-                color: Colors.orange,
+                color: Colors.blue,
               ),
               const SizedBox(height: 30),
               const Text(
@@ -105,8 +109,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _sendResetEmail,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    backgroundColor: Colors.blue.shade700,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
                   child: _isLoading
                       ? const SizedBox(
@@ -119,7 +124,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         )
                       : const Text(
                           'Send Reset Link',
-                          style: TextStyle(fontSize: 16, color: Colors.white),
+                          style: TextStyle(fontSize: 16),
                         ),
                 ),
               ),
@@ -128,11 +133,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 onPressed: () {
                   Navigator.of(context).pop();
                 },
-                child: const Text(
+                child: Text(
                   'Back to Login',
                   style: TextStyle(
                     fontSize: 16,
-                    color: Colors.orange,
+                    color: Colors.blue.shade700,
                   ),
                 ),
               ),
