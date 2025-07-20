@@ -14,19 +14,10 @@ router.post('/add-item', authenticateToken, requireSessionParticipant, async (re
     const { session_id, item_name, price, share } = req.body;
 
     // DEBUG: Log all received parameters
-    console.log('=== ADD ITEM DEBUG ===');
-    console.log('Received request body:', JSON.stringify(req.body, null, 2));
-    console.log('session_id:', session_id, 'type:', typeof session_id);
-    console.log('item_name:', item_name, 'type:', typeof item_name);
-    console.log('price:', price, 'type:', typeof price);
-    console.log('share:', share, 'type:', typeof share);
-    console.log('User ID:', req.user?.id);
-    console.log('======================');
-
+                                
     // Validate required fields (no quantity - multiple items are separate rows)
     if (!session_id || !item_name || price === undefined || price === null) {
-      console.log('VALIDATION FAILED - Missing fields');
-      return res.status(400).json({
+            return res.status(400).json({
         return_code: 'MISSING_FIELDS',
         message: 'Session ID, item name, and price are required',
         timestamp: new Date().toISOString()
@@ -51,11 +42,9 @@ router.post('/add-item', authenticateToken, requireSessionParticipant, async (re
       share: share || null
     };
 
-    console.log('Creating item with data:', JSON.stringify(itemData, null, 2));
-    const newItem = await receiptQueries.create(itemData);
+        const newItem = await receiptQueries.create(itemData);
 
-    console.log('Item created successfully:', JSON.stringify(newItem, null, 2));
-
+    
     res.status(201).json({
       return_code: 'SUCCESS',
       message: 'Receipt item added successfully',
@@ -134,19 +123,10 @@ router.post('/update-item', authenticateToken, async (req, res) => {
     const { item_id, item_name, price, share } = req.body;
 
     // DEBUG: Log all received parameters
-    console.log('=== UPDATE ITEM DEBUG ===');
-    console.log('Received request body:', JSON.stringify(req.body, null, 2));
-    console.log('item_id:', item_id, 'type:', typeof item_id);
-    console.log('item_name:', item_name, 'type:', typeof item_name);
-    console.log('price:', price, 'type:', typeof price);
-    console.log('share:', share, 'type:', typeof share);
-    console.log('User ID:', req.user?.id);
-    console.log('=========================');
-
+                                
     // Validate required fields (no quantity - it's represented by multiple rows)
     if (!item_id || !item_name || price === undefined || price === null) {
-      console.log('VALIDATION FAILED - Missing fields');
-      return res.status(400).json({
+            return res.status(400).json({
         return_code: 'MISSING_FIELDS',
         message: 'Item ID, item name, and price are required',
         timestamp: new Date().toISOString()
@@ -205,8 +185,7 @@ router.post('/update-item', authenticateToken, async (req, res) => {
       share: share || null
     };
 
-    console.log('Updating item with data:', JSON.stringify(updateData, null, 2));
-    const updatedItem = await receiptQueries.update(item_id, updateData);
+        const updatedItem = await receiptQueries.update(item_id, updateData);
 
     if (!updatedItem) {
       return res.status(404).json({
@@ -220,8 +199,7 @@ router.post('/update-item', authenticateToken, async (req, res) => {
     const itemWithUser = await receiptQueries.getBySession(existingItem.session_id);
     const updatedItemWithUser = itemWithUser.find(item => item.id === updatedItem.id);
 
-    console.log('Item updated successfully:', JSON.stringify(updatedItem, null, 2));
-
+    
     res.json({
       return_code: 'SUCCESS',
       message: 'Receipt item updated successfully',

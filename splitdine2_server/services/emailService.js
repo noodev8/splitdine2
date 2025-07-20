@@ -4,11 +4,6 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 const sendEmail = async ({ to, subject, html, text }) => {
   try {
-    console.log('📧 Email Service - Starting send process');
-    console.log('📧 To:', to);
-    console.log('📧 From:', `${process.env.EMAIL_NAME} <${process.env.EMAIL_FROM}>`);
-    console.log('📧 Subject:', subject);
-    
     const data = await resend.emails.send({
       from: `${process.env.EMAIL_NAME} <${process.env.EMAIL_FROM}>`,
       to: [to],
@@ -17,17 +12,9 @@ const sendEmail = async ({ to, subject, html, text }) => {
       text
     });
     
-    console.log('✅ Email sent successfully');
-    console.log('📧 Response data:', data);
     return { success: true, data };
   } catch (error) {
-    console.error('❌ Email send error:', error);
-    console.error('❌ Error details:', {
-      message: error.message,
-      status: error.status,
-      statusText: error.statusText,
-      body: error.body
-    });
+    console.error('Email send error:', error.message);
     return { success: false, error: error.message };
   }
 };

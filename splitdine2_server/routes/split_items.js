@@ -13,16 +13,6 @@ router.post('/add-item', authenticateToken, async (req, res) => {
   try {
     const { session_id, name, price, description, participants } = req.body;
 
-    // DEBUG: Log all received parameters
-    console.log('=== ADD SPLIT ITEM DEBUG ===');
-    console.log('Received request body:', JSON.stringify(req.body, null, 2));
-    console.log('session_id:', session_id, 'type:', typeof session_id);
-    console.log('name:', name, 'type:', typeof name);
-    console.log('price:', price, 'type:', typeof price);
-    console.log('description:', description, 'type:', typeof description);
-    console.log('participants:', participants, 'type:', typeof participants);
-    console.log('User ID:', req.user?.id);
-    console.log('============================');
 
     // Validate required fields
     if (!session_id || !name || !price) {
@@ -52,10 +42,7 @@ router.post('/add-item', authenticateToken, async (req, res) => {
       added_by_user_id: req.user.id
     };
 
-    console.log('Creating split item with data:', JSON.stringify(itemData, null, 2));
     const newItem = await splitItemQueries.create(itemData);
-
-    console.log('Split item created successfully:', JSON.stringify(newItem, null, 2));
 
     res.status(201).json({
       return_code: 'SUCCESS',
@@ -145,15 +132,6 @@ router.post('/update-item', authenticateToken, async (req, res) => {
   try {
     const { item_id, name, price, description } = req.body;
 
-    // DEBUG: Log all received parameters
-    console.log('=== UPDATE SPLIT ITEM DEBUG ===');
-    console.log('Received request body:', JSON.stringify(req.body, null, 2));
-    console.log('item_id:', item_id, 'type:', typeof item_id);
-    console.log('name:', name, 'type:', typeof name);
-    console.log('price:', price, 'type:', typeof price);
-    console.log('description:', description, 'type:', typeof description);
-    console.log('User ID:', req.user?.id);
-    console.log('===============================');
 
     // Validate required fields
     if (!item_id || !name || !price) {
@@ -224,7 +202,6 @@ router.post('/update-item', authenticateToken, async (req, res) => {
       description: description ? description.trim() : null
     };
 
-    console.log('Updating split item with data:', JSON.stringify(updateData, null, 2));
     const updatedItem = await splitItemQueries.update(item_id, updateData);
 
     if (!updatedItem) {
@@ -234,8 +211,6 @@ router.post('/update-item', authenticateToken, async (req, res) => {
         timestamp: new Date().toISOString()
       });
     }
-
-    console.log('Split item updated successfully:', JSON.stringify(updatedItem, null, 2));
 
     res.json({
       return_code: 'SUCCESS',

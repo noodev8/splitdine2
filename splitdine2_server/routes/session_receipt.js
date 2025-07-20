@@ -30,10 +30,8 @@ router.post('/get-items-no-auth', async (req, res) => {
       });
     }
 
-    console.log('Calling sessionReceiptQueries.getBySession...');
-    const items = await sessionReceiptQueries.getBySession(session_id);
-    console.log('Retrieved items:', items.length);
-
+        const items = await sessionReceiptQueries.getBySession(session_id);
+    
     const subtotal = items.reduce((sum, item) => sum + parseFloat(item.price), 0);
     const itemCount = items.length;
 

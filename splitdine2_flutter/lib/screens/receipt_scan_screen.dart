@@ -73,18 +73,11 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
         });
       }
       
-      // Reset camera in progress flag and automatically open gallery if camera was interrupted
+      // Reset camera in progress flag
       if (_cameraInProgress) {
-        print('[DEBUG] Camera operation was interrupted - automatically opening gallery');
+        print('[DEBUG] Camera operation was interrupted - resetting state');
         setState(() {
           _cameraInProgress = false;
-        });
-        
-        // Automatically open gallery as fallback
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (mounted) {
-            _pickImage(ImageSource.gallery);
-          }
         });
       }
     }
@@ -322,40 +315,6 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
                 fontSize: 14,
                 color: Colors.grey.shade600,
                 height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: Colors.blue.shade200,
-                  width: 1,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.add_circle_outline,
-                    color: Colors.blue.shade700,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Start adding your items to make bill splitting easier at the end',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.blue.shade700,
-                        fontWeight: FontWeight.w500,
-                        height: 1.3,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ],
               ),
             ),
             const SizedBox(height: 24),

@@ -75,17 +75,10 @@ router.post('/register', async (req, res) => {
     await userQueries.setAuthToken(newUser.id, verificationToken, tokenExpiry);
 
     // Send verification email
-    console.log('🔄 Attempting to send verification email to:', email);
-    console.log('🔄 Verification token:', verificationToken.substring(0, 20) + '...');
-    
     const emailResult = await sendVerificationEmail(email, verificationToken);
     
-    if (emailResult.success) {
-      console.log('✅ Verification email sent successfully');
-      console.log('📧 Email ID:', emailResult.data?.id);
-    } else {
-      console.error('❌ Failed to send verification email:', emailResult.error);
-      console.error('📧 Full error details:', emailResult);
+    if (!emailResult.success) {
+      console.error('Failed to send verification email:', emailResult.error);
     }
 
     // Generate JWT token
@@ -945,11 +938,9 @@ router.get('/reset-password', async (req, res) => {
           
           form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            console.log('Form submitted');
             
             const password = passwordInput.value;
             const confirmPassword = confirmPasswordInput.value;
-            console.log('Password length:', password.length);
             
             if (password !== confirmPassword) {
               showMessage('Passwords do not match', 'error');
