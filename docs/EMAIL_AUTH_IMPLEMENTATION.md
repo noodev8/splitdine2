@@ -213,7 +213,40 @@ routes: {
 1. Run Flutter app: `flutter run`
 2. Test registration flow → email verification screen
 3. Test login → forgot password → reset flow
-4. Verify all navigation paths work correctly
+4. Test email verification enforcement (unverified users blocked at login)
+5. Verify all navigation paths work correctly
+
+### Email Verification Enforcement
+
+⚠️ **IMPORTANT**: Keep this implementation SIMPLE. Only block at login, not auto-login.
+
+#### Quick Implementation Guide
+For future apps, only these changes are needed:
+
+1. **User Model**: Add `emailVerified` boolean field that reads from server's `email_verified` field
+
+2. **AuthProvider Login Method**: After successful server login, check if user is registered (not anonymous) and email is not verified. If so, show error message directing them to continue as guest instead.
+
+3. **That's it!** Do NOT modify splash screen, do NOT add redirects, do NOT complicate the flow.
+
+#### Implementation Details
+- **User Model**: Added `emailVerified` field from server response
+- **Login Check ONLY**: Unverified users blocked with clear error message at login
+- **Guest Option**: Users directed to continue as guest if not verified
+- **Auto-login**: Previously verified users can auto-login (no re-check needed)
+- **No Redirects**: Do not redirect users to verification screens during normal app flow
+
+#### User Experience
+1. **Login (Unverified)**: Shows error "Email not verified. Please check your email or continue as guest."
+2. **Guest Alternative**: User can immediately switch to guest mode using existing UI
+3. **Auto-login**: Works normally for previously verified users (no interruption)
+4. **Anonymous Users**: Skip verification entirely (no email to verify)
+
+#### What NOT to Do
+- ❌ Do NOT modify splash screen auto-login flow
+- ❌ Do NOT add verification checks everywhere
+- ❌ Do NOT redirect to verification screens during login
+- ❌ Do NOT overcomplicate with refresh methods and complex state management
 
 ## Security Considerations
 

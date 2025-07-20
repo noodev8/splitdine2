@@ -3,12 +3,14 @@ class User {
   final String? email;
   final String displayName;
   final bool isAnonymous;
+  final bool emailVerified;
 
   User({
     required this.id,
     this.email,
     required this.displayName,
     required this.isAnonymous,
+    this.emailVerified = false,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -17,6 +19,7 @@ class User {
       email: json['email'],
       displayName: json['display_name'],
       isAnonymous: json['is_anonymous'] ?? false,
+      emailVerified: json['email_verified'] ?? false,
     );
   }
 
@@ -26,6 +29,7 @@ class User {
       'email': email,
       'display_name': displayName,
       'is_anonymous': isAnonymous,
+      'email_verified': emailVerified,
     };
   }
 }

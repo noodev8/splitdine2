@@ -52,7 +52,16 @@ class AuthProvider with ChangeNotifier {
       final result = await _authService.login(email, password);
       
       if (result['success']) {
-        _user = User.fromJson(result['user']);
+        final user = User.fromJson(result['user']);
+        
+        // Check if email verification is required
+        if (!user.isAnonymous && !user.emailVerified) {
+          _setError('Email not verified. Please check your email or continue as guest.');
+          _setLoading(false);
+          return false;
+        }
+        
+        _user = user;
         _setLoading(false);
         return true;
       } else {

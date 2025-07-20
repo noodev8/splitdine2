@@ -864,10 +864,6 @@ router.get('/reset-password', async (req, res) => {
               <input type="password" id="password" name="password" required>
               <div class="password-requirements">
                 <div class="requirement" id="req-length">• At least 8 characters</div>
-                <div class="requirement" id="req-upper">• One uppercase letter</div>
-                <div class="requirement" id="req-lower">• One lowercase letter</div>
-                <div class="requirement" id="req-number">• One number</div>
-                <div class="requirement" id="req-special">• One special character</div>
               </div>
             </div>
             
@@ -893,13 +889,9 @@ router.get('/reset-password', async (req, res) => {
           const loadingDiv = document.getElementById('loading');
           const token = '${token}';
           
-          // Password validation requirements
+          // Password validation requirements (simplified to match backend)
           const requirements = {
-            length: { element: document.getElementById('req-length'), test: (pwd) => pwd.length >= 8 },
-            upper: { element: document.getElementById('req-upper'), test: (pwd) => /[A-Z]/.test(pwd) },
-            lower: { element: document.getElementById('req-lower'), test: (pwd) => /[a-z]/.test(pwd) },
-            number: { element: document.getElementById('req-number'), test: (pwd) => /\\d/.test(pwd) },
-            special: { element: document.getElementById('req-special'), test: (pwd) => /[!@#$%^&*(),.?":{}|<>]/.test(pwd) }
+            length: { element: document.getElementById('req-length'), test: (pwd) => pwd.length >= 8 }
           };
           
           function showMessage(text, type) {
@@ -964,7 +956,7 @@ router.get('/reset-password', async (req, res) => {
             loadingDiv.style.display = 'block';
             
             try {
-              const response = await fetch('/api/auth/reset-password', {
+              const response = await fetch('${process.env.EMAIL_VERIFICATION_URL}/api/auth/reset-password', {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
