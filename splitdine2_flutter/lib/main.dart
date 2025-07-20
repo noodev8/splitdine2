@@ -6,6 +6,8 @@ import 'package:splitdine2_flutter/services/receipt_provider.dart';
 import 'package:splitdine2_flutter/services/assignment_provider.dart';
 import 'package:splitdine2_flutter/services/split_item_provider.dart';
 import 'package:splitdine2_flutter/screens/splash_screen.dart';
+import 'package:splitdine2_flutter/screens/login_screen.dart';
+import 'package:splitdine2_flutter/screens/reset_password_screen.dart';
 import 'package:splitdine2_flutter/config/app_config.dart';
 
 void main() {
@@ -32,6 +34,14 @@ class SplitDineApp extends StatelessWidget {
           useMaterial3: true,
         ),
         home: const SplashScreen(),
+        routes: {
+          '/login': (context) => const LoginScreen(),
+          '/reset-password': (context) {
+            final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+            final token = args?['token'] as String? ?? '';
+            return ResetPasswordScreen(token: token);
+          },
+        },
         debugShowCheckedModeBanner: AppConfig.isDebugMode,
       ),
     );

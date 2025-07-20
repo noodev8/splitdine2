@@ -81,6 +81,50 @@ const userQueries = {
 
     // Finally delete the user
     await query('DELETE FROM app_user WHERE id = $1', [userId]);
+  },
+
+  // Set auth token for email verification or password reset
+  setAuthToken: async (userId, token, expiresAt) => {
+    const result = await query(
+      'UPDATE app_user SET auth_token = $1, auth_token_expires = $2 WHERE id = $3 RETURNING id',
+      [token, expiresAt, userId]
+    );
+    return result.rows[0];
+  },
+
+  // Find user by auth token
+  findByAuthToken: async (token) => {
+    const result = await query(
+      'SELECT * FROM app_user WHERE auth_token = $1 AND auth_token_expires > NOW()',
+      [token]
+    );
+    return result.rows[0];
+  },
+
+  // Clear auth token
+  clearAuthToken: async (userId) => {
+    await query(
+      'UPDATE app_user SET auth_token = NULL, auth_token_expires = NULL WHERE id = $1',
+      [userId]
+    );
+  },
+
+  // Mark email as verified
+  markEmailVerified: async (userId) => {
+    const result = await query(
+      'UPDATE app_user SET email_verified = true, auth_token = NULL, auth_token_expires = NULL WHERE id = $1 RETURNING id, email, display_name, email_verified',
+      [userId]
+    );
+    return result.rows[0];
+  },
+
+  // Update password
+  updatePassword: async (userId, passwordHash) => {
+    const result = await query(
+      'UPDATE app_user SET password_hash = $1, auth_token = NULL, auth_token_expires = NULL WHERE id = $2 RETURNING id',
+      [passwordHash, userId]
+    );
+    return result.rows[0];
   }
 };
 

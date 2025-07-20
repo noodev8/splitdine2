@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:splitdine2_flutter/services/auth_provider.dart';
 import 'package:splitdine2_flutter/screens/register_screen.dart';
 import 'package:splitdine2_flutter/screens/session_lobby_screen.dart';
+import 'package:splitdine2_flutter/screens/forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -161,52 +162,9 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Future<void> _showForgotPasswordDialog() async {
-    await showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          icon: Icon(
-            Icons.help_outline,
-            color: Colors.blue.shade600,
-            size: 48,
-          ),
-          title: const Text(
-            'Forgot Password?',
-            textAlign: TextAlign.center,
-          ),
-          content: const Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'To reset your password, please email us at:',
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: 16),
-              SelectableText(
-                'info@noodev8.com',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: 16),
-              Text(
-                'Include your email address and mention that you need a password reset.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('OK'),
-            ),
-          ],
-        );
-      },
+  void _navigateToForgotPassword() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()),
     );
   }
 
@@ -353,7 +311,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         // Forgot Password Link
                         TextButton(
-                          onPressed: _showForgotPasswordDialog,
+                          onPressed: _navigateToForgotPassword,
                           child: const Text('Forgot Password?'),
                         ),
                       ],
