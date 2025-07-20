@@ -107,6 +107,7 @@ Now sends verification email automatically.
 ```
 GET /auth/verify-email?token=verify_xxxxx
 ```
+Returns beautiful HTML success page instead of JSON.
 
 #### Resend Verification
 ```
@@ -120,6 +121,12 @@ POST /auth/forgot-password
 Body: { "email": "user@example.com" }
 ```
 
+#### Password Reset Form
+```
+GET /auth/reset-password?token=reset_xxxxx
+```
+Serves interactive HTML form for password reset.
+
 #### Reset Password
 ```
 POST /auth/reset-password
@@ -128,6 +135,7 @@ Body: {
   "new_password": "newPassword123" 
 }
 ```
+Processes password reset from HTML form or API call.
 
 ## Frontend Implementation (Flutter)
 
@@ -244,7 +252,34 @@ EMAIL_NAME=Your App Name
 
 ### Email Links
 - Email verification: `{EMAIL_VERIFICATION_URL}/api/auth/verify-email?token={token}`
-- Password reset: `{FRONTEND_URL}/reset-password?token={token}`
+- Password reset: `{EMAIL_VERIFICATION_URL}/api/auth/reset-password?token={token}`
+
+### HTML Pages
+
+The implementation includes beautiful, responsive HTML pages served directly by the API:
+
+#### Email Verification Success Page
+- Accessible via: `GET /api/auth/verify-email?token={verification_token}`
+- Shows success message after email verification
+- Modern design with gradient background
+- Mobile-responsive layout
+- No dependencies on frontend
+
+#### Password Reset Form Page  
+- Accessible via: `GET /api/auth/reset-password?token={reset_token}`
+- Interactive password reset form with validation
+- Real-time password strength checking
+- Responsive design for desktop and mobile
+- Handles invalid/expired tokens gracefully
+- JavaScript form submission to API endpoint
+- Success/error message display
+
+Both pages feature:
+- Consistent SplitDine branding
+- Modern CSS with gradient backgrounds
+- Mobile-first responsive design
+- Clean, accessible typography
+- Proper error handling and user feedback
 
 ## Customization Options
 

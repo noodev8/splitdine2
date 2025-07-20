@@ -562,6 +562,489 @@ router.post('/forgot-password', async (req, res) => {
   }
 });
 
+// Reset Password Form (GET) - Serves HTML form
+router.get('/reset-password', async (req, res) => {
+  try {
+    const { token } = req.query;
+
+    if (!token) {
+      return res.send(`
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Invalid Link - SplitDine</title>
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              margin: 0;
+              padding: 20px;
+              min-height: 100vh;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            }
+            .container {
+              background: white;
+              border-radius: 16px;
+              padding: 40px;
+              box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+              text-align: center;
+              max-width: 400px;
+              width: 100%;
+            }
+            .icon {
+              font-size: 64px;
+              margin-bottom: 20px;
+            }
+            h1 {
+              color: #e53e3e;
+              margin-bottom: 16px;
+              font-size: 24px;
+            }
+            p {
+              color: #718096;
+              line-height: 1.6;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="icon">❌</div>
+            <h1>Invalid Reset Link</h1>
+            <p>The password reset link is invalid or missing. Please request a new password reset from the app.</p>
+          </div>
+        </body>
+        </html>
+      `);
+    }
+
+    // Verify token exists and is valid
+    const user = await userQueries.findByAuthToken(token);
+    
+    if (!user || !token.startsWith('reset_')) {
+      return res.send(`
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Expired Link - SplitDine</title>
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              margin: 0;
+              padding: 20px;
+              min-height: 100vh;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            }
+            .container {
+              background: white;
+              border-radius: 16px;
+              padding: 40px;
+              box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+              text-align: center;
+              max-width: 400px;
+              width: 100%;
+            }
+            .icon {
+              font-size: 64px;
+              margin-bottom: 20px;
+            }
+            h1 {
+              color: #e53e3e;
+              margin-bottom: 16px;
+              font-size: 24px;
+            }
+            p {
+              color: #718096;
+              line-height: 1.6;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="icon">⏰</div>
+            <h1>Link Expired</h1>
+            <p>This password reset link has expired or is invalid. Please request a new password reset from the app.</p>
+          </div>
+        </body>
+        </html>
+      `);
+    }
+
+    // Serve password reset form
+    res.send(`
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Reset Password - SplitDine</title>
+        <style>
+          * {
+            box-sizing: border-box;
+          }
+          
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          
+          .container {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 420px;
+            width: 100%;
+          }
+          
+          .header {
+            text-align: center;
+            margin-bottom: 32px;
+          }
+          
+          .icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+          }
+          
+          h1 {
+            color: #2d3748;
+            margin-bottom: 8px;
+            font-size: 28px;
+            font-weight: 600;
+          }
+          
+          .subtitle {
+            color: #718096;
+            margin-bottom: 0;
+            font-size: 16px;
+          }
+          
+          .form-group {
+            margin-bottom: 24px;
+          }
+          
+          label {
+            display: block;
+            margin-bottom: 8px;
+            color: #2d3748;
+            font-weight: 500;
+            font-size: 14px;
+          }
+          
+          input[type="password"] {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            background: white;
+          }
+          
+          input[type="password"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+          }
+          
+          .password-requirements {
+            margin-top: 8px;
+            font-size: 12px;
+            color: #718096;
+            line-height: 1.4;
+          }
+          
+          .requirement {
+            margin-bottom: 4px;
+          }
+          
+          .requirement.valid {
+            color: #38a169;
+          }
+          
+          .requirement.invalid {
+            color: #e53e3e;
+          }
+          
+          .submit-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 8px;
+          }
+          
+          .submit-btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+          }
+          
+          .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+          }
+          
+          .message {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            font-size: 14px;
+            text-align: center;
+          }
+          
+          .message.success {
+            background: #f0fff4;
+            border: 1px solid #9ae6b4;
+            color: #276749;
+          }
+          
+          .message.error {
+            background: #fed7d7;
+            border: 1px solid #feb2b2;
+            color: #c53030;
+          }
+          
+          .loading {
+            display: none;
+            text-align: center;
+            color: #718096;
+            margin-top: 16px;
+          }
+          
+          @media (max-width: 480px) {
+            .container {
+              padding: 24px;
+              margin: 10px;
+            }
+            
+            h1 {
+              font-size: 24px;
+            }
+            
+            .icon {
+              font-size: 40px;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div class="icon">🔒</div>
+            <h1>Reset Your Password</h1>
+            <p class="subtitle">Choose a strong new password for your account</p>
+          </div>
+          
+          <div id="message"></div>
+          
+          <form id="resetForm">
+            <div class="form-group">
+              <label for="password">New Password</label>
+              <input type="password" id="password" name="password" required>
+              <div class="password-requirements">
+                <div class="requirement" id="req-length">• At least 8 characters</div>
+                <div class="requirement" id="req-upper">• One uppercase letter</div>
+                <div class="requirement" id="req-lower">• One lowercase letter</div>
+                <div class="requirement" id="req-number">• One number</div>
+                <div class="requirement" id="req-special">• One special character</div>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="confirmPassword">Confirm New Password</label>
+              <input type="password" id="confirmPassword" name="confirmPassword" required>
+            </div>
+            
+            <button type="submit" class="submit-btn" id="submitBtn">Reset Password</button>
+          </form>
+          
+          <div class="loading" id="loading">
+            Resetting your password...
+          </div>
+        </div>
+        
+        <script>
+          const form = document.getElementById('resetForm');
+          const passwordInput = document.getElementById('password');
+          const confirmPasswordInput = document.getElementById('confirmPassword');
+          const submitBtn = document.getElementById('submitBtn');
+          const messageDiv = document.getElementById('message');
+          const loadingDiv = document.getElementById('loading');
+          const token = '${token}';
+          
+          // Password validation requirements
+          const requirements = {
+            length: { element: document.getElementById('req-length'), test: (pwd) => pwd.length >= 8 },
+            upper: { element: document.getElementById('req-upper'), test: (pwd) => /[A-Z]/.test(pwd) },
+            lower: { element: document.getElementById('req-lower'), test: (pwd) => /[a-z]/.test(pwd) },
+            number: { element: document.getElementById('req-number'), test: (pwd) => /\\d/.test(pwd) },
+            special: { element: document.getElementById('req-special'), test: (pwd) => /[!@#$%^&*(),.?":{}|<>]/.test(pwd) }
+          };
+          
+          function showMessage(text, type) {
+            messageDiv.textContent = text;
+            messageDiv.className = \`message \${type}\`;
+            messageDiv.style.display = 'block';
+          }
+          
+          function hideMessage() {
+            messageDiv.style.display = 'none';
+          }
+          
+          function validatePassword() {
+            const password = passwordInput.value;
+            let allValid = true;
+            
+            for (const [key, req] of Object.entries(requirements)) {
+              const isValid = req.test(password);
+              req.element.className = \`requirement \${isValid ? 'valid' : 'invalid'}\`;
+              if (!isValid) allValid = false;
+            }
+            
+            return allValid;
+          }
+          
+          function validateForm() {
+            const password = passwordInput.value;
+            const confirmPassword = confirmPasswordInput.value;
+            const passwordValid = validatePassword();
+            const passwordsMatch = password === confirmPassword && password.length > 0;
+            
+            submitBtn.disabled = !passwordValid || !passwordsMatch;
+            
+            if (confirmPassword && !passwordsMatch) {
+              confirmPasswordInput.style.borderColor = '#e53e3e';
+            } else {
+              confirmPasswordInput.style.borderColor = '#e2e8f0';
+            }
+          }
+          
+          passwordInput.addEventListener('input', validateForm);
+          confirmPasswordInput.addEventListener('input', validateForm);
+          
+          form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const password = passwordInput.value;
+            const confirmPassword = confirmPasswordInput.value;
+            
+            if (password !== confirmPassword) {
+              showMessage('Passwords do not match', 'error');
+              return;
+            }
+            
+            if (!validatePassword()) {
+              showMessage('Password does not meet requirements', 'error');
+              return;
+            }
+            
+            hideMessage();
+            submitBtn.disabled = true;
+            loadingDiv.style.display = 'block';
+            
+            try {
+              const response = await fetch('/api/auth/reset-password', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  token: token,
+                  new_password: password
+                })
+              });
+              
+              const result = await response.json();
+              
+              if (result.return_code === 'SUCCESS') {
+                showMessage('Password reset successfully! You can now log in with your new password.', 'success');
+                form.style.display = 'none';
+              } else {
+                showMessage(result.message || 'Password reset failed', 'error');
+                submitBtn.disabled = false;
+              }
+            } catch (error) {
+              showMessage('Network error. Please try again.', 'error');
+              submitBtn.disabled = false;
+            }
+            
+            loadingDiv.style.display = 'none';
+          });
+          
+          // Initial validation
+          validateForm();
+        </script>
+      </body>
+      </html>
+    `);
+
+  } catch (error) {
+    console.error('Reset password form error:', error.message);
+    res.status(500).send(`
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Error - SplitDine</title>
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .container {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+          }
+          .icon { font-size: 64px; margin-bottom: 20px; }
+          h1 { color: #e53e3e; margin-bottom: 16px; font-size: 24px; }
+          p { color: #718096; line-height: 1.6; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="icon">⚠️</div>
+          <h1>Server Error</h1>
+          <p>Something went wrong. Please try again later.</p>
+        </div>
+      </body>
+      </html>
+    `);
+  }
+});
+
 // Reset Password
 router.post('/reset-password', async (req, res) => {
   try {
