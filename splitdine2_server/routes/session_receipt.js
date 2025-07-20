@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { sessionReceiptQueries, sessionQueries, participantQueries } = require('../utils/database');
+const { sessionReceiptQueries, sessionQueries, participantQueries, integrityQueries } = require('../utils/database');
 const { authenticateToken, requireSessionParticipant } = require('../middleware/auth');
 
 /**
@@ -220,6 +220,17 @@ router.post('/update-item', authenticateToken, requireSessionParticipant, async 
 
     const updatedItem = await sessionReceiptQueries.update(item_id, updateData);
 
+    // Clean up any orphaned guest_choice records after updating item (in case item_id changed)
+    try {
+      const cleanedChoices = await integrityQueries.cleanupOrphanedGuestChoices(session_id);
+      if (cleanedChoices.length > 0) {
+        console.log(`Cleaned up ${cleanedChoices.length} orphaned guest choices after item update`);
+      }
+    } catch (cleanupError) {
+      console.error('Warning: Failed to cleanup orphaned guest choices after update:', cleanupError);
+      // Don't fail the request if cleanup fails
+    }
+
     res.json({
       return_code: 'SUCCESS',
       message: 'Session receipt item updated successfully',
@@ -269,6 +280,17 @@ router.post('/delete-item', authenticateToken, requireSessionParticipant, async 
 
     await sessionReceiptQueries.delete(item_id);
 
+    // Clean up any orphaned guest_choice records after deleting item
+    try {
+      const cleanedChoices = await integrityQueries.cleanupOrphanedGuestChoices(session_id);
+      if (cleanedChoices.length > 0) {
+        console.log(`Cleaned up ${cleanedChoices.length} orphaned guest choices after item deletion`);
+      }
+    } catch (cleanupError) {
+      console.error('Warning: Failed to cleanup orphaned guest choices after deletion:', cleanupError);
+      // Don't fail the request if cleanup fails
+    }
+
     res.json({
       return_code: 'SUCCESS',
       message: 'Session receipt item deleted successfully',
@@ -299,6 +321,17 @@ router.post('/clear-items', authenticateToken, requireSessionParticipant, async 
     }
 
     const deletedItems = await sessionReceiptQueries.deleteBySession(session_id);
+
+    // Clean up any orphaned guest_choice records after clearing all items
+    try {
+      const cleanedChoices = await integrityQueries.cleanupOrphanedGuestChoices(session_id);
+      if (cleanedChoices.length > 0) {
+        console.log(`Cleaned up ${cleanedChoices.length} orphaned guest choices after clearing items`);
+      }
+    } catch (cleanupError) {
+      console.error('Warning: Failed to cleanup orphaned guest choices after clearing:', cleanupError);
+      // Don't fail the request if cleanup fails
+    }
 
     res.json({
       return_code: 'SUCCESS',

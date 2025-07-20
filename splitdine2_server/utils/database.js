@@ -656,6 +656,37 @@ const sessionReceiptQueries = {
   }
 };
 
+// Data integrity operations
+const integrityQueries = {
+  // Clean up orphaned guest_choice records that reference non-existent session_receipt items
+  cleanupOrphanedGuestChoices: async (sessionId) => {
+    const result = await query(
+      `DELETE FROM guest_choice 
+       WHERE session_id = $1 
+       AND item_id IS NOT NULL 
+       AND item_id NOT IN (
+         SELECT id FROM session_receipt WHERE session_id = $1
+       )
+       RETURNING *`,
+      [sessionId]
+    );
+    return result.rows;
+  },
+
+  // Clean up orphaned guest_choice records across all sessions (for maintenance)
+  cleanupAllOrphanedGuestChoices: async () => {
+    const result = await query(
+      `DELETE FROM guest_choice 
+       WHERE item_id IS NOT NULL 
+       AND item_id NOT IN (
+         SELECT id FROM session_receipt
+       )
+       RETURNING *`
+    );
+    return result.rows;
+  }
+};
+
 module.exports = {
   userQueries,
   sessionQueries,
@@ -665,5 +696,6 @@ module.exports = {
   splitItemQueries,
   participantChoiceQueries,
   receiptScanQueries,
-  sessionReceiptQueries
+  sessionReceiptQueries,
+  integrityQueries
 };

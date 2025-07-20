@@ -4,7 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const router = express.Router();
 
-const { receiptScanQueries, sessionQueries, participantQueries, receiptQueries } = require('../utils/database');
+const { receiptScanQueries, sessionQueries, participantQueries, receiptQueries, integrityQueries } = require('../utils/database');
 const { extractTextFromReceipt, parseReceiptText } = require('../utils/ocrService');
 const { authenticateToken } = require('../middleware/auth');
 
@@ -388,6 +388,17 @@ router.post('/add-items', authenticateToken, async (req, res) => {
         const newItem = await receiptQueries.create(itemData);
         addedItems.push(newItem);
       }
+    }
+    
+    // Clean up any orphaned guest_choice records after adding new items
+    try {
+      const cleanedChoices = await integrityQueries.cleanupOrphanedGuestChoices(session_id);
+      if (cleanedChoices.length > 0) {
+        console.log(`Cleaned up ${cleanedChoices.length} orphaned guest choices for session ${session_id}`);
+      }
+    } catch (cleanupError) {
+      console.error('Warning: Failed to cleanup orphaned guest choices:', cleanupError);
+      // Don't fail the request if cleanup fails
     }
     
     res.json({
