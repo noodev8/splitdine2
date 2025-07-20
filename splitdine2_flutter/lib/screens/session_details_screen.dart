@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../models/session.dart';
 import '../services/session_provider.dart';
+import '../services/session_service.dart';
 
 import 'payment_summary_screen.dart';
 import 'receipt_scan_screen.dart';
@@ -22,6 +23,8 @@ class SessionDetailsScreen extends StatefulWidget {
 }
 
 class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
+  final SessionService _sessionService = SessionService();
+
   @override
   void initState() {
     super.initState();
@@ -569,24 +572,166 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
   }
 
   Future<void> _leaveAsHost(BuildContext context) async {
-    // Show dialog explaining the host cannot leave without transferring privileges
-    await showDialog<void>(
+    // First get the session participants
+    try {
+      final result = await _sessionService.getSessionParticipants(widget.session.id);
+      
+      if (!result['success'] || !mounted) return;
+      
+      final participants = result['participants'] as List;
+      // Filter out the current host
+      final otherParticipants = participants.where((p) => p.userId != widget.session.organizerId).toList();
+      
+      if (otherParticipants.isEmpty) {
+        // No other participants to transfer to
+        await showDialog<void>(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Cannot Leave Session'),
+              content: const Text(
+                'You are the only participant in this session. You cannot leave without first inviting other participants.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('OK'),
+                ),
+              ],
+            );
+          },
+        );
+        return;
+      }
+      
+      // Show transfer host dialog
+      await _showTransferHostDialog(context, otherParticipants);
+      
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading participants: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _showTransferHostDialog(BuildContext context, List participants) async {
+    final selectedParticipant = await showDialog<dynamic>(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Cannot Leave Session'),
-          content: const Text(
-            'As the session host, you cannot leave the session without first transferring host privileges to another participant.\n\n'
-            'Please use the web interface or contact support to transfer host privileges.',
+          title: const Text('Transfer Host Privileges'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Choose who should become the new session host:',
+                style: TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 16),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 300),
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: participants.map<Widget>((participant) {
+                      return ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: Colors.blue.shade100,
+                          child: Text(
+                            participant.displayName.isNotEmpty 
+                                ? participant.displayName[0].toUpperCase()
+                                : '?',
+                            style: TextStyle(
+                              color: Colors.blue.shade700,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        title: Text(participant.displayName),
+                        subtitle: Text(participant.email ?? 'Guest user'),
+                        onTap: () => Navigator.of(context).pop(participant),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ),
+            ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('OK'),
+              child: const Text('Cancel'),
             ),
           ],
         );
       },
     );
+
+    if (selectedParticipant != null && mounted) {
+      await _performHostTransfer(context, selectedParticipant);
+    }
+  }
+
+  Future<void> _performHostTransfer(BuildContext context, dynamic newHost) async {
+    final sessionProvider = Provider.of<SessionProvider>(context, listen: false);
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirm Host Transfer'),
+          content: Text(
+            'Transfer host privileges to ${newHost.displayName}?\n\n'
+            'You will become a regular participant and will no longer be able to manage the session.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Transfer'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    // Perform the transfer
+    final success = await sessionProvider.transferHost(widget.session.id, newHost.userId);
+
+    if (mounted) {
+      if (success) {
+        navigator.pop(); // Go back to session lobby
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text('Host privileges transferred to ${newHost.displayName}'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text('Failed to transfer host privileges: ${sessionProvider.errorMessage}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

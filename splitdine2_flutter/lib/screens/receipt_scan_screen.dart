@@ -144,6 +144,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
                       : ListView(
                           padding: const EdgeInsets.all(16),
                           children: [
+
                             // Existing items
                             ..._existingItems.map((item) => _buildSessionReceiptItemCard(item)),
 
@@ -270,6 +271,40 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
                 fontSize: 14,
                 color: Colors.grey.shade600,
                 height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: Colors.blue.shade200,
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.add_circle_outline,
+                    color: Colors.blue.shade700,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Start adding your items to make bill splitting easier at the end',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.blue.shade700,
+                        fontWeight: FontWeight.w500,
+                        height: 1.3,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 32),
@@ -1287,6 +1322,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> {
       ),
     );
   }
+
 
   void _removeItem(int index) {
     setState(() {
