@@ -20,13 +20,24 @@ class AuthProvider with ChangeNotifier {
     try {
       final isLoggedIn = await _authService.isLoggedIn();
       if (isLoggedIn) {
-        final userData = await _authService.getStoredUser();
-        if (userData != null) {
-          _user = User.fromJson(userData);
+        // Validate token with server to check if it's still valid
+        final isValidToken = await _authService.validateToken();
+        
+        if (isValidToken) {
+          final userData = await _authService.getStoredUser();
+          if (userData != null) {
+            _user = User.fromJson(userData);
+          }
+        } else {
+          // Token is expired or invalid, clear stored data
+          await _authService.logout();
+          _user = null;
         }
       }
     } catch (e) {
-      _setError('Failed to initialize authentication');
+      // On any error, assume token is invalid and clear auth
+      await _authService.logout();
+      _user = null;
     }
     
     _setLoading(false);
