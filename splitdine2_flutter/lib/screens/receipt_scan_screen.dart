@@ -358,57 +358,6 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
                 ],
               ),
             ),
-            const SizedBox(height: 32),
-            // Quick action buttons
-            Column(
-              children: [
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: () => _pickImage(ImageSource.camera),
-                    icon: const Icon(Icons.camera_alt),
-                    label: const Text(
-                      'Scan Receipt',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF7A8471),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: _addNewItem,
-                    icon: const Icon(Icons.add),
-                    label: const Text(
-                      'Add Item Manually',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF7A8471),
-                      side: const BorderSide(color: Color(0xFF7A8471)),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
             const SizedBox(height: 24),
             // Tips section
             Container(
@@ -1091,11 +1040,31 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
       selectedSource = source ?? await _showImageSourceDialog();
       print('[DEBUG] Selected source: $selectedSource');
 
-      // Silently redirect to gallery if camera might cause issues
-      // This handles low-memory devices gracefully
-      if (selectedSource == ImageSource.camera) {
-        print('[DEBUG] Camera selected - checking device memory status');
-        // For now, we'll use camera as requested but if it fails, we'll suggest gallery
+      // Show warning for camera usage due to memory requirements
+      if (selectedSource == ImageSource.camera && mounted) {
+        final shouldProceed = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Camera Notice'),
+            content: const Text(
+              'Camera scanning requires device memory. If your device restarts or the app crashes, please use the Gallery option instead to select a photo.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Use Gallery'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Continue with Camera'),
+              ),
+            ],
+          ),
+        );
+
+        if (shouldProceed != true) {
+          selectedSource = ImageSource.gallery;
+        }
       }
 
       setState(() {
@@ -1134,49 +1103,10 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
       print('[ERROR] Stack trace: ${StackTrace.current}');
       setState(() {
         _cameraInProgress = false;
+        _errorMessage = selectedSource == ImageSource.camera 
+            ? 'Camera failed. Please try using Gallery instead.'
+            : 'Unable to select image. Please try again.';
       });
-      
-      // If camera failed, automatically try gallery
-      if (selectedSource == ImageSource.camera && mounted) {
-        print('[DEBUG] Camera failed, automatically trying gallery');
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Switching to gallery...'),
-            duration: Duration(seconds: 1),
-          ),
-        );
-        
-        // Small delay before opening gallery
-        await Future.delayed(const Duration(milliseconds: 500));
-        
-        // Try gallery instead
-        try {
-          final XFile? galleryImage = await _picker.pickImage(
-            source: ImageSource.gallery,
-            maxWidth: 1920,
-            maxHeight: 1920,
-            imageQuality: 85,
-          );
-          
-          if (galleryImage != null) {
-            setState(() {
-              _selectedImage = File(galleryImage.path);
-              _parsedItems.clear();
-              _errorMessage = null;
-            });
-            await _processReceipt();
-          }
-        } catch (galleryError) {
-          print('[ERROR] Gallery also failed: $galleryError');
-          setState(() {
-            _errorMessage = 'Unable to select image. Please try again.';
-          });
-        }
-      } else {
-        setState(() {
-          _errorMessage = 'Unable to select image. Please try again.';
-        });
-      }
     }
   }
 
@@ -1222,6 +1152,12 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
       return;
     }
 
+    // Prevent multiple simultaneous processing
+    if (_isProcessing) {
+      print('[DEBUG] Receipt processing already in progress, ignoring request');
+      return;
+    }
+
     print('[DEBUG] _processReceipt starting with image: ${_selectedImage!.path}');
     print('[DEBUG] Image exists: ${await _selectedImage!.exists()}');
     print('[DEBUG] Image size: ${await _selectedImage!.length()} bytes');
@@ -1258,7 +1194,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
 
         if (validItems.isEmpty) {
           setState(() {
-            _errorMessage = 'No valid items found in receipt';
+            _errorMessage = 'No items found. Try a different photo or add items manually.';
           });
           return;
         }
@@ -1293,22 +1229,24 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
             }
           } else {
             setState(() {
-              _errorMessage = addResult['message'] ?? 'Failed to add items to session';
+              _errorMessage = 'Could not add items. Please try again or add items manually.';
             });
           }
         } catch (e) {
+          print('[ERROR] Error adding items: $e');
           setState(() {
-            _errorMessage = 'Error adding items: $e';
+            _errorMessage = 'Network error. Please check your connection and try again.';
           });
         }
       } else {
         setState(() {
-          _errorMessage = result['error'] ?? 'Failed to process receipt';
+          _errorMessage = 'Could not scan receipt. Please try a clearer photo.';
         });
       }
     } catch (e) {
+      print('[ERROR] Error processing receipt: $e');
       setState(() {
-        _errorMessage = 'Error processing receipt: $e';
+        _errorMessage = 'Scanning failed. Please try again or add items manually.';
       });
     } finally {
       setState(() {
