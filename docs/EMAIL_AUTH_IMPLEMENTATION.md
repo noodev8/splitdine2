@@ -345,6 +345,7 @@ Both pages feature:
 4. **Navigation issues**: Ensure Flutter routes are properly configured
 5. **Form submission issues**: Ensure form has `method="post" action="javascript:void(0)"` to prevent URL parameter pollution
 6. **Password validation**: Backend uses simplified 8+ character validation only
+7. **CSP inline script errors**: Add `'unsafe-inline'` to `scriptSrc` in Content Security Policy for HTML form JavaScript to work
 
 ### Debug Steps
 1. Check server logs for email service errors
