@@ -19,20 +19,27 @@ function analyzeMenuItems(detections) {
   }
 
   try {
+    console.log(`[MenuAnalyzer] Starting analysis with ${detections.length} detections`);
+    
     // Step 1: Parse and validate detections
     const validDetections = parseDetections(detections);
+    console.log(`[MenuAnalyzer] Valid detections: ${validDetections.length}`);
     
     // Step 2: Spatial analysis - group by position
     const spatialGroups = performSpatialAnalysis(validDetections);
+    console.log(`[MenuAnalyzer] Spatial groups: ${spatialGroups.length}`);
     
     // Step 3: Filter out receipt metadata
     const filteredGroups = applyPatternFiltering(spatialGroups);
+    console.log(`[MenuAnalyzer] Filtered groups: ${filteredGroups.length}`);
     
     // Step 4: Group food-related words into menu items
     const menuItems = performContextualGrouping(filteredGroups);
+    console.log(`[MenuAnalyzer] Menu items before enhancement: ${menuItems.length}`);
     
     // Step 5: Enhance with food keyword analysis
     const enhancedItems = enhanceFoodDetection(menuItems);
+    console.log(`[MenuAnalyzer] Enhanced menu items: ${enhancedItems.length}`);
     
     return {
       success: true,
@@ -41,6 +48,7 @@ function analyzeMenuItems(detections) {
         totalDetections: detections.length,
         validDetections: validDetections.length,
         spatialGroups: spatialGroups.length,
+        filteredGroups: filteredGroups.length,
         menuItemsFound: enhancedItems.length
       }
     };
@@ -67,7 +75,17 @@ function parseDetections(detections) {
       // Handle different input formats
       const text = detection.detection_text || detection.text || '';
       const confidence = parseFloat(detection.confidence) || 0;
-      const boundingBox = detection.bounding_box || detection.boundingPoly || null;
+      
+      // Parse bounding box if it's a JSON string
+      let boundingBox = detection.bounding_box || detection.boundingPoly || null;
+      if (typeof boundingBox === 'string') {
+        try {
+          boundingBox = JSON.parse(boundingBox);
+        } catch (e) {
+          console.warn('Failed to parse bounding box JSON:', e);
+          boundingBox = null;
+        }
+      }
       
       return {
         text: text.trim(),
@@ -163,14 +181,21 @@ function applyPatternFiltering(spatialGroups) {
       excludePatterns.some(pattern => pattern.test(item.text))
     ).length;
     
+    const groupText = group.items.map(item => item.text).join(' ');
+    console.log(`[DEBUG] Group: "${groupText}" - Excluded: ${excludedCount}/${group.items.length}`);
+    
     // Keep groups where less than 70% are excluded patterns
     return excludedCount < (group.items.length * 0.7);
   }).map(group => ({
     ...group,
     // Remove excluded items from the group
-    items: group.items.filter(item => 
-      !excludePatterns.some(pattern => pattern.test(item.text))
-    )
+    items: group.items.filter(item => {
+      const isExcluded = excludePatterns.some(pattern => pattern.test(item.text));
+      if (isExcluded) {
+        console.log(`[DEBUG] Filtering out: "${item.text}"`);
+      }
+      return !isExcluded;
+    })
   })).filter(group => group.items.length > 0); // Remove empty groups
 }
 
@@ -279,9 +304,13 @@ function enhanceFoodDetection(menuItems) {
  * Helper functions
  */
 function getYPosition(boundingBox) {
-  if (!boundingBox || !boundingBox.vertices) return 0;
+  if (!boundingBox || !boundingBox.vertices) {
+    console.log('[DEBUG] No bounding box or vertices found');
+    return 0;
+  }
   const vertices = boundingBox.vertices;
-  return vertices.reduce((sum, vertex) => sum + (vertex.y || 0), 0) / vertices.length;
+  const yPos = vertices.reduce((sum, vertex) => sum + (vertex.y || 0), 0) / vertices.length;
+  return yPos;
 }
 
 function getXPosition(boundingBox) {
