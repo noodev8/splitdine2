@@ -41,6 +41,11 @@ function analyzeMenuItems(detections) {
     const enhancedItems = enhanceFoodDetection(menuItems);
     console.log(`[MenuAnalyzer] Enhanced menu items: ${enhancedItems.length}`);
     
+    // Debug: log details of enhanced items
+    enhancedItems.forEach((item, index) => {
+      console.log(`[DEBUG] Item ${index + 1}: "${item.name}" - Price: ${item.price} - isLikelyMenuItem: ${item.isLikelyMenuItem} - foodScore: ${item.foodScore}`);
+    });
+    
     return {
       success: true,
       menuItems: enhancedItems,
