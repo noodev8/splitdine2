@@ -239,82 +239,6 @@ router.post('/update-item', authenticateToken, async (req, res) => {
   }
 });
 
-// Delete split item
-router.post('/delete-item', authenticateToken, async (req, res) => {
-  try {
-    const { item_id } = req.body;
-
-    // Validate required fields
-    if (!item_id) {
-      return res.status(400).json({
-        return_code: 'MISSING_FIELDS',
-        message: 'Item ID is required',
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    // Check if split item exists
-    const existingItem = await splitItemQueries.findById(item_id);
-    if (!existingItem) {
-      return res.status(404).json({
-        return_code: 'ITEM_NOT_FOUND',
-        message: 'Split item not found',
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    // Get session to check if user is participant
-    const { sessionQueries, participantQueries } = require('../utils/database');
-    const session = await sessionQueries.findById(existingItem.session_id);
-
-    if (!session) {
-      return res.status(404).json({
-        return_code: 'SESSION_NOT_FOUND',
-        message: 'Session not found',
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    // Check if user is host or participant
-    const isHost = session.organizer_id === req.user.id;
-    const isParticipant = await participantQueries.isParticipant(existingItem.session_id, req.user.id);
-
-    if (!isHost && !isParticipant) {
-      return res.status(403).json({
-        return_code: 'UNAUTHORIZED',
-        message: 'You are not a participant in this session',
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    // Check permissions: organizer can delete any item, guests can only delete their own
-    if (!isHost && existingItem.added_by_user_id !== req.user.id) {
-      return res.status(403).json({
-        return_code: 'UNAUTHORIZED',
-        message: 'You can only delete items you added',
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    // Delete split item
-    await splitItemQueries.delete(item_id);
-
-    res.json({
-      return_code: 'SUCCESS',
-      message: 'Split item deleted successfully',
-      timestamp: new Date().toISOString()
-    });
-
-  } catch (error) {
-    console.error('Delete split item error:', error);
-    res.status(500).json({
-      return_code: 'SERVER_ERROR',
-      message: 'Failed to delete split item',
-      timestamp: new Date().toISOString()
-    });
-  }
-});
-
 // Add participant to split item (using participant_choice table)
 router.post('/add-participant', authenticateToken, async (req, res) => {
   try {
@@ -436,52 +360,6 @@ router.post('/remove-participant', authenticateToken, async (req, res) => {
     res.status(500).json({
       return_code: 'SERVER_ERROR',
       message: 'Failed to remove participant from split item',
-      timestamp: new Date().toISOString()
-    });
-  }
-});
-
-// Get participants for a split item
-router.post('/get-participants', authenticateToken, async (req, res) => {
-  try {
-    const { item_id } = req.body;
-
-    // Validate required fields
-    if (!item_id) {
-      return res.status(400).json({
-        return_code: 'MISSING_FIELDS',
-        message: 'Item ID is required',
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    // Check if split item exists
-    const existingItem = await splitItemQueries.findById(item_id);
-    if (!existingItem) {
-      return res.status(404).json({
-        return_code: 'ITEM_NOT_FOUND',
-        message: 'Split item not found',
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    // Get participants for this split item
-    const participants = await participantChoiceQueries.getSplitItemParticipants(
-      existingItem.session_id,
-      existingItem.name
-    );
-
-    res.json({
-      return_code: 'SUCCESS',
-      participants: participants,
-      timestamp: new Date().toISOString()
-    });
-
-  } catch (error) {
-    console.error('Get split item participants error:', error);
-    res.status(500).json({
-      return_code: 'SERVER_ERROR',
-      message: 'Failed to get split item participants',
       timestamp: new Date().toISOString()
     });
   }

@@ -1,10 +1,8 @@
 import 'dart:convert';
-import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:splitdine2_flutter/config/app_config.dart';
 import 'package:splitdine2_flutter/models/split_item.dart';
-import '../utils/api_error_handler.dart';
 
 class SplitItemService {
   static const String baseUrl = AppConfig.baseUrl;
@@ -229,33 +227,5 @@ class SplitItemService {
     }
   }
 
-  // Get user's split item assignments
-  Future<Map<String, dynamic>> getUserSplitItems(int sessionId) async {
-    try {
-      final headers = await _getAuthHeaders();
-      final response = await http.post(
-        Uri.parse('$baseUrl/split-items/get-user-assignments'),
-        headers: headers,
-        body: jsonEncode({
-          'session_id': sessionId,
-        }),
-      );
-
-      final data = jsonDecode(response.body);
-
-      if (data['return_code'] == 'SUCCESS') {
-        return {
-          'success': true,
-          'items': data['items'],
-          'total': data['total'] ?? 0.0,
-          'item_count': data['item_count'] ?? 0,
-        };
-      } else {
-        return {'success': false, 'message': data['message']};
-      }
-    } catch (e) {
-      return {'success': false, 'message': 'Network error: $e'};
-    }
-  }
 
 }

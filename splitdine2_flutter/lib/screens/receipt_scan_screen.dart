@@ -1555,15 +1555,6 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
       );
 
       if (result['success']) {
-        // Update guest choice prices if price changed
-        if (price != item.price) {
-          await _guestChoiceService.updateItemPrices(
-            sessionId: widget.session.id,
-            itemId: item.id,
-            newPrice: price,
-            isShared: _sharedItems.contains(item.id),
-          );
-        }
 
         await _loadExistingItems();
         await _loadAssignments();

@@ -71,8 +71,6 @@ app.get('/health', (req, res) => {
 // Import route modules
 const authRoutes = require('./routes/auth');
 const sessionRoutes = require('./routes/sessions');
-const receiptRoutes = require('./routes/receipts');
-const assignmentRoutes = require('./routes/assignments');
 const splitItemRoutes = require('./routes/split_items');
 const sessionReceiptRoutes = require('./routes/session_receipt');
 const guestChoicesRoutes = require('./routes/guest_choices');
@@ -84,8 +82,6 @@ app.use('/api/sessions/create', sessionLimiter);
 // Use route modules
 app.use('/api/auth', authRoutes);
 app.use('/api/sessions', sessionRoutes);
-app.use('/api/receipts', receiptRoutes);
-app.use('/api/assignments', assignmentRoutes);
 app.use('/api/split-items', splitItemRoutes);
 app.use('/api/receipt_scan', require('./routes/receipt_scan'));
 app.use('/api/session_receipt', sessionReceiptRoutes);

@@ -8,64 +8,6 @@ const { authenticateToken, requireSessionParticipant } = require('../middleware/
  * All routes use POST method and return standardized JSON responses
  */
 
-// Test endpoint
-router.get('/test', (req, res) => {
-  res.json({
-    return_code: 'SUCCESS',
-    message: 'Session receipt service is working',
-    timestamp: new Date().toISOString()
-  });
-});
-
-// Test endpoint without auth for debugging
-router.post('/get-items-no-auth', async (req, res) => {
-  try {
-    const { session_id } = req.body;
-
-    if (!session_id) {
-      return res.status(400).json({
-        return_code: 'MISSING_FIELDS',
-        message: 'session_id is required',
-        timestamp: new Date().toISOString()
-      });
-    }
-
-        const items = await sessionReceiptQueries.getBySession(session_id);
-    
-    const subtotal = items.reduce((sum, item) => sum + parseFloat(item.price), 0);
-    const itemCount = items.length;
-
-    res.json({
-      return_code: 'SUCCESS',
-      message: `Retrieved ${itemCount} session receipt items`,
-      data: {
-        items: items.map(item => ({
-          id: item.id,
-          session_id: item.session_id,
-          item_name: item.item_name,
-          price: parseFloat(item.price),
-          created_at: item.created_at,
-          updated_at: item.updated_at
-        })),
-        totals: {
-          subtotal: subtotal,
-          item_count: itemCount
-        }
-      },
-      timestamp: new Date().toISOString()
-    });
-
-  } catch (error) {
-    console.error('Get session receipt items error (no auth):', error);
-    res.status(500).json({
-      return_code: 'SERVER_ERROR',
-      message: 'Failed to retrieve session receipt items',
-      error: error.message,
-      timestamp: new Date().toISOString()
-    });
-  }
-});
-
 // Add session receipt item
 router.post('/add-item', authenticateToken, requireSessionParticipant, async (req, res) => {
   try {
