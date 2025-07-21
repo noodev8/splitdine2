@@ -212,11 +212,11 @@ function applyPatternFiltering(spatialGroups) {
 function performContextualGrouping(filteredGroups) {
   const menuItems = [];
   
-  filteredGroups.forEach(group => {
-    const words = group.items.map(item => item.text);
-    const confidences = group.items.map(item => item.confidence);
-    
-    // Separate potential prices from item names
+  // First pass: identify groups with prices and groups with food words
+  const priceGroups = [];
+  const foodGroups = [];
+  
+  filteredGroups.forEach((group, index) => {
     const prices = [];
     const itemWords = [];
     
@@ -233,19 +233,60 @@ function performContextualGrouping(filteredGroups) {
       }
     });
     
-    // Only create menu item if we have actual food words
-    if (itemWords.length > 0) {
-      const itemName = itemWords.join(' ');
-      const avgConfidence = confidences.reduce((a, b) => a + b, 0) / confidences.length;
-      
-      menuItems.push({
-        name: itemName,
-        price: prices.length > 0 ? Math.max(...prices) : null, // Use highest price if multiple
-        confidence: avgConfidence,
-        wordCount: itemWords.length,
-        originalGroup: group
+    if (prices.length > 0) {
+      priceGroups.push({
+        index,
+        group,
+        prices,
+        yPosition: group.yPosition
       });
     }
+    
+    if (itemWords.length > 0) {
+      foodGroups.push({
+        index,
+        group,
+        itemWords,
+        yPosition: group.yPosition,
+        confidence: group.items.reduce((sum, item) => sum + item.confidence, 0) / group.items.length
+      });
+    }
+  });
+  
+  // Second pass: match food groups with nearby price groups
+  foodGroups.forEach(foodGroup => {
+    const itemName = foodGroup.itemWords.join(' ');
+    let matchedPrice = null;
+    
+    // Look for prices in the same group first
+    const sameGroupPrices = priceGroups.filter(pg => pg.index === foodGroup.index);
+    if (sameGroupPrices.length > 0) {
+      matchedPrice = Math.max(...sameGroupPrices[0].prices);
+      console.log(`[DEBUG] Same group price match: "${itemName}" -> ${matchedPrice}`);
+    } else {
+      // Look for prices in nearby groups (within 30 pixels vertically)
+      const nearbyPrices = priceGroups.filter(pg => 
+        Math.abs(pg.yPosition - foodGroup.yPosition) < 30
+      );
+      
+      if (nearbyPrices.length > 0) {
+        // Use the closest price group
+        const closestPriceGroup = nearbyPrices.reduce((closest, current) => 
+          Math.abs(current.yPosition - foodGroup.yPosition) < Math.abs(closest.yPosition - foodGroup.yPosition) 
+            ? current : closest
+        );
+        matchedPrice = Math.max(...closestPriceGroup.prices);
+        console.log(`[DEBUG] Nearby price match: "${itemName}" -> ${matchedPrice} (distance: ${Math.abs(closestPriceGroup.yPosition - foodGroup.yPosition)})`);
+      }
+    }
+    
+    menuItems.push({
+      name: itemName,
+      price: matchedPrice,
+      confidence: foodGroup.confidence,
+      wordCount: foodGroup.itemWords.length,
+      originalGroup: foodGroup.group
+    });
   });
   
   return menuItems;
