@@ -3,6 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const router = express.Router();
+const pool = require('../db/pool');
 
 const { receiptScanQueries, sessionQueries, participantQueries, receiptQueries, integrityQueries } = require('../utils/database');
 const { extractTextFromReceipt, parseReceiptText } = require('../utils/ocrService');
@@ -134,6 +135,35 @@ router.post('/upload', authenticateToken, upload.single('image'), async (req, re
         message: ocrResult.error || 'Failed to process receipt image',
         timestamp: new Date().toISOString()
       });
+    }
+    
+    // Save raw scan text to raw_scan table
+    // Check if we should replace existing scans (this could be passed as a parameter)
+    const { replace_scan = false } = req.body;
+    
+    const rawScanClient = await pool.connect();
+    try {
+      await rawScanClient.query('BEGIN');
+      
+      if (replace_scan) {
+        await rawScanClient.query(
+          'DELETE FROM raw_scan WHERE session_id = $1',
+          [session_id]
+        );
+      }
+      
+      await rawScanClient.query(
+        'INSERT INTO raw_scan (session_id, scan_text) VALUES ($1, $2)',
+        [session_id, ocrResult.text]
+      );
+      
+      await rawScanClient.query('COMMIT');
+    } catch (rawScanError) {
+      await rawScanClient.query('ROLLBACK');
+      console.error('Error saving raw scan:', rawScanError);
+      // Continue processing even if raw scan save fails
+    } finally {
+      rawScanClient.release();
     }
     
     // Parse the OCR text to extract items and totals

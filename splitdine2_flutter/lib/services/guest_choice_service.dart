@@ -168,6 +168,34 @@ class GuestChoiceService {
     }
   }
 
+  // Delete all assignments for an item
+  Future<Map<String, dynamic>> deleteItemAssignments({
+    required int sessionId,
+    required int itemId,
+  }) async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.post(
+        Uri.parse('$baseUrl/guest_choices/delete_item_assignments'),
+        headers: headers,
+        body: jsonEncode({
+          'session_id': sessionId,
+          'item_id': itemId,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (data['return_code'] == 'SUCCESS') {
+        return {'success': true, 'message': data['message']};
+      } else {
+        return {'success': false, 'message': data['message']};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
   // Get payment summary for session
   Future<Map<String, dynamic>> getPaymentSummary(int sessionId) async {
     try {

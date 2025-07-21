@@ -370,7 +370,6 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
 
                           ...participantTotals.map<Widget>((participantData) {
                             final userName = participantData['user_name'] as String;
-                            final userEmail = participantData['email'] as String?;
                             final amount = (participantData['total_amount'] as num).toDouble();
                             final userId = participantData['user_id'] as int;
                             final isOrganizer = userId == widget.session.organizerId;
@@ -394,16 +393,16 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
                                       child: ListTile(
                                 leading: CircleAvatar(
                                   backgroundColor: amount > 0 
-                                      ? Colors.red.withValues(alpha: 0.1)
-                                      : Colors.green.withValues(alpha: 0.1),
+                                      ? Colors.green.withValues(alpha: 0.1)
+                                      : Colors.grey.withValues(alpha: 0.1),
                                   child: Text(
                                     userName.isNotEmpty 
                                         ? userName[0].toUpperCase()
                                         : '?',
                                     style: TextStyle(
                                       color: amount > 0 
-                                          ? Colors.red
-                                          : Colors.green,
+                                          ? Colors.green
+                                          : Colors.grey,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -436,21 +435,13 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
                                       ),
                                   ],
                                 ),
-                                subtitle: Text(
-                                  userEmail ?? 'Guest user',
-                                  style: TextStyle(
-                                    color: Colors.grey.shade600,
-                                  ),
-                                ),
                                 trailing: Text(
-                                  amount > 0 
-                                      ? '-£${amount.toStringAsFixed(2)}'
-                                      : '£${amount.abs().toStringAsFixed(2)}',
+                                  '£${amount.toStringAsFixed(2)}',
                                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                     fontWeight: FontWeight.bold,
                                     color: amount > 0
-                                        ? Colors.red
-                                        : Colors.green,
+                                        ? Colors.green
+                                        : Colors.grey,
                                   ),
                                 ),
                               ),
@@ -458,16 +449,16 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
                                   : ListTile(
                                       leading: CircleAvatar(
                                         backgroundColor: amount > 0 
-                                            ? Colors.red.withValues(alpha: 0.1)
-                                            : Colors.green.withValues(alpha: 0.1),
+                                            ? Colors.green.withValues(alpha: 0.1)
+                                            : Colors.grey.withValues(alpha: 0.1),
                                         child: Text(
                                           userName.isNotEmpty 
                                               ? userName[0].toUpperCase()
                                               : '?',
                                           style: TextStyle(
                                             color: amount > 0 
-                                                ? Colors.red
-                                                : Colors.green,
+                                                ? Colors.green
+                                                : Colors.grey,
                                             fontWeight: FontWeight.bold,
                                           ),
                                         ),
@@ -500,21 +491,13 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
                                             ),
                                         ],
                                       ),
-                                      subtitle: Text(
-                                        userEmail ?? 'Guest user',
-                                        style: TextStyle(
-                                          color: Colors.grey.shade600,
-                                        ),
-                                      ),
                                       trailing: Text(
-                                        amount > 0 
-                                            ? '-£${amount.toStringAsFixed(2)}'
-                                            : '£${amount.abs().toStringAsFixed(2)}',
+                                        '£${amount.toStringAsFixed(2)}',
                                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                           fontWeight: FontWeight.bold,
                                           color: amount > 0
-                                              ? Colors.red
-                                              : Colors.green,
+                                              ? Colors.green
+                                              : Colors.grey,
                                         ),
                                       ),
                                     ),

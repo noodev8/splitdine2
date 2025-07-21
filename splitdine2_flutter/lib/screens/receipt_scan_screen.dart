@@ -36,6 +36,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
   bool _isLoading = false;
   String? _errorMessage;
   bool _cameraInProgress = false;  // Track if camera operation is in progress
+  bool _shouldReplaceScan = false;  // Track if we should replace existing scan
 
   // Track guest choices and shared items
   Map<int, List<int>> _itemAssignments = {}; // itemId -> list of userIds
@@ -1196,6 +1197,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
       final result = await ApiService.scanReceipt(
         widget.session.id,
         _selectedImage!,
+        replaceScan: _shouldReplaceScan,
       );
 
       if (result['success']) {
@@ -1276,6 +1278,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
     } finally {
       setState(() {
         _isProcessing = false;
+        _shouldReplaceScan = false; // Reset flag after processing
       });
     }
   }
@@ -1514,6 +1517,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
     } finally {
       setState(() {
         _isProcessing = false;
+        _shouldReplaceScan = false; // Reset flag after processing
       });
     }
   }
@@ -1899,8 +1903,14 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
     );
 
     if (result == 'add') {
+      setState(() {
+        _shouldReplaceScan = false;
+      });
       _pickImage();
     } else if (result == 'replace') {
+      setState(() {
+        _shouldReplaceScan = true;
+      });
       await _clearExistingItems();
       _pickImage();
     }
@@ -2012,9 +2022,11 @@ class _EditItemDialogState extends State<_EditItemDialog> {
               mainAxisSize: MainAxisSize.min,
               children: [
             // Close button and title
-            Row(
+            Stack(
               children: [
-                Expanded(
+                // Centered title
+                SizedBox(
+                  width: double.infinity,
                   child: Text(
                     widget.item == null ? 'Add Item' : 'Edit Item',
                     style: const TextStyle(
@@ -2025,14 +2037,19 @@ class _EditItemDialogState extends State<_EditItemDialog> {
                     textAlign: TextAlign.center,
                   ),
                 ),
-                IconButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close),
-                  iconSize: 20,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(
-                    minWidth: 32,
-                    minHeight: 32,
+                // Close button positioned on the right
+                Positioned(
+                  right: 0,
+                  top: -8, // Adjust vertical alignment
+                  child: IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close),
+                    iconSize: 20,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 32,
+                      minHeight: 32,
+                    ),
                   ),
                 ),
               ],
@@ -2113,15 +2130,17 @@ class _EditItemDialogState extends State<_EditItemDialog> {
             // Action buttons
             SizedBox(
               width: double.infinity,
-              child: FilledButton(
+              child: ElevatedButton(
                 onPressed: _onSave,
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF7A8471),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF7A8471), // Match Guest Choices screen buttons
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
+                  elevation: 0,
+                  shadowColor: Colors.transparent,
                 ),
                 child: const Text(
                   'Save',

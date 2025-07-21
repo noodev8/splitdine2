@@ -204,14 +204,6 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
 
             const SizedBox(height: 24),
 
-            // Session Code Section (title removed)
-            const SizedBox.shrink(), // Placeholder for removed section
-
-
-
-
-
-            const SizedBox(height: 32),
 
             // Action Buttons
             Column(
@@ -266,6 +258,87 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                       overlayColor: Colors.black.withValues(alpha: 0.05), // Subtle press effect
                     ),
                   ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // Session Code and Add Guest row
+                Row(
+                  children: [
+                    // Session Code Box (half width)
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: Colors.grey.shade300,
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.qr_code,
+                              size: 20,
+                              color: Colors.grey.shade600,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              widget.session.joinCode,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                fontFamily: 'monospace',
+                                letterSpacing: 1,
+                              ),
+                            ),
+                            const Spacer(),
+                            GestureDetector(
+                              onTap: () {
+                                Clipboard.setData(ClipboardData(text: widget.session.joinCode));
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Code copied'),
+                                    duration: Duration(seconds: 1),
+                                  ),
+                                );
+                              },
+                              child: Icon(
+                                Icons.copy,
+                                size: 18,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Add Guest button (for hosts only)
+                    if (widget.session.isHost)
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _navigateToAddGuest(context),
+                          icon: const Icon(Icons.person_add, size: 18),
+                          label: const Text(
+                            'Add Guest',
+                            style: TextStyle(fontSize: 14),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            side: BorderSide(
+                              color: Colors.grey.shade400,
+                              width: 1,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
 
                 const SizedBox(height: 12),

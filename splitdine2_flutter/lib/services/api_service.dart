@@ -30,8 +30,9 @@ class ApiService {
    */
   static Future<Map<String, dynamic>> scanReceipt(
     int sessionId,
-    File imageFile,
-  ) async {
+    File imageFile, {
+    bool replaceScan = false,
+  }) async {
     try {
       final token = await _getToken();
       if (token == null) {
@@ -51,6 +52,7 @@ class ApiService {
       
       // Add form fields
       request.fields['session_id'] = sessionId.toString();
+      request.fields['replace_scan'] = replaceScan.toString();
       
       // Add image file
       final imageStream = http.ByteStream(imageFile.openRead());
