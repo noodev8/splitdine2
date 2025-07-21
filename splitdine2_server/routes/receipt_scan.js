@@ -3,7 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const router = express.Router();
-const pool = require('../db/pool');
+const { pool } = require('../config/database');
 
 const { receiptScanQueries, sessionQueries, participantQueries, receiptQueries, integrityQueries } = require('../utils/database');
 const { extractTextFromReceipt, parseReceiptText } = require('../utils/ocrService');

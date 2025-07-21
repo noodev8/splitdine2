@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const pool = require('../db/pool');
-const { authenticateToken } = require('../middleware/authMiddleware');
+const { pool } = require('../config/database');
+const { authenticateToken } = require('../middleware/auth');
 
 /**
  * POST /api/raw_scan/save
