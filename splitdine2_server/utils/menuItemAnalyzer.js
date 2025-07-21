@@ -143,7 +143,15 @@ function performSpatialAnalysis(detections) {
   });
   
   // Sort groups by Y position (top to bottom)
-  return groups.sort((a, b) => a.yPosition - b.yPosition);
+  const sortedGroups = groups.sort((a, b) => a.yPosition - b.yPosition);
+  
+  // Debug: log spatial groups
+  sortedGroups.forEach((group, index) => {
+    const groupText = group.items.map(item => item.text).join(' ');
+    console.log(`[DEBUG] Spatial Group ${index + 1}: "${groupText}" (Y: ${group.yPosition.toFixed(1)})`);
+  });
+  
+  return sortedGroups;
 }
 
 /**
