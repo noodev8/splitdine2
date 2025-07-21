@@ -4,13 +4,13 @@ import 'api_service.dart';
 class RawScanService extends ApiService {
   static const String _basePath = '/api/raw_scan';
 
-  /// Save raw scan text from Vision API
+  /// Save OCR detections from Vision API
   /// [sessionId] - The session ID
-  /// [scanText] - Raw OCR text from Vision API
+  /// [detections] - List of individual OCR detections
   /// [replace] - Whether to replace existing scan or add to it
-  Future<Map<String, dynamic>> saveRawScan({
+  Future<Map<String, dynamic>> saveRawScanDetections({
     required String sessionId,
-    required String scanText,
+    required List<Map<String, dynamic>> detections,
     bool replace = false,
   }) async {
     try {
@@ -18,7 +18,7 @@ class RawScanService extends ApiService {
         '$_basePath/save',
         body: {
           'session_id': sessionId,
-          'scan_text': scanText,
+          'detections': detections,
           'replace': replace,
         },
       );
@@ -57,7 +57,7 @@ class RawScanService extends ApiService {
   }
 
   /// Get combined raw scan text for a session
-  /// Helper method to get all raw scans and combine their text
+  /// Helper method to get all raw scan detections and combine their text
   Future<String> getCombinedRawScanText(String sessionId) async {
     try {
       final rawScans = await getRawScans(sessionId);
@@ -66,14 +66,32 @@ class RawScanService extends ApiService {
         return '';
       }
       
-      // Combine all scan texts with newlines between them
+      // Combine all detection texts with spaces between them
       return rawScans
-          .map((scan) => scan['scan_text'] ?? '')
+          .map((scan) => scan['detection_text'] ?? '')
           .where((text) => text.isNotEmpty)
-          .join('\n\n');
+          .join(' ');
     } catch (e) {
       print('Error getting combined raw scan text: $e');
       return '';
+    }
+  }
+  
+  /// Get raw scan detections with metadata for analysis
+  /// Returns list of detections with text, confidence, and bounding box
+  Future<List<Map<String, dynamic>>> getRawScanDetections(String sessionId) async {
+    try {
+      final rawScans = await getRawScans(sessionId);
+      
+      return rawScans.map((scan) => {
+        'text': scan['detection_text'] ?? '',
+        'confidence': scan['confidence'],
+        'bounding_box': scan['bounding_box'],
+        'created_at': scan['created_at'],
+      }).toList();
+    } catch (e) {
+      print('Error getting raw scan detections: $e');
+      return [];
     }
   }
 }

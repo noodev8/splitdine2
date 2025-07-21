@@ -5,33 +5,37 @@ const { authenticateToken } = require('../middleware/auth');
 
 /**
  * POST /api/raw_scan/save
- * Save raw scan text from Vision API
+ * Save individual OCR detections from Vision API
  * 
  * Request body:
  * {
  *   "session_id": "123",
- *   "scan_text": "Raw OCR text from Vision API",
+ *   "detections": [
+ *     {
+ *       "text": "BURGER",
+ *       "confidence": 0.95,
+ *       "bounding_box": {...}
+ *     }
+ *   ],
  *   "replace": true/false  // Whether to replace existing scan or add to it
  * }
  * 
  * Response:
  * {
  *   "return_code": 200,
- *   "message": "Raw scan saved successfully",
+ *   "message": "Raw scan detections saved successfully",
  *   "data": {
- *     "id": 1,
- *     "session_id": "123",
- *     "scan_text": "Raw OCR text..."
+ *     "inserted_count": 25
  *   }
  * }
  */
 router.post('/save', authenticateToken, async (req, res) => {
-    const { session_id, scan_text, replace = false } = req.body;
+    const { session_id, detections, replace = false } = req.body;
 
-    if (!session_id || !scan_text) {
+    if (!session_id || !Array.isArray(detections)) {
         return res.status(400).json({
             return_code: 400,
-            message: 'Missing required fields: session_id and scan_text',
+            message: 'Missing required fields: session_id and detections array',
             data: null,
             timestamp: new Date()
         });
@@ -49,28 +53,44 @@ router.post('/save', authenticateToken, async (req, res) => {
             );
         }
 
-        // Insert new raw scan
-        const insertQuery = `
-            INSERT INTO raw_scan (session_id, scan_text)
-            VALUES ($1, $2)
-            RETURNING *
-        `;
-        const result = await client.query(insertQuery, [session_id, scan_text]);
+        // Insert individual detections
+        let insertedCount = 0;
+        for (const detection of detections) {
+            const { text, confidence, bounding_box } = detection;
+            
+            if (!text) continue; // Skip empty detections
+            
+            const insertQuery = `
+                INSERT INTO raw_scan (session_id, detection_text, confidence, bounding_box)
+                VALUES ($1, $2, $3, $4)
+            `;
+            
+            await client.query(insertQuery, [
+                session_id,
+                text,
+                confidence || null,
+                bounding_box ? JSON.stringify(bounding_box) : null
+            ]);
+            
+            insertedCount++;
+        }
 
         await client.query('COMMIT');
 
         res.json({
             return_code: 200,
-            message: replace ? 'Raw scan replaced successfully' : 'Raw scan added successfully',
-            data: result.rows[0],
+            message: replace ? 'Raw scan detections replaced successfully' : 'Raw scan detections added successfully',
+            data: {
+                inserted_count: insertedCount
+            },
             timestamp: new Date()
         });
     } catch (error) {
         await client.query('ROLLBACK');
-        console.error('Error saving raw scan:', error);
+        console.error('Error saving raw scan detections:', error);
         res.status(500).json({
             return_code: 500,
-            message: 'Failed to save raw scan',
+            message: 'Failed to save raw scan detections',
             data: null,
             timestamp: new Date()
         });

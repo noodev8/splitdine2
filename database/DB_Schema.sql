@@ -98,7 +98,10 @@ ALTER TABLE public.guest_choice OWNER TO splitdine_prod_user;
 CREATE TABLE public.raw_scan (
     id integer NOT NULL,
     session_id character varying(255) NOT NULL,
-    scan_text text NOT NULL
+    detection_text text NOT NULL,
+    confidence numeric(5,4),
+    bounding_box jsonb,
+    created_at timestamp with time zone DEFAULT now()
 );
 
 

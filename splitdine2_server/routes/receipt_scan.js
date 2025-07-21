@@ -137,8 +137,7 @@ router.post('/upload', authenticateToken, upload.single('image'), async (req, re
       });
     }
     
-    // Save raw scan text to raw_scan table
-    // Check if we should replace existing scans (this could be passed as a parameter)
+    // Save individual OCR detections to raw_scan table
     const { replace_scan = false } = req.body;
     
     const rawScanClient = await pool.connect();
@@ -152,15 +151,27 @@ router.post('/upload', authenticateToken, upload.single('image'), async (req, re
         );
       }
       
-      await rawScanClient.query(
-        'INSERT INTO raw_scan (session_id, scan_text) VALUES ($1, $2)',
-        [session_id, ocrResult.text]
-      );
+      // Save individual OCR detections (skip the first one which is full text)
+      if (ocrResult.detections && Array.isArray(ocrResult.detections)) {
+        for (const detection of ocrResult.detections) {
+          if (!detection.description) continue;
+          
+          await rawScanClient.query(
+            'INSERT INTO raw_scan (session_id, detection_text, confidence, bounding_box) VALUES ($1, $2, $3, $4)',
+            [
+              session_id,
+              detection.description,
+              detection.confidence || null,
+              detection.boundingPoly ? JSON.stringify(detection.boundingPoly) : null
+            ]
+          );
+        }
+      }
       
       await rawScanClient.query('COMMIT');
     } catch (rawScanError) {
       await rawScanClient.query('ROLLBACK');
-      console.error('Error saving raw scan:', rawScanError);
+      console.error('Error saving raw scan detections:', rawScanError);
       // Continue processing even if raw scan save fails
     } finally {
       rawScanClient.release();
