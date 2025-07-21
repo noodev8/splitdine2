@@ -6,7 +6,8 @@ const router = express.Router();
 const { pool } = require('../config/database');
 
 const { receiptScanQueries, sessionQueries, participantQueries, receiptQueries, integrityQueries } = require('../utils/database');
-const { extractTextFromReceipt, parseReceiptText } = require('../utils/ocrService');
+const { extractTextFromReceipt } = require('../utils/ocrService');
+const { analyzeMenuItems } = require('../utils/menuItemAnalyzer');
 const { authenticateToken } = require('../middleware/auth');
 
 /**
@@ -177,11 +178,23 @@ router.post('/upload', authenticateToken, upload.single('image'), async (req, re
       rawScanClient.release();
     }
     
-    // Parse the OCR text to extract items and totals
-    const parseResult = parseReceiptText(ocrResult.text);
-    
-    if (!parseResult.success) {
-      // Update scan record with parsing error
+    // Use intelligent analysis to extract menu items from raw detections
+    let analysisResult;
+    try {
+      // Get the raw detections we just saved
+      const rawDetectionsQuery = 'SELECT * FROM raw_scan WHERE session_id = $1 ORDER BY id DESC';
+      const rawDetectionsData = await pool.query(rawDetectionsQuery, [parseInt(session_id)]);
+      
+      // Analyze the detections to extract menu items
+      analysisResult = analyzeMenuItems(rawDetectionsData.rows);
+      
+      if (!analysisResult.success) {
+        throw new Error(analysisResult.error || 'Analysis failed');
+      }
+    } catch (analysisError) {
+      console.error('Intelligent analysis failed:', analysisError);
+      
+      // Update scan record with analysis error
       await receiptScanQueries.updateOcrResults(receiptScan.id, {
         processing_status: 'failed',
         ocr_text: ocrResult.text,
@@ -193,42 +206,54 @@ router.post('/upload', authenticateToken, upload.single('image'), async (req, re
       });
       
       return res.status(400).json({
-        return_code: 'PARSING_FAILED',
-        message: parseResult.error || 'Failed to parse receipt content',
+        return_code: 'ANALYSIS_FAILED',
+        message: `Intelligent analysis failed: ${analysisError.message}`,
         timestamp: new Date().toISOString()
       });
     }
     
-    // Update scan record with successful results
+    // Calculate totals from intelligent analysis
+    const intelligentItems = analysisResult.menuItems;
+    const totalAmount = intelligentItems.reduce((sum, item) => sum + (item.price || 0), 0);
+    
+    // Update scan record with intelligent analysis results
     const updateData = {
       processing_status: 'completed',
       ocr_text: ocrResult.text,
       ocr_confidence: ocrResult.confidence,
-      parsed_items: JSON.stringify(parseResult.items),
-      total_amount: parseResult.totals.total_amount,
-      tax_amount: parseResult.totals.tax_amount,
-      service_charge: parseResult.totals.service_charge
+      parsed_items: JSON.stringify(intelligentItems),
+      total_amount: totalAmount > 0 ? totalAmount : null,
+      tax_amount: null, // Will be calculated from totals if needed
+      service_charge: null
     };
     
     const updatedScan = await receiptScanQueries.updateOcrResults(receiptScan.id, updateData);
 
-    // Convert items to unit prices for Flutter frontend
-    const itemsWithUnitPrices = parseResult.items.map(item => ({
-      name: item.name,
-      price: item.quantity > 1 ? Math.round((item.price / item.quantity) * 100) / 100 : item.price, // Unit price with rounding
-      quantity: item.quantity,
-      total: item.price // Original total for reference
-    }));
+    // Convert intelligent analysis to Flutter format
+    const itemsForFrontend = intelligentItems
+      .filter(item => item.isLikelyMenuItem && item.price > 0) // Only include likely menu items with prices
+      .map(item => ({
+        name: item.name,
+        price: item.price,
+        quantity: 1, // Each analyzed item is treated as quantity 1
+        confidence: item.enhancedConfidence,
+        foodScore: item.foodScore
+      }));
 
-    // Return parsed results
+    // Return intelligent analysis results
     res.json({
       return_code: 'SUCCESS',
-      message: 'Receipt processed successfully',
+      message: 'Receipt analyzed successfully with intelligent parsing',
       data: {
         scan_id: updatedScan.id,
-        items: itemsWithUnitPrices,
-        totals: parseResult.totals,
+        items: itemsForFrontend,
+        totals: {
+          total_amount: totalAmount > 0 ? totalAmount : null,
+          tax_amount: null,
+          service_charge: null
+        },
         ocr_confidence: ocrResult.confidence,
+        analysis_metadata: analysisResult.metadata,
         raw_text: ocrResult.text
       },
       timestamp: new Date().toISOString()
