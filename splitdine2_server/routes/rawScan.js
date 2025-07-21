@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../config/database');
 const { authenticateToken } = require('../middleware/auth');
+const { analyzeMenuItems } = require('../utils/menuItemAnalyzer');
 
 /**
  * POST /api/raw_scan/save
@@ -49,7 +50,7 @@ router.post('/save', authenticateToken, async (req, res) => {
         if (replace) {
             await client.query(
                 'DELETE FROM raw_scan WHERE session_id = $1',
-                [session_id]
+                [parseInt(session_id)]
             );
         }
 
@@ -66,7 +67,7 @@ router.post('/save', authenticateToken, async (req, res) => {
             `;
             
             await client.query(insertQuery, [
-                session_id,
+                parseInt(session_id),
                 text,
                 confidence || null,
                 bounding_box ? JSON.stringify(bounding_box) : null
@@ -121,7 +122,7 @@ router.get('/:session_id', authenticateToken, async (req, res) => {
 
     try {
         const query = 'SELECT * FROM raw_scan WHERE session_id = $1 ORDER BY id';
-        const result = await pool.query(query, [session_id]);
+        const result = await pool.query(query, [parseInt(session_id)]);
 
         res.json({
             return_code: 200,
@@ -159,7 +160,7 @@ router.delete('/:session_id', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query(
             'DELETE FROM raw_scan WHERE session_id = $1',
-            [session_id]
+            [parseInt(session_id)]
         );
 
         res.json({
@@ -175,6 +176,80 @@ router.delete('/:session_id', authenticateToken, async (req, res) => {
         res.status(500).json({
             return_code: 500,
             message: 'Failed to delete raw scans',
+            data: null,
+            timestamp: new Date()
+        });
+    }
+});
+
+/**
+ * POST /api/raw_scan/analyze/:session_id
+ * Analyze OCR detections to extract intelligent menu items
+ * 
+ * Response:
+ * {
+ *   "return_code": 200,
+ *   "message": "Menu items analyzed successfully",
+ *   "data": {
+ *     "menuItems": [
+ *       {
+ *         "name": "Curry Mutton Small",
+ *         "price": 10.00,
+ *         "confidence": 0.95,
+ *         "foodScore": 0.6,
+ *         "isLikelyMenuItem": true
+ *       }
+ *     ],
+ *     "metadata": {
+ *       "totalDetections": 45,
+ *       "menuItemsFound": 6
+ *     }
+ *   }
+ * }
+ */
+router.post('/analyze/:session_id', authenticateToken, async (req, res) => {
+    const { session_id } = req.params;
+
+    try {
+        // Get all raw scan detections for the session
+        const query = 'SELECT * FROM raw_scan WHERE session_id = $1 ORDER BY id';
+        const result = await pool.query(query, [parseInt(session_id)]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                return_code: 404,
+                message: 'No raw scan data found for this session',
+                data: null,
+                timestamp: new Date()
+            });
+        }
+
+        // Analyze the detections to extract menu items
+        const analysisResult = analyzeMenuItems(result.rows);
+
+        if (!analysisResult.success) {
+            return res.status(400).json({
+                return_code: 400,
+                message: `Analysis failed: ${analysisResult.error}`,
+                data: null,
+                timestamp: new Date()
+            });
+        }
+
+        res.json({
+            return_code: 200,
+            message: 'Menu items analyzed successfully',
+            data: {
+                menuItems: analysisResult.menuItems,
+                metadata: analysisResult.metadata
+            },
+            timestamp: new Date()
+        });
+    } catch (error) {
+        console.error('Error analyzing menu items:', error);
+        res.status(500).json({
+            return_code: 500,
+            message: 'Failed to analyze menu items',
             data: null,
             timestamp: new Date()
         });

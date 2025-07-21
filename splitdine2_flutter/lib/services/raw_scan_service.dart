@@ -94,4 +94,36 @@ class RawScanService extends ApiService {
       return [];
     }
   }
+
+  /// Analyze OCR detections to extract intelligent menu items
+  /// [sessionId] - The session ID to analyze
+  /// Returns structured menu items with confidence scores
+  Future<Map<String, dynamic>> analyzeMenuItems(String sessionId) async {
+    try {
+      final response = await post('$_basePath/analyze/$sessionId');
+      
+      if (response['return_code'] == 200 && response['data'] != null) {
+        return {
+          'success': true,
+          'menuItems': List<Map<String, dynamic>>.from(response['data']['menuItems'] ?? []),
+          'metadata': response['data']['metadata'] ?? {},
+        };
+      }
+      
+      return {
+        'success': false,
+        'error': response['message'] ?? 'Analysis failed',
+        'menuItems': [],
+        'metadata': {},
+      };
+    } catch (e) {
+      print('Error analyzing menu items: $e');
+      return {
+        'success': false,
+        'error': 'Network error: $e',
+        'menuItems': [],
+        'metadata': {},
+      };
+    }
+  }
 }

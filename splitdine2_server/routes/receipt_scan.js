@@ -159,7 +159,7 @@ router.post('/upload', authenticateToken, upload.single('image'), async (req, re
           await rawScanClient.query(
             'INSERT INTO raw_scan (session_id, detection_text, confidence, bounding_box) VALUES ($1, $2, $3, $4)',
             [
-              session_id,
+              parseInt(session_id),
               detection.description,
               detection.confidence || null,
               detection.boundingPoly ? JSON.stringify(detection.boundingPoly) : null
