@@ -222,9 +222,14 @@ function performContextualGrouping(filteredGroups) {
     
     group.items.forEach(item => {
       if (isPotentialPrice(item.text)) {
-        prices.push(parseFloat(item.text));
+        const cleanPrice = item.text.replace(/[\$£]/g, ''); // Remove currency symbols
+        const price = parseFloat(cleanPrice);
+        console.log(`[DEBUG] Found price: "${item.text}" -> ${price}`);
+        prices.push(price);
       } else if (!isPureNumber(item.text)) {
         itemWords.push(item.text);
+      } else {
+        console.log(`[DEBUG] Skipping pure number: "${item.text}"`);
       }
     });
     
@@ -325,7 +330,28 @@ function getXPosition(boundingBox) {
 }
 
 function isPotentialPrice(text) {
-  return /^\d+\.\d{2}$/.test(text) && parseFloat(text) > 0.50 && parseFloat(text) < 999.99;
+  // Handle various price formats:
+  // - 10.00, 10.5, 10 
+  // - $10.00, £10.00
+  // - 10.00$, 10.00£
+  const pricePatterns = [
+    /^[\$£]?(\d+\.?\d*)[\$£]?$/,  // Basic price with optional currency
+    /^(\d+\.\d{1,2})$/,           // Decimal prices
+    /^(\d+)$/                     // Whole number prices
+  ];
+  
+  for (const pattern of pricePatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      const price = parseFloat(match[1] || match[0]);
+      // Accept reasonable food prices
+      if (price >= 0.50 && price <= 999.99) {
+        console.log(`[DEBUG] Price pattern matched: "${text}" -> ${price}`);
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 function isPureNumber(text) {
