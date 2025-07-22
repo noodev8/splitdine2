@@ -198,11 +198,22 @@ router.post('/get_item_assignments', authenticateToken, requireSessionParticipan
       });
     }
 
-    // Get all assignments for the item using item_id
+    // Get all assignments for the item with item details from session_receipt
     const result = await query(
-      `SELECT gc.*, u.display_name as user_name
+      `SELECT gc.*, u.display_name as user_name, sr.item_name, sr.price as item_price,
+              CASE 
+                WHEN gc.split_item = true THEN sr.price / item_counts.assignment_count
+                ELSE sr.price
+              END as effective_price
        FROM guest_choice gc
        JOIN app_user u ON gc.user_id = u.id
+       JOIN session_receipt sr ON gc.item_id = sr.id AND gc.session_id = sr.session_id
+       LEFT JOIN (
+         SELECT session_id, item_id, COUNT(*) as assignment_count
+         FROM guest_choice
+         WHERE split_item = true
+         GROUP BY session_id, item_id
+       ) item_counts ON gc.session_id = item_counts.session_id AND gc.item_id = item_counts.item_id AND gc.split_item = true
        WHERE gc.session_id = $1 AND gc.item_id = $2
        ORDER BY gc.created_at`,
       [req.sessionId, item_id]
@@ -211,11 +222,11 @@ router.post('/get_item_assignments', authenticateToken, requireSessionParticipan
     const assignments = result.rows.map(row => ({
       id: row.id,
       session_id: row.session_id,
-      name: row.name,
-      price: row.price,
+      item_id: row.item_id,
+      name: row.item_name,
+      price: parseFloat(row.effective_price || row.item_price),
       user_id: row.user_id,
       user_name: row.user_name,
-      description: row.description,
       split_item: row.split_item,
       created_at: row.created_at,
       updated_at: row.updated_at
@@ -240,13 +251,24 @@ router.post('/get_item_assignments', authenticateToken, requireSessionParticipan
 // Get all guest choices for a session
 router.post('/get_session_assignments', authenticateToken, requireSessionParticipant, async (req, res) => {
   try {
-    // Get all assignments for the session
+    // Get all assignments for the session with item details from session_receipt
     const result = await query(
-      `SELECT gc.*, u.display_name as user_name
+      `SELECT gc.*, u.display_name as user_name, sr.item_name, sr.price as item_price,
+              CASE 
+                WHEN gc.split_item = true THEN sr.price / item_counts.assignment_count
+                ELSE sr.price
+              END as effective_price
        FROM guest_choice gc
        JOIN app_user u ON gc.user_id = u.id
+       JOIN session_receipt sr ON gc.item_id = sr.id AND gc.session_id = sr.session_id
+       LEFT JOIN (
+         SELECT session_id, item_id, COUNT(*) as assignment_count
+         FROM guest_choice
+         WHERE split_item = true
+         GROUP BY session_id, item_id
+       ) item_counts ON gc.session_id = item_counts.session_id AND gc.item_id = item_counts.item_id AND gc.split_item = true
        WHERE gc.session_id = $1
-       ORDER BY gc.name, gc.created_at`,
+       ORDER BY sr.item_name, gc.created_at`,
       [req.sessionId]
     );
 
@@ -254,11 +276,10 @@ router.post('/get_session_assignments', authenticateToken, requireSessionPartici
       id: row.id,
       session_id: row.session_id,
       item_id: row.item_id,
-      name: row.name,
-      price: row.price,
+      name: row.item_name,
+      price: parseFloat(row.effective_price || row.item_price),
       user_id: row.user_id,
       user_name: row.user_name,
-      description: row.description,
       split_item: row.split_item,
       created_at: row.created_at,
       updated_at: row.updated_at
