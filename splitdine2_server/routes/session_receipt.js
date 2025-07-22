@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { sessionReceiptQueries, sessionQueries, participantQueries, integrityQueries } = require('../utils/database');
+const { query } = require('../config/database');
 const { authenticateToken, requireSessionParticipant } = require('../middleware/auth');
 
 /**
@@ -161,6 +162,38 @@ router.post('/update-item', authenticateToken, requireSessionParticipant, async 
     };
 
     const updatedItem = await sessionReceiptQueries.update(item_id, updateData);
+
+    // Update the price in guest_choice table for all assignments of this item
+    try {
+      // First, get the current assignments to check if it's a shared item
+      const assignmentsResult = await query(
+        'SELECT COUNT(DISTINCT user_id) as assignment_count, MAX(split_item) as is_shared FROM guest_choice WHERE session_id = $1 AND item_id = $2',
+        [req.sessionId, item_id]
+      );
+      
+      const assignments = assignmentsResult.rows[0];
+      const assignmentCount = parseInt(assignments.assignment_count) || 0;
+      const isShared = assignments.is_shared;
+      
+      if (assignmentCount > 0) {
+        // Calculate the price per assignment
+        let pricePerAssignment = numericPrice;
+        if (isShared && assignmentCount > 0) {
+          pricePerAssignment = numericPrice / assignmentCount;
+        }
+        
+        // Update all guest_choice records for this item
+        await query(
+          'UPDATE guest_choice SET price = $1, name = $2, updated_at = NOW() WHERE session_id = $3 AND item_id = $4',
+          [pricePerAssignment, item_name.trim(), req.sessionId, item_id]
+        );
+        
+        console.log(`Updated ${assignmentCount} guest choice(s) with new price: ${pricePerAssignment} (shared: ${isShared})`);
+      }
+    } catch (updateError) {
+      console.error('Warning: Failed to update guest choices after item update:', updateError);
+      // Don't fail the request if guest_choice update fails
+    }
 
     // Clean up any orphaned guest_choice records after updating item (in case item_id changed)
     try {
