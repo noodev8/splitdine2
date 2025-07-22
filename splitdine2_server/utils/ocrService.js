@@ -14,8 +14,9 @@ const client = new vision.ImageAnnotatorClient({
 async function extractTextFromReceipt(imagePath) {
   try {
     
-    // Perform text detection on the image
-    const [result] = await client.textDetection(imagePath);
+    // Perform document text detection on the image for better structure preservation
+    const [result] = await client.documentTextDetection(imagePath);
+    const fullTextAnnotation = result.fullTextAnnotation;
     const detections = result.textAnnotations;
     
     if (!detections || detections.length === 0) {
@@ -48,7 +49,8 @@ async function extractTextFromReceipt(imagePath) {
       success: true,
       text: fullText,
       confidence: Math.round(averageConfidence * 100) / 100,
-      detections: detections.slice(1)
+      detections: detections.slice(1),
+      fullTextAnnotation: fullTextAnnotation // Include structured document data
     };
     
   } catch (error) {
