@@ -165,15 +165,19 @@ router.post('/update-item', authenticateToken, requireSessionParticipant, async 
 
     // Update the price in guest_choice table for all assignments of this item
     try {
+      console.log(`Updating guest choices for item_id: ${item_id}, session_id: ${req.sessionId}`);
+      
       // First, get the current assignments to check if it's a shared item
       const assignmentsResult = await query(
-        'SELECT COUNT(DISTINCT user_id) as assignment_count, MAX(split_item) as is_shared FROM guest_choice WHERE session_id = $1 AND item_id = $2',
+        'SELECT COUNT(DISTINCT user_id) as assignment_count, MAX(split_item::int) as is_shared FROM guest_choice WHERE session_id = $1 AND item_id = $2',
         [req.sessionId, item_id]
       );
       
       const assignments = assignmentsResult.rows[0];
       const assignmentCount = parseInt(assignments.assignment_count) || 0;
-      const isShared = assignments.is_shared;
+      const isShared = assignments.is_shared === 1;
+      
+      console.log(`Found ${assignmentCount} assignments, shared: ${isShared}`);
       
       if (assignmentCount > 0) {
         // Calculate the price per assignment
@@ -183,12 +187,14 @@ router.post('/update-item', authenticateToken, requireSessionParticipant, async 
         }
         
         // Update all guest_choice records for this item
-        await query(
-          'UPDATE guest_choice SET price = $1, name = $2, updated_at = NOW() WHERE session_id = $3 AND item_id = $4',
+        const updateResult = await query(
+          'UPDATE guest_choice SET price = $1, name = $2, updated_at = NOW() WHERE session_id = $3 AND item_id = $4 RETURNING id',
           [pricePerAssignment, item_name.trim(), req.sessionId, item_id]
         );
         
-        console.log(`Updated ${assignmentCount} guest choice(s) with new price: ${pricePerAssignment} (shared: ${isShared})`);
+        console.log(`Updated ${updateResult.rowCount} guest choice(s) with new price: ${pricePerAssignment} (shared: ${isShared})`);
+      } else {
+        console.log('No guest choice assignments found for this item');
       }
     } catch (updateError) {
       console.error('Warning: Failed to update guest choices after item update:', updateError);
@@ -197,7 +203,7 @@ router.post('/update-item', authenticateToken, requireSessionParticipant, async 
 
     // Clean up any orphaned guest_choice records after updating item (in case item_id changed)
     try {
-      const cleanedChoices = await integrityQueries.cleanupOrphanedGuestChoices(session_id);
+      const cleanedChoices = await integrityQueries.cleanupOrphanedGuestChoices(req.sessionId);
       if (cleanedChoices.length > 0) {
         console.log(`Cleaned up ${cleanedChoices.length} orphaned guest choices after item update`);
       }
@@ -257,7 +263,7 @@ router.post('/delete-item', authenticateToken, requireSessionParticipant, async 
 
     // Clean up any orphaned guest_choice records after deleting item
     try {
-      const cleanedChoices = await integrityQueries.cleanupOrphanedGuestChoices(session_id);
+      const cleanedChoices = await integrityQueries.cleanupOrphanedGuestChoices(req.sessionId);
       if (cleanedChoices.length > 0) {
         console.log(`Cleaned up ${cleanedChoices.length} orphaned guest choices after item deletion`);
       }
@@ -299,7 +305,7 @@ router.post('/clear-items', authenticateToken, requireSessionParticipant, async 
 
     // Clean up any orphaned guest_choice records after clearing all items
     try {
-      const cleanedChoices = await integrityQueries.cleanupOrphanedGuestChoices(session_id);
+      const cleanedChoices = await integrityQueries.cleanupOrphanedGuestChoices(req.sessionId);
       if (cleanedChoices.length > 0) {
         console.log(`Cleaned up ${cleanedChoices.length} orphaned guest choices after clearing items`);
       }
