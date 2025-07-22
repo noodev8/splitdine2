@@ -194,12 +194,17 @@ router.post('/upload', authenticateToken, upload.single('image'), async (req, re
     } catch (analysisError) {
       console.error('Intelligent analysis failed:', analysisError);
       
-      // Update scan record with analysis error
+      // Update scan record with analysis error but still save OCR data
       await receiptScanQueries.updateOcrResults(receiptScan.id, {
         processing_status: 'failed',
         ocr_text: ocrResult.text,
         ocr_confidence: ocrResult.confidence,
-        parsed_items: null,
+        parsed_items: JSON.stringify({
+          menuItems: [],
+          fullTextAnnotation: ocrResult.fullTextAnnotation, // Save OCR data even on analysis failure
+          detections: ocrResult.detections,
+          error: analysisError.message
+        }),
         total_amount: null,
         tax_amount: null,
         service_charge: null
@@ -221,7 +226,11 @@ router.post('/upload', authenticateToken, upload.single('image'), async (req, re
       processing_status: 'completed',
       ocr_text: ocrResult.text,
       ocr_confidence: ocrResult.confidence,
-      parsed_items: JSON.stringify(intelligentItems),
+      parsed_items: JSON.stringify({
+        menuItems: intelligentItems,
+        fullTextAnnotation: ocrResult.fullTextAnnotation, // Include the structured OCR data
+        detections: ocrResult.detections // Include individual detections
+      }),
       total_amount: totalAmount > 0 ? totalAmount : null,
       tax_amount: null, // Will be calculated from totals if needed
       service_charge: null
