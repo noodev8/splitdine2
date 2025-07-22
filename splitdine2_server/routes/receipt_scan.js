@@ -6,7 +6,7 @@ const router = express.Router();
 const { pool } = require('../config/database');
 
 const { receiptScanQueries, sessionQueries, participantQueries, receiptQueries, integrityQueries } = require('../utils/database');
-const { extractTextFromReceipt } = require('../utils/ocrService');
+const { extractTextFromReceipt } = require('../utils/azureOcrService');
 const { analyzeMenuItems } = require('../utils/menuItemAnalyzer');
 const { authenticateToken } = require('../middleware/auth');
 
