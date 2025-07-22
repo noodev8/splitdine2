@@ -249,13 +249,56 @@ router.post('/upload', authenticateToken, upload.single('image'), async (req, re
         foodScore: item.foodScore
       }));
 
+    // Auto-save items to session_receipt table if requested
+    const { auto_save_items = 'false' } = req.body;
+    let savedItems = [];
+    
+    if (auto_save_items === 'true' && itemsForFrontend.length > 0) {
+      const saveClient = await pool.connect();
+      try {
+        await saveClient.query('BEGIN');
+        
+        // Save each item to session_receipt table
+        for (const item of itemsForFrontend) {
+          const result = await saveClient.query(
+            `INSERT INTO session_receipt (session_id, item_name, price)
+             VALUES ($1, $2, $3)
+             RETURNING *`,
+            [parseInt(session_id), item.name, item.price]
+          );
+          
+          savedItems.push({
+            id: result.rows[0].id,
+            session_id: result.rows[0].session_id,
+            item_name: result.rows[0].item_name,
+            price: parseFloat(result.rows[0].price),
+            created_at: result.rows[0].created_at,
+            updated_at: result.rows[0].updated_at
+          });
+        }
+        
+        await saveClient.query('COMMIT');
+        console.log(`Auto-saved ${savedItems.length} items to session_receipt table`);
+        
+      } catch (saveError) {
+        await saveClient.query('ROLLBACK');
+        console.error('Failed to auto-save items to session_receipt:', saveError);
+        // Continue without failing the request
+      } finally {
+        saveClient.release();
+      }
+    }
+
     // Return intelligent analysis results
     res.json({
       return_code: 'SUCCESS',
-      message: 'Receipt analyzed successfully with intelligent parsing',
+      message: auto_save_items === 'true' && savedItems.length > 0 
+        ? `Receipt analyzed and ${savedItems.length} items saved successfully`
+        : 'Receipt analyzed successfully with intelligent parsing',
       data: {
         scan_id: updatedScan.id,
         items: itemsForFrontend,
+        saved_items: savedItems, // Include saved items if auto-saved
         totals: {
           total_amount: totalAmount > 0 ? totalAmount : null,
           tax_amount: null,

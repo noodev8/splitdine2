@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { sessionReceiptQueries, sessionQueries, participantQueries, integrityQueries } = require('../utils/database');
-const { query } = require('../config/database');
+const { query, pool } = require('../config/database');
 const { authenticateToken, requireSessionParticipant } = require('../middleware/auth');
 
 /**
@@ -71,6 +71,111 @@ router.post('/add-item', authenticateToken, requireSessionParticipant, async (re
       message: 'Failed to add session receipt item',
       timestamp: new Date().toISOString()
     });
+  }
+});
+
+// Add multiple session receipt items in bulk
+router.post('/add-items-bulk', authenticateToken, requireSessionParticipant, async (req, res) => {
+  const client = await pool.connect();
+  
+  try {
+    const { session_id, items } = req.body;
+    
+    // Validate inputs
+    if (!session_id || !items || !Array.isArray(items)) {
+      return res.status(400).json({
+        return_code: 'MISSING_FIELDS',
+        message: 'session_id and items array are required',
+        timestamp: new Date().toISOString()
+      });
+    }
+    
+    // Validate session exists
+    const session = await sessionQueries.findById(parseInt(session_id));
+    if (!session) {
+      return res.status(404).json({
+        return_code: 'SESSION_NOT_FOUND',
+        message: 'Session not found',
+        timestamp: new Date().toISOString()
+      });
+    }
+    
+    // Validate each item in the array
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (!item.item_name || item.price === undefined || item.price === null) {
+        return res.status(400).json({
+          return_code: 'INVALID_ITEM',
+          message: `Item at index ${i} is missing required fields (item_name, price)`,
+          timestamp: new Date().toISOString()
+        });
+      }
+      
+      const numericPrice = parseFloat(item.price);
+      if (isNaN(numericPrice) || numericPrice < 0) {
+        return res.status(400).json({
+          return_code: 'INVALID_PRICE',
+          message: `Item at index ${i} has invalid price`,
+          timestamp: new Date().toISOString()
+        });
+      }
+      
+      if (!item.item_name.trim()) {
+        return res.status(400).json({
+          return_code: 'INVALID_ITEM_NAME',
+          message: `Item at index ${i} has empty name`,
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
+    
+    // Begin transaction
+    await client.query('BEGIN');
+    
+    const addedItems = [];
+    
+    // Insert each item
+    for (const item of items) {
+      const result = await client.query(
+        `INSERT INTO session_receipt (session_id, item_name, price)
+         VALUES ($1, $2, $3)
+         RETURNING *`,
+        [parseInt(session_id), item.item_name.trim(), parseFloat(item.price)]
+      );
+      addedItems.push(result.rows[0]);
+    }
+    
+    // Commit transaction
+    await client.query('COMMIT');
+    
+    res.status(201).json({
+      return_code: 'SUCCESS',
+      message: `Added ${addedItems.length} items successfully`,
+      data: {
+        session_id: parseInt(session_id),
+        items: addedItems.map(item => ({
+          id: item.id,
+          session_id: item.session_id,
+          item_name: item.item_name,
+          price: parseFloat(item.price),
+          created_at: item.created_at,
+          updated_at: item.updated_at
+        })),
+        total_items: addedItems.length
+      },
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Bulk add items error:', error);
+    res.status(500).json({
+      return_code: 'SERVER_ERROR',
+      message: 'Failed to add items in bulk',
+      timestamp: new Date().toISOString()
+    });
+  } finally {
+    client.release();
   }
 });
 
