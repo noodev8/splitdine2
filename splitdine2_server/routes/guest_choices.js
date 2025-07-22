@@ -52,39 +52,27 @@ router.post('/assign', authenticateToken, requireSessionParticipant, async (req,
       });
     }
 
-    // Calculate price for this assignment
-    let assignmentPrice = receiptItem.price;
+    // Create assignment record in guest_choice (without name and price)
+    const result = await query(
+      `INSERT INTO guest_choice (session_id, item_id, user_id, split_item, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, NOW(), NOW())
+       RETURNING *`,
+      [req.sessionId, item_id, user_id, split_item || false]
+    );
 
+    const choice = result.rows[0];
+
+    // Calculate the effective price for this assignment
+    let effectivePrice = receiptItem.price;
     if (split_item) {
-      // For shared items, get current assignment count and calculate split price
+      // For shared items, calculate split price based on total assignments
       const countResult = await query(
         'SELECT COUNT(*) as assignment_count FROM guest_choice WHERE session_id = $1 AND item_id = $2',
         [req.sessionId, item_id]
       );
-
-      const currentAssignments = parseInt(countResult.rows[0].assignment_count);
-      const totalAssignments = currentAssignments + 1; // Including this new assignment
-
-      assignmentPrice = receiptItem.price / totalAssignments;
-
-      // Update existing assignments to reflect new split price
-      if (currentAssignments > 0) {
-        await query(
-          'UPDATE guest_choice SET price = $1, updated_at = NOW() WHERE session_id = $2 AND item_id = $3',
-          [assignmentPrice, req.sessionId, item_id]
-        );
-      }
+      const totalAssignments = parseInt(countResult.rows[0].assignment_count);
+      effectivePrice = receiptItem.price / totalAssignments;
     }
-
-    // Create assignment record in guest_choice
-    const result = await query(
-      `INSERT INTO guest_choice (session_id, item_id, name, price, user_id, split_item, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
-       RETURNING *`,
-      [req.sessionId, item_id, receiptItem.item_name, assignmentPrice, user_id, split_item || false]
-    );
-
-    const choice = result.rows[0];
 
     res.status(201).json({
       return_code: 'SUCCESS',
@@ -92,10 +80,10 @@ router.post('/assign', authenticateToken, requireSessionParticipant, async (req,
       choice: {
         id: choice.id,
         session_id: choice.session_id,
-        name: choice.name,
-        price: choice.price,
+        item_id: choice.item_id,
+        name: receiptItem.item_name,  // From session_receipt
+        price: effectivePrice,         // Calculated price
         user_id: choice.user_id,
-        description: choice.description,
         split_item: choice.split_item,
         created_at: choice.created_at,
         updated_at: choice.updated_at
@@ -327,10 +315,10 @@ router.post('/update_item_prices', authenticateToken, requireSessionParticipant,
       ? parseFloat(new_price) / assignmentCount
       : parseFloat(new_price);
 
-    // Update all assignment prices for this item
+    // Update only the split_item flag (price is now stored in session_receipt)
     const result = await query(
-      'UPDATE guest_choice SET price = $1, split_item = $2, updated_at = NOW() WHERE session_id = $3 AND item_id = $4',
-      [pricePerAssignment, is_shared, req.sessionId, item_id]
+      'UPDATE guest_choice SET split_item = $1, updated_at = NOW() WHERE session_id = $2 AND item_id = $3',
+      [is_shared, req.sessionId, item_id]
     );
 
     res.json({
@@ -420,10 +408,10 @@ router.post('/update_shared_status', authenticateToken, requireSessionParticipan
       ? parseFloat(item_price) / assignmentCount
       : parseFloat(item_price);
 
-    // Update shared status and recalculate prices
+    // Update only the split_item flag (price is now stored in session_receipt)
     const result = await query(
-      'UPDATE guest_choice SET split_item = $1, price = $2, updated_at = NOW() WHERE session_id = $3 AND item_id = $4',
-      [is_shared, pricePerAssignment, req.sessionId, item_id]
+      'UPDATE guest_choice SET split_item = $1, updated_at = NOW() WHERE session_id = $2 AND item_id = $3',
+      [is_shared, req.sessionId, item_id]
     );
 
     res.json({
@@ -453,27 +441,34 @@ router.post('/get_payment_summary', authenticateToken, requireSessionParticipant
     
     const billTotal = parseFloat(billTotalResult.rows[0].bill_total);
 
-    // Get allocated total from guest_choice
-    const allocatedTotalResult = await query(
-      'SELECT COALESCE(SUM(price), 0) as allocated_total FROM guest_choice WHERE session_id = $1',
-      [req.sessionId]
-    );
-    
-    const allocatedTotal = parseFloat(allocatedTotalResult.rows[0].allocated_total);
-    const remainingTotal = billTotal - allocatedTotal;
-
-    // Get participant totals - include all session participants, even those with no allocations
+    // Get allocated total and participant totals by joining guest_choice with session_receipt
     const participantTotalsResult = await query(
       `SELECT sg.user_id, u.display_name as user_name, u.email,
-              COALESCE(SUM(gc.price), 0) as total_amount
+              COALESCE(SUM(
+                CASE 
+                  WHEN gc.split_item = true THEN sr.price / item_counts.assignment_count
+                  ELSE sr.price
+                END
+              ), 0) as total_amount
        FROM session_guest sg
        JOIN app_user u ON sg.user_id = u.id
        LEFT JOIN guest_choice gc ON sg.user_id = gc.user_id AND gc.session_id = sg.session_id
+       LEFT JOIN session_receipt sr ON gc.item_id = sr.id AND gc.session_id = sr.session_id
+       LEFT JOIN (
+         SELECT session_id, item_id, COUNT(*) as assignment_count
+         FROM guest_choice
+         WHERE split_item = true
+         GROUP BY session_id, item_id
+       ) item_counts ON gc.session_id = item_counts.session_id AND gc.item_id = item_counts.item_id AND gc.split_item = true
        WHERE sg.session_id = $1 AND sg.left_at IS NULL
        GROUP BY sg.user_id, u.display_name, u.email
        ORDER BY u.display_name`,
       [req.sessionId]
     );
+
+    // Calculate allocated total from participant totals
+    const allocatedTotal = participantTotalsResult.rows.reduce((sum, row) => sum + parseFloat(row.total_amount), 0);
+    const remainingTotal = billTotal - allocatedTotal;
 
     const participantTotals = participantTotalsResult.rows.map(row => ({
       user_id: row.user_id,

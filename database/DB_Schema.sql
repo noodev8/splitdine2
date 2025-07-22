@@ -5,7 +5,7 @@
 -- Dumped from database version 16.9 (Ubuntu 16.9-0ubuntu0.24.04.1)
 -- Dumped by pg_dump version 17.4
 
--- Started on 2025-07-21 23:50:23
+-- Started on 2025-07-22 17:45:48
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -78,8 +78,6 @@ ALTER SEQUENCE public.app_user_id_seq OWNED BY public.app_user.id;
 CREATE TABLE public.guest_choice (
     id integer NOT NULL,
     session_id integer NOT NULL,
-    name character varying(255) NOT NULL,
-    price numeric(10,2) NOT NULL,
     user_id integer,
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now(),
@@ -567,7 +565,7 @@ CREATE INDEX idx_sessions_session_date ON public.session USING btree (session_da
 GRANT ALL ON SCHEMA public TO splitdine_prod_user;
 
 
--- Completed on 2025-07-21 23:50:24
+-- Completed on 2025-07-22 17:45:50
 
 --
 -- PostgreSQL database dump complete
