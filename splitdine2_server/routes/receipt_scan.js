@@ -169,12 +169,12 @@ router.post('/upload', authenticateToken, upload.single('image'), async (req, re
         processing_status: 'failed',
         ocr_text: ocrResult.text,
         ocr_confidence: ocrResult.confidence,
-        parsed_items: JSON.stringify({
+        parsed_items: {
           menuItems: [],
           fullTextAnnotation: ocrResult.fullTextAnnotation, // Save OCR data even on analysis failure
           detections: ocrResult.detections,
           error: analysisError.message
-        }),
+        },
         total_amount: null,
         tax_amount: null,
         service_charge: null
@@ -196,11 +196,11 @@ router.post('/upload', authenticateToken, upload.single('image'), async (req, re
       processing_status: 'completed',
       ocr_text: ocrResult.text,
       ocr_confidence: ocrResult.confidence,
-      parsed_items: JSON.stringify({
+      parsed_items: {
         menuItems: intelligentItems,
         fullTextAnnotation: ocrResult.fullTextAnnotation, // Include the structured OCR data
         detections: ocrResult.detections // Include individual detections
-      }),
+      },
       total_amount: totalAmount > 0 ? totalAmount : null,
       tax_amount: null, // Will be calculated from totals if needed
       service_charge: null
