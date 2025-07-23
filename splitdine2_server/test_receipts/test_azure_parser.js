@@ -20,7 +20,7 @@ const parsedData = parseAzureOcrToMenuItems(ocrResult);
 
 console.log(`\nParsed menu items: ${parsedData.menuItems.length}`);
 parsedData.menuItems.forEach((item, i) => {
-  console.log(`${i + 1}. "${item.name}" - £${item.price}`);
+  console.log(`${i + 1}. "${item.name}" - £${item.price} (receiptOrder: ${item.receiptOrder})`);
 });
 
 // Analyze the parsed menu items (clean duplicates)
@@ -29,5 +29,12 @@ const analysisResult = analyzeMenuItems(parsedData);
 
 console.log(`\nFinal menu items: ${analysisResult.menuItems.length}`);
 analysisResult.menuItems.forEach((item, i) => {
-  console.log(`${i + 1}. "${item.name}" - £${item.price}${item.isDuplicate ? ' (duplicate detected)' : ''}`);
+  console.log(`${i + 1}. "${item.name}" - £${item.price} (receiptOrder: ${item.receiptOrder})${item.isDuplicate ? ' (duplicate detected)' : ''}`);
+});
+
+// Test the sorting
+console.log('\n--- SORTED BY RECEIPT ORDER ---');
+const sorted = analysisResult.menuItems.sort((a, b) => (a.receiptOrder || 0) - (b.receiptOrder || 0));
+sorted.forEach((item, i) => {
+  console.log(`${i + 1}. "${item.name}" - £${item.price} (receiptOrder: ${item.receiptOrder})`);
 });
