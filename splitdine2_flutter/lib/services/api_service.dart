@@ -53,6 +53,7 @@ class ApiService {
       // Add form fields
       request.fields['session_id'] = sessionId.toString();
       request.fields['replace_scan'] = replaceScan.toString();
+      request.fields['auto_save_items'] = 'true'; // Auto-save OCR items to session_receipt
       
       // Add image file
       final imageStream = http.ByteStream(imageFile.openRead());
