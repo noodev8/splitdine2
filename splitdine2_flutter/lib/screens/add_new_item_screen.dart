@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/session.dart';
 import '../services/session_receipt_service.dart';
+import '../services/menu_service.dart';
+import '../services/auth_provider.dart';
 
 class AddNewItemScreen extends StatefulWidget {
   final Session session;
@@ -18,7 +21,12 @@ class _AddNewItemScreenState extends State<AddNewItemScreen> {
   final TextEditingController _itemNameController = TextEditingController();
   final FocusNode _itemNameFocusNode = FocusNode();
   final List<String> _addedItems = [];
+  final MenuService _menuService = MenuService();
+  
   bool _isAdding = false;
+  List<Map<String, dynamic>> _suggestions = [];
+  bool _isSearching = false;
+  int? _selectedSuggestionId;
 
   @override
   void initState() {
@@ -27,13 +35,49 @@ class _AddNewItemScreenState extends State<AddNewItemScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _itemNameFocusNode.requestFocus();
     });
+    
+    // Listen to text changes for autocomplete
+    _itemNameController.addListener(_onTextChanged);
   }
 
   @override
   void dispose() {
+    _itemNameController.removeListener(_onTextChanged);
     _itemNameController.dispose();
     _itemNameFocusNode.dispose();
+    _menuService.dispose();
     super.dispose();
+  }
+  
+  void _onTextChanged() {
+    final text = _itemNameController.text;
+    
+    // Clear suggestions if text is too short
+    if (text.length < 3) {
+      setState(() {
+        _suggestions = [];
+        _selectedSuggestionId = null;
+      });
+      return;
+    }
+    
+    // Trigger search with debouncing
+    setState(() {
+      _isSearching = true;
+    });
+    
+    _menuService.searchMenuItems(text).then((result) {
+      if (mounted) {
+        setState(() {
+          _isSearching = false;
+          if (result['success']) {
+            _suggestions = List<Map<String, dynamic>>.from(result['suggestions']);
+          } else {
+            _suggestions = [];
+          }
+        });
+      }
+    });
   }
 
   Future<void> _addItem([String? itemName]) async {
@@ -57,11 +101,25 @@ class _AddNewItemScreenState extends State<AddNewItemScreen> {
       );
 
       if (result['success']) {
+        // Log the search if we have a user
+        if (_selectedSuggestionId != null) {
+          final authProvider = Provider.of<AuthProvider>(context, listen: false);
+          if (authProvider.user != null) {
+            MenuService.logSearch(
+              userInput: _itemNameController.text.trim(),
+              matchedMenuItemId: _selectedSuggestionId,
+              guestId: authProvider.user!.id,
+            );
+          }
+        }
+        
         setState(() {
           // Add to top of list (newest first)
           _addedItems.insert(0, name);
           _itemNameController.clear();
           _isAdding = false;
+          _suggestions = [];
+          _selectedSuggestionId = null;
         });
         // Keep focus and keyboard open for rapid entry
         if (mounted) {
@@ -93,6 +151,14 @@ class _AddNewItemScreenState extends State<AddNewItemScreen> {
         );
       }
     }
+  }
+  
+  void _selectSuggestion(Map<String, dynamic> suggestion) {
+    setState(() {
+      _itemNameController.text = suggestion['name'];
+      _selectedSuggestionId = suggestion['id'];
+      _suggestions = [];
+    });
   }
 
   void _removeItem(int index) {
@@ -342,12 +408,93 @@ class _AddNewItemScreenState extends State<AddNewItemScreen> {
                   ),
           ),
           
-          // Future autocomplete suggestions area
-          // This is where "Onion" suggestions will appear when typing "Oni"
-          Container(
-            // This will be populated with suggestions later
-            height: 0, // Hidden for now, will expand when suggestions are available
-          ),
+          // Autocomplete suggestions area
+          if (_suggestions.isNotEmpty)
+            Container(
+              color: Colors.white,
+              child: Column(
+                children: [
+                  Container(
+                    height: 1,
+                    color: Colors.grey.shade300,
+                  ),
+                  ..._suggestions.map((suggestion) => InkWell(
+                    onTap: () => _selectSuggestion(suggestion),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(
+                            color: Colors.grey.shade200,
+                            width: 0.5,
+                          ),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.search,
+                            size: 18,
+                            color: Colors.grey.shade600,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              suggestion['name'],
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          Icon(
+                            Icons.arrow_forward_ios,
+                            size: 14,
+                            color: Colors.grey.shade400,
+                          ),
+                        ],
+                      ),
+                    ),
+                  )),
+                ],
+              ),
+            ),
+          
+          // Show loading indicator when searching
+          if (_isSearching && _suggestions.isEmpty && _itemNameController.text.length >= 3)
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.all(16),
+              child: Center(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Colors.grey.shade400,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Searching...',
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           
           // Text display at top
           Container(
