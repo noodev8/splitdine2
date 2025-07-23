@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:splitdine2_flutter/models/user.dart';
 import 'package:splitdine2_flutter/services/auth_service.dart';
+import 'package:splitdine2_flutter/config/auth_config.dart';
 
 class AuthProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
@@ -20,8 +21,12 @@ class AuthProvider with ChangeNotifier {
     try {
       final isLoggedIn = await _authService.isLoggedIn();
       if (isLoggedIn) {
-        // Validate token with server to check if it's still valid
-        final isValidToken = await _authService.validateToken();
+        // Skip token validation in development if configured
+        bool isValidToken = true;
+        if (!AuthConfig.skipTokenValidation) {
+          // Validate token with server to check if it's still valid
+          isValidToken = await _authService.validateToken();
+        }
         
         if (isValidToken) {
           final userData = await _authService.getStoredUser();
