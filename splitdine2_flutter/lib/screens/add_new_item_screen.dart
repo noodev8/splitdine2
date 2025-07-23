@@ -170,7 +170,7 @@ class _AddNewItemScreenState extends State<AddNewItemScreen> {
     _selectedSuggestionId = suggestion['id'];
     
     // Add the item directly - pass the original user input for logging
-    await _addItem(suggestion['name'], originalUserInput: originalUserInput);
+    await _addItem(suggestion['name'], originalUserInput);
     
     // Clear suggestions after adding
     setState(() {

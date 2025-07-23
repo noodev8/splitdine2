@@ -28,16 +28,9 @@ class MenuService {
           return;
         }
         
-        print('=== FLUTTER MENU SEARCH DEBUG ===');
-        print('Search query: "$query"');
-        print('Encoded query: "${Uri.encodeQueryComponent(query)}"');
-        
         final response = await ApiService.get(
           '/menu/search?query=${Uri.encodeQueryComponent(query)}',
         );
-        
-        print('API Response: ${response.toString()}');
-        print('=== END FLUTTER DEBUG ===');
         
         if (response['return_code'] == 0) {
           completer.complete({
