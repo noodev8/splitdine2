@@ -160,6 +160,20 @@ class _AddNewItemScreenState extends State<AddNewItemScreen> {
       _suggestions = [];
     });
   }
+  
+  Future<void> _addSuggestionDirectly(Map<String, dynamic> suggestion) async {
+    // Set the selected suggestion ID for logging
+    _selectedSuggestionId = suggestion['id'];
+    
+    // Add the item directly without setting text field
+    await _addItem(suggestion['name']);
+    
+    // Clear suggestions after adding
+    setState(() {
+      _suggestions = [];
+      _selectedSuggestionId = null;
+    });
+  }
 
   void _removeItem(int index) {
     setState(() {
@@ -418,46 +432,62 @@ class _AddNewItemScreenState extends State<AddNewItemScreen> {
                     height: 1,
                     color: Colors.grey.shade300,
                   ),
-                  ..._suggestions.map((suggestion) => InkWell(
-                    onTap: () => _selectSuggestion(suggestion),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        border: Border(
-                          bottom: BorderSide(
-                            color: Colors.grey.shade200,
-                            width: 0.5,
-                          ),
+                  ..._suggestions.map((suggestion) => Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(
+                          color: Colors.grey.shade200,
+                          width: 0.5,
                         ),
                       ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.search,
-                            size: 18,
-                            color: Colors.grey.shade600,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              suggestion['name'],
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
+                    ),
+                    child: Row(
+                      children: [
+                        // Text area - tap to fill input field
+                        Expanded(
+                          child: InkWell(
+                            onTap: () => _selectSuggestion(suggestion),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 12,
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.search,
+                                    size: 18,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      suggestion['name'],
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
-                          Icon(
-                            Icons.arrow_forward_ios,
-                            size: 14,
-                            color: Colors.grey.shade400,
+                        ),
+                        // Arrow button - tap to add directly
+                        InkWell(
+                          onTap: () => _addSuggestionDirectly(suggestion),
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            child: Icon(
+                              Icons.add_circle_outline,
+                              size: 20,
+                              color: const Color(0xFF7A8471),
+                            ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   )),
                 ],
