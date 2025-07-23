@@ -41,20 +41,36 @@ function analyzeMenuItems(detections) {
     const enhancedItems = enhanceFoodDetection(menuItems);
     console.log(`[MenuAnalyzer] Enhanced menu items: ${enhancedItems.length}`);
     
-    // Debug: log details of enhanced items
-    enhancedItems.forEach((item, index) => {
-      console.log(`[DEBUG] Item ${index + 1}: "${item.name}" - Price: ${item.price} - isLikelyMenuItem: ${item.isLikelyMenuItem} - foodScore: ${item.foodScore}`);
+    // Final deduplication: remove items with duplicate names
+    const uniqueItems = [];
+    const seenNames = new Set();
+    
+    enhancedItems.forEach(item => {
+      // Clean the name by removing extra spaces and converting to lowercase for comparison
+      const cleanName = item.name.replace(/\s+/g, ' ').trim().toLowerCase();
+      
+      if (!seenNames.has(cleanName)) {
+        seenNames.add(cleanName);
+        uniqueItems.push(item);
+      } else {
+        console.log(`[DEBUG] Removing duplicate item: "${item.name}"`);
+      }
+    });
+    
+    // Debug: log details of final unique items
+    uniqueItems.forEach((item, index) => {
+      console.log(`[DEBUG] Final Item ${index + 1}: "${item.name}" - Price: ${item.price} - isLikelyMenuItem: ${item.isLikelyMenuItem} - foodScore: ${item.foodScore}`);
     });
     
     return {
       success: true,
-      menuItems: enhancedItems,
+      menuItems: uniqueItems,
       metadata: {
         totalDetections: detections.length,
         validDetections: validDetections.length,
         spatialGroups: spatialGroups.length,
         filteredGroups: filteredGroups.length,
-        menuItemsFound: enhancedItems.length
+        menuItemsFound: uniqueItems.length
       }
     };
 
