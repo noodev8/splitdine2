@@ -1778,6 +1778,8 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
       if (result['success']) {
         setState(() {
           _existingItems = result['items'] as List<SessionReceiptItem>;
+          // Sort items alphabetically by name for easier user navigation
+          _existingItems.sort((a, b) => a.itemName.toLowerCase().compareTo(b.itemName.toLowerCase()));
         });
       } else {
         setState(() {
