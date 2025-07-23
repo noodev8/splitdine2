@@ -420,11 +420,14 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
           width: 1,
         ),
       ),
-      child: GestureDetector(
-        onTap: () => _showEditItemDialog(item),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _showEditItemDialog(item),
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header row with item name, price, and actions
@@ -505,10 +508,8 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
                       ],
                     ),
                   ),
-                  // Action buttons row - prevent gesture conflicts
-                  GestureDetector(
-                    onTap: () {}, // Absorb taps to prevent card tap
-                    child: PopupMenuButton<String>(
+                  // Action buttons row
+                  PopupMenuButton<String>(
                   onSelected: (value) {
                     switch (value) {
                       case 'edit':
@@ -575,7 +576,6 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
                         size: 20,
                       ),
                     ),
-                  ),
                 ],
               ),
 
@@ -586,6 +586,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
 
 
             ],
+            ),
           ),
         ),
       ),
