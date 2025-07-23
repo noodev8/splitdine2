@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "50042525596",
+    "project_id": "splitdine",
+    "storage_bucket": "splitdine.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:50042525596:android:e6c5fd384b9edadc0f5a59",
+        "android_client_info": {
+          "package_name": "com.noodev8.splitdine2"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAY_KG2JlFCXwiC065vt_wYYJeSwsVLF94"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
