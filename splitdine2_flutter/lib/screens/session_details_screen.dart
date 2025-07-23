@@ -33,8 +33,6 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isUpcoming = widget.session.sessionDate.isAfter(DateTime.now().subtract(const Duration(days: 1)));
-    final canEdit = isUpcoming;
 
     return Scaffold(
       backgroundColor: Colors.grey.shade50, // Clean light background
@@ -205,181 +203,65 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
             const SizedBox(height: 24),
 
 
-            // Action Buttons
-            Column(
+            // Action Cards Grid
+            GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              childAspectRatio: 1.0,
               children: [
-                // Receipt button (manages items and assignments)
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () => _navigateToReceiptScan(context),
-                    icon: const Icon(Icons.receipt, size: 20),
-                    label: const Text(
-                      'Receipt',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      elevation: 0,
-                      shadowColor: Colors.transparent,
-                      overlayColor: Colors.black.withValues(alpha: 0.05), // Subtle press effect
-                    ),
-                  ),
+                // Receipt Card
+                _buildActionCard(
+                  icon: Icons.receipt,
+                  title: 'Receipt',
+                  subtitle: 'Manage items',
+                  onTap: () => _navigateToReceiptScan(context),
                 ),
-
-                const SizedBox(height: 12),
-
-                // Payment Summary button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () => _navigateToPaymentSummary(context),
-                    icon: const Icon(Icons.payment, size: 20),
-                    label: const Text(
-                      'Payment Summary',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      elevation: 0,
-                      shadowColor: Colors.transparent,
-                      overlayColor: Colors.black.withValues(alpha: 0.05), // Subtle press effect
-                    ),
-                  ),
+                // Payment Summary Card
+                _buildActionCard(
+                  icon: Icons.payment,
+                  title: 'Payment',
+                  subtitle: 'View summary',
+                  onTap: () => _navigateToPaymentSummary(context),
                 ),
-
-                const SizedBox(height: 20),
-
-                // Session Code and Add Guest row
-                Row(
-                  children: [
-                    // Session Code Box (half width)
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: Colors.grey.shade300,
-                            width: 1,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.qr_code,
-                              size: 20,
-                              color: Colors.grey.shade600,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              widget.session.joinCode,
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                fontFamily: 'monospace',
-                                letterSpacing: 1,
-                              ),
-                            ),
-                            const Spacer(),
-                            GestureDetector(
-                              onTap: () {
-                                Clipboard.setData(ClipboardData(text: widget.session.joinCode));
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Code copied'),
-                                    duration: Duration(seconds: 1),
-                                  ),
-                                );
-                              },
-                              child: Icon(
-                                Icons.copy,
-                                size: 18,
-                                color: Colors.grey.shade600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    // Add Guest button (for hosts only)
-                    if (widget.session.isHost)
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () => _navigateToAddGuest(context),
-                          icon: const Icon(Icons.person_add, size: 18),
-                          label: const Text(
-                            'Add Guest',
-                            style: TextStyle(fontSize: 14),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            side: BorderSide(
-                              color: Colors.grey.shade400,
-                              width: 1,
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
+                // Session Code Card
+                _buildSessionCodeCard(),
+                // Add Guest Card (available to everyone)
+                _buildActionCard(
+                  icon: Icons.person_add,
+                  title: 'Add Guest',
+                  subtitle: 'Invite someone',
+                  onTap: () => _navigateToAddGuest(context),
                 ),
-
-                const SizedBox(height: 12),
-
-                // Description section (moved from header)
-                if (widget.session.description != null && widget.session.description!.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: Colors.grey.shade200,
-                        width: 1,
-                      ),
-                    ),
-                    child: Text(
-                      widget.session.description!,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade700,
-                        height: 1.4,
-                      ),
-                    ),
-                  ),
-                ],
-
               ],
             ),
 
-            if (!canEdit) ...[
-              const SizedBox(height: 8),
-              Text(
-                'This session is from the past and cannot be edited',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.grey.shade600,
-                  fontStyle: FontStyle.italic,
+            const SizedBox(height: 12),
+
+            // Description section (moved from header)
+            if (widget.session.description != null && widget.session.description!.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Colors.grey.shade200,
+                    width: 1,
+                  ),
                 ),
-                textAlign: TextAlign.center,
+                child: Text(
+                  widget.session.description!,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade700,
+                    height: 1.4,
+                  ),
+                ),
               ),
             ],
           ],
@@ -806,5 +688,120 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
         );
       }
     }
+  }
+
+  Widget _buildActionCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return Card(
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: Colors.grey.shade200,
+          width: 1,
+        ),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 32,
+                color: Colors.blue.shade600,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade600,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSessionCodeCard() {
+    return Card(
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: Colors.grey.shade200,
+          width: 1,
+        ),
+      ),
+      child: InkWell(
+        onTap: () {
+          Clipboard.setData(ClipboardData(text: widget.session.joinCode));
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Code copied'),
+              duration: Duration(seconds: 1),
+            ),
+          );
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.qr_code,
+                size: 32,
+                color: Colors.green.shade600,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                widget.session.joinCode,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'monospace',
+                  letterSpacing: 1,
+                  color: Colors.black87,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Tap to copy',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade600,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
