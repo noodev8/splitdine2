@@ -29,7 +29,7 @@ router.get('/search', authenticateToken, async (req, res) => {
       });
     }
 
-    const searchTerm = query.trim().toLowerCase();
+    const searchTerm = query.trim().toUpperCase();
 
     // Use the SQL from Item_Search_SQL.txt
     const searchQuery = `

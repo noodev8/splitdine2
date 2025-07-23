@@ -1,0 +1,11 @@
+# Use this statement for INLINE SQL when searching for an item while typing
+
+SELECT DISTINCT ON (mi.id) mi.id, mi.name
+FROM menu_synonym ms
+JOIN menu_item mi ON mi.id = ms.menu_item_id
+WHERE
+  ms.synonym LIKE $1 || '%'           -- fast prefix match
+  OR ms.synonym LIKE '%' || $1 || '%' -- substring match
+  OR (ms.synonym % $1)                -- fuzzy match
+ORDER BY mi.id, similarity(ms.synonym, $1) DESC
+LIMIT 3;
