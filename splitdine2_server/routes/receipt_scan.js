@@ -8,6 +8,7 @@ const { pool } = require('../config/database');
 const { receiptScanQueries, sessionQueries, participantQueries, receiptQueries, integrityQueries } = require('../utils/database');
 const { extractTextFromReceipt } = require('../utils/azureOcrService');
 const { analyzeMenuItems } = require('../utils/menuItemAnalyzer');
+const { parseAzureOcrToMenuItems } = require('../utils/azureOcrParser');
 const { authenticateToken } = require('../middleware/auth');
 
 /**
@@ -138,25 +139,19 @@ router.post('/upload', authenticateToken, upload.single('image'), async (req, re
       });
     }
     
-    // Use intelligent analysis to extract menu items from OCR detections
+    // Parse Azure OCR detections to extract menu items
+    let parsedData;
     let analysisResult;
     try {
-      // Convert OCR detections to format expected by analyzer
-      const detectionsForAnalysis = [];
-      if (ocrResult.detections && Array.isArray(ocrResult.detections)) {
-        for (const detection of ocrResult.detections) {
-          if (!detection.description) continue;
-          
-          detectionsForAnalysis.push({
-            detection_text: detection.description,
-            confidence: detection.confidence || null,
-            bounding_box: detection.boundingPoly ? JSON.stringify(detection.boundingPoly) : null
-          });
-        }
-      }
+      // First, parse the raw OCR detections to extract menu items
+      parsedData = parseAzureOcrToMenuItems(ocrResult.detections);
+      console.log(`[Receipt Scan] Parsed ${parsedData.menuItems.length} menu items from OCR`);
       
-      // Analyze the detections to extract menu items
-      analysisResult = analyzeMenuItems(detectionsForAnalysis);
+      // Add the full text annotation to parsed data
+      parsedData.fullTextAnnotation = ocrResult.fullTextAnnotation;
+      
+      // Then analyze the parsed menu items (clean duplicates, etc)
+      analysisResult = analyzeMenuItems(parsedData);
       
       if (!analysisResult.success) {
         throw new Error(analysisResult.error || 'Analysis failed');
@@ -170,7 +165,7 @@ router.post('/upload', authenticateToken, upload.single('image'), async (req, re
         ocr_text: ocrResult.text,
         ocr_confidence: ocrResult.confidence,
         parsed_items: {
-          menuItems: [],
+          menuItems: parsedData ? parsedData.menuItems : [],
           fullTextAnnotation: ocrResult.fullTextAnnotation, // Save OCR data even on analysis failure
           detections: ocrResult.detections,
           error: analysisError.message
