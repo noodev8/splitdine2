@@ -145,14 +145,17 @@ function performSpatialAnalysis(detections) {
       const otherY = getYPosition(otherDetection.boundingBox);
       
       // If detections are on similar Y-axis (same line), group them
-      // Use stricter threshold and avoid grouping identical complete phrases
-      if (Math.abs(group.yPosition - otherY) < 15) {
-        // Don't group if this would create duplicate complete phrases
-        const existingTexts = group.items.map(item => item.text).join(' ');
-        const newText = otherDetection.text;
+      if (Math.abs(group.yPosition - otherY) < 25) {
+        // Check if this detection overlaps significantly with existing group Y range
+        const groupMinY = Math.min(...group.items.map(item => getYPosition(item.boundingBox)));
+        const groupMaxY = Math.max(...group.items.map(item => getYPosition(item.boundingBox)));
+        const otherMinY = otherY - 10; // Give some tolerance
+        const otherMaxY = otherY + 10;
         
-        // Avoid grouping if the new text would duplicate an existing phrase
-        if (!existingTexts.includes(newText) || newText.length <= 5) {
+        // Only group if there's significant Y overlap (same receipt line)
+        const hasOverlap = !(otherMaxY < groupMinY || otherMinY > groupMaxY);
+        
+        if (hasOverlap) {
           group.items.push(otherDetection);
           processed.add(i);
         }
@@ -322,9 +325,9 @@ function performContextualGrouping(filteredGroups) {
       matchedPrice = Math.max(...sameGroupPrices[0].prices);
       console.log(`[DEBUG] Same group price match: "${itemName}" -> ${matchedPrice}`);
     } else {
-      // Look for prices in nearby groups (within 20 pixels vertically) 
+      // Look for prices in nearby groups (within 25 pixels vertically) 
       const nearbyPrices = priceGroups.filter(pg => 
-        Math.abs(pg.yPosition - foodGroup.yPosition) < 20
+        Math.abs(pg.yPosition - foodGroup.yPosition) < 25
       );
       
       if (nearbyPrices.length > 0) {
