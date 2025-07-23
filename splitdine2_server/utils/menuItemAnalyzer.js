@@ -281,8 +281,30 @@ function performContextualGrouping(filteredGroups) {
   
   // Second pass: match food groups with nearby price groups
   foodGroups.forEach(foodGroup => {
-    // Remove duplicate words from item names
-    const uniqueWords = [...new Set(foodGroup.itemWords)];
+    // Smart deduplication: if we have repeated sequences, keep only one
+    let words = foodGroup.itemWords;
+    
+    // Check if the word list is a repeated pattern (e.g., ["TOAST", "BREAD", "TOAST", "BREAD"])
+    const halfLength = Math.floor(words.length / 2);
+    if (words.length > 1 && words.length % 2 === 0) {
+      const firstHalf = words.slice(0, halfLength);
+      const secondHalf = words.slice(halfLength);
+      
+      // If both halves are identical, use only the first half
+      if (JSON.stringify(firstHalf) === JSON.stringify(secondHalf)) {
+        console.log(`[DEBUG] Removing repeated sequence: ${words.join(' ')} -> ${firstHalf.join(' ')}`);
+        words = firstHalf;
+      }
+    }
+    
+    // Remove any remaining duplicate consecutive words
+    const uniqueWords = [];
+    words.forEach((word, index) => {
+      if (index === 0 || word !== words[index - 1]) {
+        uniqueWords.push(word);
+      }
+    });
+    
     const itemName = uniqueWords.join(' ');
     let matchedPrice = null;
     
