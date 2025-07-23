@@ -206,7 +206,7 @@ router.post('/upload', authenticateToken, upload.single('image'), async (req, re
     // Convert intelligent analysis to Flutter format
     const itemsForFrontend = intelligentItems
       .filter(item => item.isLikelyMenuItem && item.price > 0) // Only include likely menu items with prices
-      .sort((a, b) => (b.receiptOrder || 0) - (a.receiptOrder || 0)) // Sort by original receipt order (reversed for testing)
+      .sort((a, b) => (b.receiptOrder || 0) - (a.receiptOrder || 0)) // Sort by receipt order (reversed because Flutter displays items in reverse)
       .map(item => ({
         name: item.name,
         price: item.price,
