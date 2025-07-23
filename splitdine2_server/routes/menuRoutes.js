@@ -30,6 +30,10 @@ router.get('/search', authenticateToken, async (req, res) => {
     }
 
     const searchTerm = query.trim().toUpperCase();
+    
+    console.log('=== MENU SEARCH DEBUG ===');
+    console.log('Original query:', query);
+    console.log('Search term (uppercase):', searchTerm);
 
     // Use the SQL from Item_Search_SQL.txt
     const searchQuery = `
@@ -44,16 +48,27 @@ router.get('/search', authenticateToken, async (req, res) => {
       LIMIT 3
     `;
 
-    const result = await pool.query(searchQuery, [searchTerm]);
+    console.log('SQL Query:', searchQuery);
+    console.log('Query parameters:', [searchTerm]);
 
-    res.json({
+    const result = await pool.query(searchQuery, [searchTerm]);
+    
+    console.log('Database result rows:', result.rows.length);
+    console.log('Database result:', JSON.stringify(result.rows, null, 2));
+
+    const response = {
       return_code: 0,
       message: 'Search completed',
       suggestions: result.rows.map(row => ({
         id: row.id,
         name: row.name
       }))
-    });
+    };
+    
+    console.log('API Response:', JSON.stringify(response, null, 2));
+    console.log('=== END DEBUG ===\n');
+
+    res.json(response);
 
   } catch (error) {
     console.error('Menu search error:', error);
