@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'api_service.dart';
 
-class MenuService extends ApiService {
+class MenuService {
   // Timer for debouncing
   Timer? _debounceTimer;
   
@@ -28,9 +28,8 @@ class MenuService extends ApiService {
           return;
         }
         
-        final response = await get(
-          '/menu/search',
-          queryParameters: {'query': query},
+        final response = await ApiService.get(
+          '/menu/search?query=${Uri.encodeQueryComponent(query)}',
         );
         
         if (response['return_code'] == 0) {
@@ -68,9 +67,8 @@ class MenuService extends ApiService {
         };
       }
       
-      final response = await get(
-        '/menu/search',
-        queryParameters: {'query': query},
+      final response = await ApiService.get(
+        '/menu/search?query=${Uri.encodeQueryComponent(query)}',
       );
       
       if (response['return_code'] == 0) {
