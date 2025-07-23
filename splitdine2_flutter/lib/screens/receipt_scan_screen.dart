@@ -2125,14 +2125,13 @@ class _EditItemDialogState extends State<_EditItemDialog> {
               child: ElevatedButton(
                 onPressed: _onSave,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF7A8471), // Match Guest Choices screen buttons
-                  foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
                   elevation: 0,
                   shadowColor: Colors.transparent,
+                  overlayColor: Colors.black.withValues(alpha: 0.05),
                 ),
                 child: const Text(
                   'Save',
