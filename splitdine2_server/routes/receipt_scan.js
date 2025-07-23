@@ -143,8 +143,8 @@ router.post('/upload', authenticateToken, upload.single('image'), async (req, re
     let parsedData;
     let analysisResult;
     try {
-      // First, parse the raw OCR detections to extract menu items
-      parsedData = parseAzureOcrToMenuItems(ocrResult.detections);
+      // First, parse the raw OCR result to extract menu items
+      parsedData = parseAzureOcrToMenuItems(ocrResult);
       console.log(`[Receipt Scan] Parsed ${parsedData.menuItems.length} menu items from OCR`);
       
       // Add the full text annotation to parsed data

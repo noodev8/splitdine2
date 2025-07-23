@@ -5,64 +5,94 @@
 
 /**
  * Parse Azure OCR detections to extract menu items
- * @param {Array} detections - Array of detection objects from Azure OCR
+ * Uses a simple line-by-line approach based on the fullTextAnnotation
+ * @param {Object} ocrResult - Full OCR result from Azure with detections and fullTextAnnotation
  * @returns {Object} - Parsed menu items ready for analysis
  */
-function parseAzureOcrToMenuItems(detections) {
-  if (!Array.isArray(detections) || detections.length === 0) {
+function parseAzureOcrToMenuItems(ocrResult) {
+  // Extract the full text from Azure OCR
+  const fullText = ocrResult.fullTextAnnotation?.text || '';
+  const detections = ocrResult.detections || [];
+  
+  if (!fullText) {
+    console.log('[OcrParser] No full text found in OCR result');
     return {
       menuItems: [],
-      detections: detections || []
+      detections: detections
     };
   }
 
+  console.log('[OcrParser] Full text from Azure:');
+  console.log(fullText);
+
   const menuItems = [];
-  const processedIndices = new Set();
-
-  // Group detections by Y position (same line)
-  const lineGroups = groupDetectionsByLine(detections);
+  const lines = fullText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
   
-  console.log(`[OcrParser] Found ${lineGroups.length} line groups from ${detections.length} detections`);
+  console.log(`[OcrParser] Processing ${lines.length} lines`);
 
-  // Process each line to find menu items
-  lineGroups.forEach((lineGroup, groupIndex) => {
-    // Extract text and prices from the line
-    const lineText = [];
-    const prices = [];
+  // Look for item-price pairs
+  for (let i = 0; i < lines.length; i++) {
+    const currentLine = lines[i];
     
-    lineGroup.detections.forEach(detection => {
-      const text = (detection.description || detection.text || '').trim();
-      
-      if (isPotentialPrice(text)) {
-        const price = extractPrice(text);
-        if (price !== null) {
-          prices.push({ value: price, text: text });
-        }
-      } else if (!isReceiptNoise(text)) {
-        lineText.push(text);
-      }
-    });
-    
-    // If we have both text and price on this line, it's likely a menu item
-    if (lineText.length > 0 && prices.length > 0) {
-      const itemName = lineText.join(' ');
-      const price = prices[prices.length - 1].value; // Use the last price found on the line
-      
-      menuItems.push({
-        name: itemName,
-        price: price,
-        confidence: lineGroup.avgConfidence,
-        foodScore: calculateFoodScore(itemName),
-        wordCount: lineText.length,
-        isLikelyMenuItem: true,
-        enhancedConfidence: lineGroup.avgConfidence,
-        originalGroup: lineGroup
-      });
-      
-      console.log(`[OcrParser] Found menu item: "${itemName}" - £${price}`);
+    // Skip obvious receipt noise
+    if (isReceiptNoise(currentLine)) {
+      console.log(`[OcrParser] Skipping noise: "${currentLine}"`);
+      continue;
     }
-  });
+    
+    // Check if current line is a price
+    if (isPotentialPrice(currentLine)) {
+      // Look backwards for the item name
+      if (i > 0) {
+        const previousLine = lines[i - 1];
+        if (!isReceiptNoise(previousLine) && !isPotentialPrice(previousLine)) {
+          const price = extractPrice(currentLine);
+          if (price !== null) {
+            menuItems.push({
+              name: previousLine,
+              price: price,
+              confidence: 0.9,
+              foodScore: calculateFoodScore(previousLine),
+              wordCount: previousLine.split(' ').length,
+              isLikelyMenuItem: true,
+              enhancedConfidence: 0.9,
+              originalLine: previousLine + ' ' + currentLine
+            });
+            
+            console.log(`[OcrParser] Found menu item: "${previousLine}" - £${price}`);
+          }
+        }
+      }
+    }
+    
+    // Also check if current line contains both item and price
+    const words = currentLine.split(' ');
+    const lastWord = words[words.length - 1];
+    
+    if (words.length > 1 && isPotentialPrice(lastWord)) {
+      const itemName = words.slice(0, -1).join(' ');
+      if (!isReceiptNoise(itemName)) {
+        const price = extractPrice(lastWord);
+        if (price !== null) {
+          menuItems.push({
+            name: itemName,
+            price: price,
+            confidence: 0.9,
+            foodScore: calculateFoodScore(itemName),
+            wordCount: itemName.split(' ').length,
+            isLikelyMenuItem: true,
+            enhancedConfidence: 0.9,
+            originalLine: currentLine
+          });
+          
+          console.log(`[OcrParser] Found menu item on same line: "${itemName}" - £${price}`);
+        }
+      }
+    }
+  }
 
+  console.log(`[OcrParser] Found ${menuItems.length} menu items total`);
+  
   return {
     menuItems: menuItems,
     detections: detections
@@ -149,15 +179,22 @@ function extractPrice(text) {
  */
 function isReceiptNoise(text) {
   const noisePatterns = [
-    /^(THANK|YOU|PLEASE|CALL|AGAIN|DATE|TIME|TOTAL|CASH|CARD|CHANGE)$/i,
+    /^(THANK|YOU|PLEASE|CALL|AGAIN|DATE|TIME|CASH|CARD|CHANGE)$/i,
     /^(GST|TAX|SERVICE|CHARGE|TIP|SUBTOTAL)$/i,
     /^(RECEIPT|INVOICE|BILL|ORDER)$/i,
     /^\d{2}\/\d{2}\/\d{4}$/,  // Dates
     /^\d{1,2}:\d{2}(:\d{2})?$/,  // Times
-    /^[A-Z]{2,3}$/,  // Short codes like GST, TAX
+    /^[A-Z]{2,3}$/,  // Short codes like GST, TAX - but not TEA!
     /^#\d+$/,  // Order numbers
-    /^[\W]+$/  // Only special characters
+    /^[\W]+$/,  // Only special characters
+    /^(FOR|YOUR|CUSTOM)$/i,  // Common non-menu phrases
+    /^TOTAL$/i  // Skip TOTAL lines
   ];
+  
+  // Special case: TEA is a valid menu item, not noise
+  if (text.toUpperCase() === 'TEA') {
+    return false;
+  }
   
   return noisePatterns.some(pattern => pattern.test(text));
 }
