@@ -420,24 +420,24 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
           width: 1,
         ),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header row with item name, price, and actions
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Item name with shared tag
-                      Row(
-                        children: [
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () => _showEditItemDialog(item),
+      child: GestureDetector(
+        onTap: () => _showEditItemDialog(item),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header row with item name, price, and actions
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Item name with shared tag
+                        Row(
+                          children: [
+                            Expanded(
                               child: Text(
                                 item.itemName,
                                 style: const TextStyle(
@@ -448,33 +448,30 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                          ),
-                          if (isShared) ...[
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade200,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                'SHARED',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.grey.shade700,
+                            if (isShared) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade200,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  'SHARED',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.grey.shade700,
+                                  ),
                                 ),
                               ),
-                            ),
+                            ],
                           ],
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      // Price information - stack vertically for shared items
-                      if (isShared) ...[
-                        GestureDetector(
-                          onTap: () => _showEditItemDialog(item),
-                          child: Column(
+                        ),
+                        const SizedBox(height: 4),
+                        // Price information - stack vertically for shared items
+                        if (isShared) ...[
+                          Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
@@ -495,11 +492,8 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
                               ),
                             ],
                           ),
-                        ),
-                      ] else ...[
-                        GestureDetector(
-                          onTap: () => _showEditItemDialog(item),
-                          child: Text(
+                        ] else ...[
+                          Text(
                             '£${item.price.toStringAsFixed(2)}',
                             style: const TextStyle(
                               fontSize: 16,
@@ -507,13 +501,14 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
                               color: Color(0xFF7A8471),
                             ),
                           ),
-                        ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
-                ),
-                // Action buttons row
-                PopupMenuButton<String>(
+                  // Action buttons row - prevent gesture conflicts
+                  GestureDetector(
+                    onTap: () {}, // Absorb taps to prevent card tap
+                    child: PopupMenuButton<String>(
                   onSelected: (value) {
                     switch (value) {
                       case 'edit':
@@ -574,14 +569,15 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
                       ),
                     ),
                   ],
-                  icon: Icon(
-                    Icons.more_vert,
-                    color: Colors.grey.shade600,
-                    size: 20,
+                      icon: Icon(
+                        Icons.more_vert,
+                        color: Colors.grey.shade600,
+                        size: 20,
+                      ),
+                    ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
 
             const SizedBox(height: 16),
 
@@ -589,7 +585,8 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
             _buildParticipantsSection(item),
 
 
-          ],
+            ],
+          ),
         ),
       ),
     );
