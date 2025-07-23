@@ -80,7 +80,7 @@ class _AddNewItemScreenState extends State<AddNewItemScreen> {
     });
   }
 
-  Future<void> _addItem([String? itemName]) async {
+  Future<void> _addItem([String? itemName, String? originalUserInput]) async {
     final name = itemName ?? _itemNameController.text.trim();
     if (name.isEmpty) return;
 
@@ -101,16 +101,17 @@ class _AddNewItemScreenState extends State<AddNewItemScreen> {
       );
 
       if (result['success']) {
-        // Log the search if we have a user
-        if (_selectedSuggestionId != null) {
-          final authProvider = Provider.of<AuthProvider>(context, listen: false);
-          if (authProvider.user != null) {
-            MenuService.logSearch(
-              userInput: _itemNameController.text.trim(),
-              matchedMenuItemId: _selectedSuggestionId,
-              guestId: authProvider.user!.id,
-            );
-          }
+        // Always log the search to track what items users are adding
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        if (authProvider.user != null) {
+          // Use original user input if provided (for suggestion selections), 
+          // otherwise use the current text field or item name
+          final userInput = originalUserInput ?? (itemName ?? _itemNameController.text.trim());
+          MenuService.logSearch(
+            userInput: userInput,
+            matchedMenuItemId: _selectedSuggestionId, // null if no match
+            guestId: authProvider.user!.id,
+          );
         }
         
         setState(() {
@@ -162,11 +163,14 @@ class _AddNewItemScreenState extends State<AddNewItemScreen> {
   }
   
   Future<void> _addSuggestionDirectly(Map<String, dynamic> suggestion) async {
+    // Store the original user input for logging
+    final originalUserInput = _itemNameController.text.trim();
+    
     // Set the selected suggestion ID for logging
     _selectedSuggestionId = suggestion['id'];
     
-    // Add the item directly without setting text field
-    await _addItem(suggestion['name']);
+    // Add the item directly - pass the original user input for logging
+    await _addItem(suggestion['name'], originalUserInput: originalUserInput);
     
     // Clear suggestions after adding
     setState(() {
