@@ -8,6 +8,7 @@ import '../services/api_service.dart';
 import '../services/session_receipt_service.dart';
 import '../services/session_service.dart';
 import '../services/guest_choice_service.dart';
+import 'add_new_item_screen.dart';
 
 class ReceiptScanScreen extends StatefulWidget {
   final Session session;
@@ -268,52 +269,29 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
             ),
           ],
         ),
-        child: Row(
-          children: [
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: _addNewItem,
-                icon: const Icon(Icons.add, size: 20),
-                label: const Text(
-                  'Add Item',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  elevation: 0,
-                  shadowColor: Colors.transparent,
-                ),
+        child: SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: _addNewItem,
+            icon: const Icon(Icons.add, size: 20),
+            label: const Text(
+              'Add Items',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: _showRescanDialog,
-                icon: const Icon(Icons.camera_alt, size: 20),
-                label: const Text(
-                  'Scan',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  elevation: 0,
-                  shadowColor: Colors.transparent,
-                ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF7A8471),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
               ),
+              elevation: 0,
+              shadowColor: Colors.transparent,
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -809,7 +787,16 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
 
   // Add new item
   void _addNewItem() {
-    _showAddItemDialog();
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddNewItemScreen(session: widget.session),
+      ),
+    ).then((_) {
+      // Reload items when returning from add screen
+      _loadExistingItems();
+      _loadAssignments();
+    });
   }
 
   // Add item to database
