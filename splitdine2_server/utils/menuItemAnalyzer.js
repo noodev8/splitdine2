@@ -112,7 +112,7 @@ function analyzeMenuItems(data) {
         
         // Create the processed item with all original properties plus cleaned name
         const processedItem = {
-          ...item, // Keep all original properties
+          ...item, // Keep all original properties (including receiptOrder)
           name: cleanedName,
           originalName: item.name // Keep track of original name
         };

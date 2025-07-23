@@ -56,7 +56,8 @@ function parseAzureOcrToMenuItems(ocrResult) {
               wordCount: previousLine.split(' ').length,
               isLikelyMenuItem: true,
               enhancedConfidence: 0.9,
-              originalLine: previousLine + ' ' + currentLine
+              originalLine: previousLine + ' ' + currentLine,
+              receiptOrder: menuItems.length // Track original receipt order
             });
             
             console.log(`[OcrParser] Found menu item: "${previousLine}" - £${price}`);
@@ -82,7 +83,8 @@ function parseAzureOcrToMenuItems(ocrResult) {
             wordCount: itemName.split(' ').length,
             isLikelyMenuItem: true,
             enhancedConfidence: 0.9,
-            originalLine: currentLine
+            originalLine: currentLine,
+            receiptOrder: menuItems.length // Track original receipt order
           });
           
           console.log(`[OcrParser] Found menu item on same line: "${itemName}" - £${price}`);
