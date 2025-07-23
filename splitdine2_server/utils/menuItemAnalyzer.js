@@ -147,7 +147,8 @@ function performSpatialAnalysis(detections) {
   
   // Debug: log spatial groups
   sortedGroups.forEach((group, index) => {
-    const groupText = group.items.map(item => item.text).join(' ');
+    const uniqueTexts = [...new Set(group.items.map(item => item.text))];
+    const groupText = uniqueTexts.join(' ');
     console.log(`[DEBUG] Spatial Group ${index + 1}: "${groupText}" (Y: ${group.yPosition.toFixed(1)})`);
   });
   
@@ -194,7 +195,8 @@ function applyPatternFiltering(spatialGroups) {
       excludePatterns.some(pattern => pattern.test(item.text))
     ).length;
     
-    const groupText = group.items.map(item => item.text).join(' ');
+    const uniqueTexts = [...new Set(group.items.map(item => item.text))];
+    const groupText = uniqueTexts.join(' ');
     console.log(`[DEBUG] Group: "${groupText}" - Excluded: ${excludedCount}/${group.items.length}`);
     
     // Keep groups where less than 70% are excluded patterns
@@ -263,7 +265,9 @@ function performContextualGrouping(filteredGroups) {
   
   // Second pass: match food groups with nearby price groups
   foodGroups.forEach(foodGroup => {
-    const itemName = foodGroup.itemWords.join(' ');
+    // Remove duplicate words from item names
+    const uniqueWords = [...new Set(foodGroup.itemWords)];
+    const itemName = uniqueWords.join(' ');
     let matchedPrice = null;
     
     // Look for prices in the same group first
