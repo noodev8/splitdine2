@@ -138,55 +138,25 @@ router.post('/upload', authenticateToken, upload.single('image'), async (req, re
       });
     }
     
-    // Save individual OCR detections to raw_scan table
-    const { replace_scan = false } = req.body;
-    
-    const rawScanClient = await pool.connect();
+    // Use intelligent analysis to extract menu items from OCR detections
+    let analysisResult;
     try {
-      await rawScanClient.query('BEGIN');
-      
-      if (replace_scan) {
-        await rawScanClient.query(
-          'DELETE FROM raw_scan WHERE session_id = $1',
-          [session_id]
-        );
-      }
-      
-      // Save individual OCR detections (skip the first one which is full text)
+      // Convert OCR detections to format expected by analyzer
+      const detectionsForAnalysis = [];
       if (ocrResult.detections && Array.isArray(ocrResult.detections)) {
         for (const detection of ocrResult.detections) {
           if (!detection.description) continue;
           
-          await rawScanClient.query(
-            'INSERT INTO raw_scan (session_id, detection_text, confidence, bounding_box) VALUES ($1, $2, $3, $4)',
-            [
-              parseInt(session_id),
-              detection.description,
-              detection.confidence || null,
-              detection.boundingPoly ? JSON.stringify(detection.boundingPoly) : null
-            ]
-          );
+          detectionsForAnalysis.push({
+            detection_text: detection.description,
+            confidence: detection.confidence || null,
+            bounding_box: detection.boundingPoly ? JSON.stringify(detection.boundingPoly) : null
+          });
         }
       }
       
-      await rawScanClient.query('COMMIT');
-    } catch (rawScanError) {
-      await rawScanClient.query('ROLLBACK');
-      console.error('Error saving raw scan detections:', rawScanError);
-      // Continue processing even if raw scan save fails
-    } finally {
-      rawScanClient.release();
-    }
-    
-    // Use intelligent analysis to extract menu items from raw detections
-    let analysisResult;
-    try {
-      // Get the raw detections we just saved
-      const rawDetectionsQuery = 'SELECT * FROM raw_scan WHERE session_id = $1 ORDER BY id DESC';
-      const rawDetectionsData = await pool.query(rawDetectionsQuery, [parseInt(session_id)]);
-      
       // Analyze the detections to extract menu items
-      analysisResult = analyzeMenuItems(rawDetectionsData.rows);
+      analysisResult = analyzeMenuItems(detectionsForAnalysis);
       
       if (!analysisResult.success) {
         throw new Error(analysisResult.error || 'Analysis failed');
