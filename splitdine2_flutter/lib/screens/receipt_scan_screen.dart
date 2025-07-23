@@ -290,6 +290,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
               ),
               elevation: 0,
               shadowColor: Colors.transparent,
+              overlayColor: Colors.black.withValues(alpha: 0.05),
             ),
           ),
         ),

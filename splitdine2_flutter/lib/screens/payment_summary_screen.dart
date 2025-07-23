@@ -484,8 +484,8 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
                                           Expanded(
                                             child: Text(
                                               userName,
-                                              style: TextStyle(
-                                                fontWeight: isOrganizer ? FontWeight.bold : FontWeight.normal,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.normal,
                                               ),
                                             ),
                                           ),
