@@ -1384,27 +1384,33 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeInOut,
-            child: FilterChip(
-              label: AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 150),
+            child: ElevatedButton(
+              onPressed: () {
+                // Trigger bounce animation on selection
+                _animateChipSelection(participantKey);
+                _toggleParticipantAssignment(item, participant, !isSelected);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isSelected ? const Color(0xFF7A8471) : Colors.white,
+                foregroundColor: isSelected ? Colors.white : Colors.grey.shade700,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  side: BorderSide(
+                    color: isSelected ? const Color(0xFF7A8471) : Colors.grey.shade300,
+                  ),
+                ),
+                elevation: 0,
+                shadowColor: Colors.transparent,
+                overlayColor: Colors.black.withValues(alpha: 0.05),
+              ),
+              child: Text(
+                participant.displayName,
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
                   color: isSelected ? Colors.white : Colors.grey.shade700,
                 ),
-                child: Text(participant.displayName),
-              ),
-              selected: isSelected,
-              onSelected: (selected) {
-                // Trigger bounce animation on selection
-                _animateChipSelection(participantKey);
-                _toggleParticipantAssignment(item, participant, selected);
-              },
-              selectedColor: const Color(0xFF7A8471),
-              backgroundColor: Colors.grey.shade100,
-              checkmarkColor: Colors.white,
-              side: BorderSide(
-                color: isSelected ? const Color(0xFF7A8471) : Colors.grey.shade300,
               ),
             ),
           ),
