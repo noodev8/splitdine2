@@ -295,12 +295,18 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
                                     children: [
                                       Text(
                                         'Bill Total',
-                                        style: Theme.of(context).textTheme.titleMedium,
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.grey.shade700,
+                                        ),
                                       ),
                                       Text(
                                         '£${billTotal.toStringAsFixed(2)}',
-                                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                        style: const TextStyle(
+                                          fontSize: 24,
                                           fontWeight: FontWeight.bold,
+                                          color: Color(0xFF7A8471),
                                         ),
                                       ),
                                     ],
@@ -311,13 +317,18 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
                                     children: [
                                       Text(
                                         'Allocated',
-                                        style: Theme.of(context).textTheme.bodyMedium,
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.grey.shade600,
+                                        ),
                                       ),
                                       Text(
                                         '£${allocatedAmount.toStringAsFixed(2)}',
-                                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
                                           color: Colors.green,
-                                          fontWeight: FontWeight.w500,
                                         ),
                                       ),
                                     ],
@@ -328,13 +339,18 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
                                     children: [
                                       Text(
                                         'Remaining',
-                                        style: Theme.of(context).textTheme.bodyMedium,
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.grey.shade600,
+                                        ),
                                       ),
                                       Text(
                                         '£${remainingAmount.toStringAsFixed(2)}',
-                                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
                                           color: remainingAmount > 0 ? Colors.red : Colors.green,
-                                          fontWeight: FontWeight.w500,
                                         ),
                                       ),
                                     ],
@@ -412,8 +428,8 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
                                     Expanded(
                                       child: Text(
                                         userName,
-                                        style: TextStyle(
-                                          fontWeight: isOrganizer ? FontWeight.bold : FontWeight.normal,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.normal,
                                         ),
                                       ),
                                     ),
