@@ -145,9 +145,17 @@ function performSpatialAnalysis(detections) {
       const otherY = getYPosition(otherDetection.boundingBox);
       
       // If detections are on similar Y-axis (same line), group them
-      if (Math.abs(group.yPosition - otherY) < 20) {
-        group.items.push(otherDetection);
-        processed.add(i);
+      // Use stricter threshold and avoid grouping identical complete phrases
+      if (Math.abs(group.yPosition - otherY) < 15) {
+        // Don't group if this would create duplicate complete phrases
+        const existingTexts = group.items.map(item => item.text).join(' ');
+        const newText = otherDetection.text;
+        
+        // Avoid grouping if the new text would duplicate an existing phrase
+        if (!existingTexts.includes(newText) || newText.length <= 5) {
+          group.items.push(otherDetection);
+          processed.add(i);
+        }
       }
     }
     
@@ -314,9 +322,9 @@ function performContextualGrouping(filteredGroups) {
       matchedPrice = Math.max(...sameGroupPrices[0].prices);
       console.log(`[DEBUG] Same group price match: "${itemName}" -> ${matchedPrice}`);
     } else {
-      // Look for prices in nearby groups (within 30 pixels vertically)
+      // Look for prices in nearby groups (within 20 pixels vertically) 
       const nearbyPrices = priceGroups.filter(pg => 
-        Math.abs(pg.yPosition - foodGroup.yPosition) < 30
+        Math.abs(pg.yPosition - foodGroup.yPosition) < 20
       );
       
       if (nearbyPrices.length > 0) {
