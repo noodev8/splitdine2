@@ -60,6 +60,11 @@ android/app/key.properties
 android/key.jks
 **/android/app/.cxx/
 
+# Auto files
+linux/
+macos/
+windows/
+
 # Python environment
 venv/
 
