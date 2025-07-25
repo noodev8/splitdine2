@@ -287,6 +287,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
             const SizedBox(height: 24),
             Text(
               'No receipt items yet',
+              textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w600,

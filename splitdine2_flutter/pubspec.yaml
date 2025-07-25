@@ -45,7 +45,6 @@ dependencies:
   url_launcher: ^6.2.4
 
   # Additional packages for later phases
-  image_picker: ^1.0.7
   # qr_flutter: ^4.1.0
   # qr_code_scanner: ^1.0.1
   # flutter_svg: ^2.0.9
