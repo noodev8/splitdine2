@@ -84,7 +84,6 @@ app.use('/api/sessions/create', sessionLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/split-items', splitItemRoutes);
-app.use('/api/receipt_scan', require('./routes/receipt_scan'));
 app.use('/api/session_receipt', sessionReceiptRoutes);
 app.use('/api/guest_choices', guestChoicesRoutes);
 app.use('/api/menu', menuRoutes);

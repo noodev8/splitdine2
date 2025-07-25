@@ -1,7 +1,0 @@
-cd /splitdine2/splitdine2_server
-
-curl.exe -X POST -F "image=@test_receipts/kubo.jpg" http://192.168.1.88:3000/api/receipt_scan/debug
-curl.exe -X POST -F "image=@test_receipts/food_town.jpg" http://192.168.1.88:3000/api/receipt_scan/debug
-curl.exe -X POST -F "image=@test_receipts/burritos_bus.jpg" http://192.168.1.88:3000/api/receipt_scan/debug
-curl.exe -X POST -F "image=@test_receipts/fishchips.jpg" http://192.168.1.88:3000/api/receipt_scan/debug
-

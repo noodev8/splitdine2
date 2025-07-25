@@ -1,10 +1,7 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import '../models/session.dart';
 import '../models/session_receipt_item.dart';
 import '../models/participant.dart';
-import '../services/api_service.dart';
 import '../services/session_receipt_service.dart';
 import '../services/session_service.dart';
 import '../services/guest_choice_service.dart';
@@ -25,19 +22,14 @@ class ReceiptScanScreen extends StatefulWidget {
 class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindingObserver, TickerProviderStateMixin {
   static const int maxItemNameLength = 30;
 
-  final ImagePicker _picker = ImagePicker();
   final SessionService _sessionService = SessionService();
   final GuestChoiceService _guestChoiceService = GuestChoiceService();
 
-  File? _selectedImage;
-  List<Map<String, dynamic>> _parsedItems = [];
   List<SessionReceiptItem> _existingItems = [];
   List<Participant> _participants = [];
   bool _isProcessing = false;
   bool _isLoading = false;
   String? _errorMessage;
-  bool _cameraInProgress = false;  // Track if camera operation is in progress
-  bool _shouldReplaceScan = false;  // Track if we should replace existing scan
 
   // Track guest choices and shared items
   Map<int, List<int>> _itemAssignments = {}; // itemId -> list of userIds
@@ -67,9 +59,6 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
     }
     _chipAnimationControllers.clear();
     _chipScaleAnimations.clear();
-    // Clean up resources
-    _selectedImage = null;
-    _parsedItems.clear();
     super.dispose();
   }
 
@@ -78,38 +67,18 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
     print('[DEBUG] App lifecycle state changed to: $state');
     if (state == AppLifecycleState.resumed) {
       print('[DEBUG] App resumed - checking for pending operations');
-      // If we were processing an image when the app was paused, we might need to recover
-      if (_isProcessing && _selectedImage == null) {
-        print('[DEBUG] Was processing but image is null - resetting state');
-        setState(() {
-          _isProcessing = false;
-          _errorMessage = null;  // Don't show error, just reset state
-        });
-      }
-      
-      // Reset camera in progress flag
-      if (_cameraInProgress) {
-        print('[DEBUG] Camera operation was interrupted - resetting state');
-        setState(() {
-          _cameraInProgress = false;
-        });
-      }
     }
   }
 
   String _getLoadingMessage() {
-    if (_isProcessing && _selectedImage != null) {
-      return 'Scanning receipt...';
-    } else if (_isLoading) {
+    if (_isLoading) {
       return 'Loading items...';
     }
     return 'Processing...';
   }
 
   String _getLoadingSubMessage() {
-    if (_isProcessing && _selectedImage != null) {
-      return 'Extracting text and identifying items';
-    } else if (_isLoading) {
+    if (_isLoading) {
       return 'Please wait while we load your data';
     }
     return 'This won\'t take long';
@@ -231,27 +200,13 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
 
                 // Items list
                 Expanded(
-                  child: _existingItems.isEmpty && _parsedItems.isEmpty
+                  child: _existingItems.isEmpty
                       ? _buildEmptyState()
                       : ListView(
                           padding: const EdgeInsets.all(16),
                           children: [
-
                             // Existing items
                             ..._existingItems.map((item) => _buildSessionReceiptItemCard(item)),
-
-                            // Parsed items (if any)
-                            ..._parsedItems.asMap().entries.map((entry) {
-                              final index = entry.key;
-                              final item = entry.value;
-                              return _buildParsedItemCard(item, index);
-                            }),
-
-                            // Add items button (if there are parsed items)
-                            if (_parsedItems.isNotEmpty) ...[
-                              const SizedBox(height: 16),
-                              _buildAddItemsButton(),
-                            ],
                           ],
                         ),
                 ),
@@ -340,59 +295,12 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
             ),
             const SizedBox(height: 8),
             Text(
-              'Get started by scanning your receipt\nor adding items manually',
+              'Get started by adding items manually',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey.shade600,
                 height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 24),
-            // Tips section
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: Colors.blue.shade200,
-                  width: 1,
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.lightbulb_outline,
-                        color: Colors.blue.shade700,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Tips for better results',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.blue.shade700,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '• Make sure the receipt is well-lit and flat\n'
-                    '• Include all items and prices in the photo\n'
-                    '• You can edit items after scanning',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.blue.shade700,
-                      height: 1.3,
-                    ),
-                  ),
-                ],
               ),
             ),
           ],
@@ -830,90 +738,6 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
     }
   }
 
-  Widget _buildParsedItemCard(Map<String, dynamic> item, int index) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 0,
-      color: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: Colors.grey.shade200,
-          width: 1,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Item header with name, price, and menu
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      TextFormField(
-                        initialValue: item['name'] ?? '',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                        decoration: const InputDecoration(
-                          border: InputBorder.none,
-                          hintText: 'Item name',
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                        onChanged: (value) {
-                          setState(() {
-                            _parsedItems[index]['name'] = value;
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 4),
-                      TextFormField(
-                        initialValue: item['price']?.toString() ?? '0.00',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFF6200EE),
-                        ),
-                        decoration: const InputDecoration(
-                          border: InputBorder.none,
-                          hintText: '0.00',
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        onChanged: (value) {
-                          setState(() {
-                            _parsedItems[index]['price'] = double.tryParse(value) ?? 0.0;
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  onPressed: () => _removeItem(index),
-                  icon: const Icon(
-                    Icons.delete,
-                    color: Colors.red,
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-
-            // Participants list (placeholder for now)
-            _buildParticipantsListForParsed(),
-          ],
-        ),
-      ),
-    );
-  }
 
 
 
@@ -983,22 +807,6 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   ),
                 ),
-                const SizedBox(width: 8),
-                if (_selectedImage != null)
-                  TextButton.icon(
-                    onPressed: () {
-                      setState(() {
-                        _selectedImage = null;
-                        _errorMessage = null;
-                      });
-                    },
-                    icon: const Icon(Icons.photo_camera, size: 16),
-                    label: const Text('Try Different Image'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.red.shade700,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    ),
-                  ),
               ],
             ),
           ],
@@ -1021,11 +829,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
       _errorMessage = null;
     });
     
-    if (_selectedImage != null) {
-      _processReceipt();
-    } else {
-      _loadExistingItems();
-    }
+    _loadExistingItems();
   }
 
 
@@ -1034,238 +838,6 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
 
 
 
-  Future<void> _pickImage([ImageSource? source]) async {
-    print('[DEBUG] _pickImage called with source: $source');
-    print('[DEBUG] Current state - isProcessing: $_isProcessing, selectedImage: $_selectedImage');
-    
-    // Prevent multiple simultaneous camera operations
-    if (_cameraInProgress) {
-      print('[DEBUG] Camera operation already in progress, ignoring request');
-      return;
-    }
-    
-    ImageSource? selectedSource;
-    
-    try {
-      selectedSource = source ?? await _showImageSourceDialog();
-      print('[DEBUG] Selected source: $selectedSource');
-
-      // Show warning for camera usage due to memory requirements
-      if (selectedSource == ImageSource.camera && mounted) {
-        final shouldProceed = await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Camera Notice'),
-            content: const Text(
-              'Camera scanning requires device memory. If your device restarts or the app crashes, please use the Gallery option instead to select a photo.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Use Gallery'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('Continue with Camera'),
-              ),
-            ],
-          ),
-        );
-
-        if (shouldProceed != true) {
-          selectedSource = ImageSource.gallery;
-        }
-      }
-
-      setState(() {
-        _cameraInProgress = true;
-      });
-
-      final XFile? image = await _picker.pickImage(
-        source: selectedSource,
-        maxWidth: 1920,
-        maxHeight: 1920,
-        imageQuality: 85,
-      );
-
-      print('[DEBUG] Image picker returned: ${image?.path}');
-
-      if (image != null) {
-        print('[DEBUG] Image selected, updating state...');
-        setState(() {
-          _selectedImage = File(image.path);
-          _parsedItems.clear();
-          _errorMessage = null;
-          _cameraInProgress = false;
-        });
-
-        // Automatically process the receipt after image selection
-        print('[DEBUG] Starting receipt processing...');
-        await _processReceipt();
-      } else {
-        print('[DEBUG] Image picker was cancelled');
-        setState(() {
-          _cameraInProgress = false;
-        });
-      }
-    } catch (e) {
-      print('[ERROR] Failed to pick image: $e');
-      print('[ERROR] Stack trace: ${StackTrace.current}');
-      setState(() {
-        _cameraInProgress = false;
-        _errorMessage = selectedSource == ImageSource.camera 
-            ? 'Camera failed. Please try using Gallery instead.'
-            : 'Unable to select image. Please try again.';
-      });
-    }
-  }
-
-  Future<ImageSource> _showImageSourceDialog() async {
-    final result = await showDialog<ImageSource>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Select Image Source'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.camera_alt),
-                title: const Text('Camera'),
-                subtitle: const Text('Take a new photo'),
-                onTap: () => Navigator.of(context).pop(ImageSource.camera),
-              ),
-              ListTile(
-                leading: const Icon(Icons.photo_library),
-                title: const Text('Gallery'),
-                subtitle: const Text('Choose from gallery'),
-                onTap: () => Navigator.of(context).pop(ImageSource.gallery),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(null),
-              child: const Text('Cancel'),
-            ),
-          ],
-        );
-      },
-    );
-
-    return result ?? ImageSource.gallery;  // Default to gallery if camera issues persist
-  }
-
-  Future<void> _processReceipt() async {
-    if (_selectedImage == null) {
-      print('[DEBUG] _processReceipt called but no image selected');
-      return;
-    }
-
-    // Prevent multiple simultaneous processing
-    if (_isProcessing) {
-      print('[DEBUG] Receipt processing already in progress, ignoring request');
-      return;
-    }
-
-    print('[DEBUG] _processReceipt starting with image: ${_selectedImage!.path}');
-    print('[DEBUG] Image exists: ${await _selectedImage!.exists()}');
-    print('[DEBUG] Image size: ${await _selectedImage!.length()} bytes');
-
-    setState(() {
-      _isProcessing = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final result = await ApiService.scanReceipt(
-        widget.session.id,
-        _selectedImage!,
-        replaceScan: _shouldReplaceScan,
-      );
-
-      if (result['success']) {
-        final data = result['data'];
-        final parsedItems = List<Map<String, dynamic>>.from(
-          (data['items'] ?? []).map((item) => {
-            'name': item['name'] ?? '',
-            'price': (item['price'] as num?)?.toDouble() ?? 0.0,
-            'quantity': item['quantity'] ?? 1,
-          })
-        );
-
-        // Filter out empty items and truncate names
-        final validItems = parsedItems
-            .where((item) => (item['name'] ?? '').toString().trim().isNotEmpty)
-            .map((item) => {
-              ...item,
-              'name': _truncateItemName((item['name'] ?? '').toString().trim()),
-            })
-            .toList();
-
-        if (validItems.isEmpty) {
-          setState(() {
-            _errorMessage = 'No items found. Try a different photo or add items manually.';
-          });
-          return;
-        }
-
-        // Automatically add items to session
-        try {
-          final addResult = await SessionReceiptService.addItemsFromReceipt(
-            sessionId: widget.session.id,
-            items: validItems,
-          );
-
-          if (addResult['success']) {
-            if (mounted) {
-              // Show success message
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Added ${validItems.length} items from receipt'),
-                  backgroundColor: Colors.green,
-                  duration: const Duration(seconds: 2),
-                ),
-              );
-
-              // Clear the selected image and reload the items
-              setState(() {
-                _selectedImage = null;
-                _parsedItems.clear();
-              });
-              
-              // Reload the existing items to show the newly added ones
-              await _loadExistingItems();
-              await _loadAssignments();
-            }
-          } else {
-            setState(() {
-              _errorMessage = 'Could not add items. Please try again or add items manually.';
-            });
-          }
-        } catch (e) {
-          print('[ERROR] Error adding items: $e');
-          setState(() {
-            _errorMessage = 'Network error. Please check your connection and try again.';
-          });
-        }
-      } else {
-        setState(() {
-          _errorMessage = 'Could not scan receipt. Please try a clearer photo.';
-        });
-      }
-    } catch (e) {
-      print('[ERROR] Error processing receipt: $e');
-      setState(() {
-        _errorMessage = 'Scanning failed. Please try again or add items manually.';
-      });
-    } finally {
-      setState(() {
-        _isProcessing = false;
-        _shouldReplaceScan = false; // Reset flag after processing
-      });
-    }
-  }
 
 
 
@@ -1274,9 +846,6 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
     final assignedUserIds = itemAssignments.toSet();
     final isShared = _sharedItems.contains(item.id);
     
-    // Group participants
-    final assignedParticipants = _participants.where((p) => assignedUserIds.contains(p.userId)).toList();
-    final unassignedParticipants = _participants.where((p) => !assignedUserIds.contains(p.userId)).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1354,21 +923,6 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
 
 
 
-  Widget _buildParticipantsListForParsed() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Will be available after adding to session',
-          style: TextStyle(
-            fontSize: 12,
-            fontStyle: FontStyle.italic,
-            color: Colors.grey.shade500,
-          ),
-        ),
-      ],
-    );
-  }
 
   Widget _buildParticipantChip(Participant participant, bool isSelected, SessionReceiptItem item) {
     final participantKey = '${item.id}_${participant.id}';
@@ -1418,99 +972,9 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
     );
   }
 
-  Widget _buildAddItemsButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: FilledButton(
-        onPressed: _addItemsToSession,
-        style: FilledButton.styleFrom(
-          backgroundColor: const Color(0xFF7A8471),
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-        ),
-        child: Text(
-          'Add ${_parsedItems.length} Items to Session',
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
-    );
-  }
 
 
-  void _removeItem(int index) {
-    setState(() {
-      _parsedItems.removeAt(index);
-    });
-  }
 
-  Future<void> _addItemsToSession() async {
-    if (_parsedItems.isEmpty) return;
-
-    // Filter out items with empty names and truncate long names
-    final validItems = _parsedItems
-        .where((item) => (item['name'] ?? '').toString().trim().isNotEmpty)
-        .map((item) => {
-          ...item,
-          'name': _truncateItemName((item['name'] ?? '').toString().trim()),
-        })
-        .toList();
-
-    if (validItems.isEmpty) {
-      setState(() {
-        _errorMessage = 'Please add at least one item with a name';
-      });
-      return;
-    }
-
-    setState(() {
-      _isProcessing = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final result = await SessionReceiptService.addItemsFromReceipt(
-        sessionId: widget.session.id,
-        items: validItems,
-      );
-
-      if (result['success']) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Successfully added ${validItems.length} items to session'),
-              backgroundColor: Colors.green,
-            ),
-          );
-
-          // Clear parsed items and reload existing items
-          setState(() {
-            _parsedItems.clear();
-          });
-          await _loadExistingItems();
-          await _loadAssignments();
-        }
-      } else {
-        setState(() {
-          _errorMessage = result['message'] ?? 'Failed to add items to session';
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Error adding items: $e';
-      });
-    } finally {
-      setState(() {
-        _isProcessing = false;
-        _shouldReplaceScan = false; // Reset flag after processing
-      });
-    }
-  }
 
   // Show add item dialog
   void _showAddItemDialog() {
@@ -1859,68 +1323,8 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
   }
 
   // Show dialog for re-scan options when items already exist
-  Future<void> _showRescanDialog() async {
-    if (_existingItems.isEmpty) {
-      _pickImage();
-      return;
-    }
-
-    final result = await showDialog<String>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Items Already Exist'),
-          content: Text(
-            'There are already ${_existingItems.length} items in this session. What would you like to do?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop('cancel'),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop('add'),
-              child: const Text('Add to Existing'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop('replace'),
-              child: const Text(
-                'Replace All',
-                style: TextStyle(color: Colors.red),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (result == 'add') {
-      setState(() {
-        _shouldReplaceScan = false;
-      });
-      _pickImage();
-    } else if (result == 'replace') {
-      setState(() {
-        _shouldReplaceScan = true;
-      });
-      await _clearExistingItems();
-      _pickImage();
-    }
-  }
 
   // Clear existing items
-  Future<void> _clearExistingItems() async {
-    try {
-      final result = await SessionReceiptService.clearItems(widget.session.id);
-      if (result['success']) {
-        setState(() {
-          _existingItems.clear();
-        });
-      }
-    } catch (e) {
-      // Failed to clear existing items - continue
-    }
-  }
 }
 
 // Edit Item Dialog Widget with Calculator
