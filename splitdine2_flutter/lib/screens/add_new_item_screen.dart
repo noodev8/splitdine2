@@ -26,7 +26,6 @@ class _AddNewItemScreenState extends State<AddNewItemScreen> {
   
   bool _isAdding = false;
   List<Map<String, dynamic>> _suggestions = [];
-  bool _isSearching = false;
   int? _selectedSuggestionId;
 
   @override
@@ -59,22 +58,19 @@ class _AddNewItemScreenState extends State<AddNewItemScreen> {
     
     // Clear suggestions if no current word or too short (WhatsApp-style)
     if (currentWord.isEmpty || currentWord.length < 2) {
-      setState(() {
-        _suggestions = [];
-        _selectedSuggestionId = null;
-      });
+      if (_suggestions.isNotEmpty) {
+        setState(() {
+          _suggestions = [];
+          _selectedSuggestionId = null;
+        });
+      }
       return;
     }
     
     // Trigger search with debouncing - search only the current word
-    setState(() {
-      _isSearching = true;
-    });
-    
     _menuService.searchMenuItems(currentWord).then((result) {
       if (mounted) {
         setState(() {
-          _isSearching = false;
           if (result['success']) {
             _suggestions = List<Map<String, dynamic>>.from(result['suggestions']);
           } else {
@@ -228,22 +224,6 @@ class _AddNewItemScreenState extends State<AddNewItemScreen> {
     });
   }
   
-  Future<void> _addSuggestionDirectly(Map<String, dynamic> suggestion) async {
-    // Store the original user input for logging
-    final originalUserInput = _itemNameController.text.trim();
-    
-    // Set the selected suggestion ID for logging
-    _selectedSuggestionId = suggestion['id'];
-    
-    // Add the item directly - pass the original user input for logging
-    await _addItem(suggestion['name'], originalUserInput);
-    
-    // Clear suggestions after adding
-    setState(() {
-      _suggestions = [];
-      _selectedSuggestionId = null;
-    });
-  }
 
   void _removeItem(int index) {
     setState(() {
@@ -290,6 +270,73 @@ class _AddNewItemScreenState extends State<AddNewItemScreen> {
         },
       ),
     );
+  }
+
+  // Get the current word being typed for display
+  String _getCurrentTypedWord() {
+    final text = _itemNameController.text;
+    final cursorPos = _itemNameController.selection.end;
+    final currentWord = _getCurrentWord(text, cursorPos);
+    return currentWord.isEmpty ? '' : currentWord;
+  }
+
+  // Get suggestion at index (null-safe)
+  String _getSuggestion(int index) {
+    if (_suggestions.length > index) {
+      return _suggestions[index]['name'] ?? '';
+    }
+    return '';
+  }
+
+  // Build a suggestion chip widget
+  Widget _buildSuggestionChip(String text, bool isCurrentWord) {
+    if (text.isEmpty) {
+      return Container(
+        height: 32,
+        decoration: BoxDecoration(
+          color: Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+      );
+    }
+
+    return GestureDetector(
+      onTap: isCurrentWord ? null : () => _selectSuggestionByText(text),
+      child: Container(
+        height: 32,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: isCurrentWord ? Colors.grey.shade100 : Colors.blue.shade50,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isCurrentWord ? Colors.grey.shade300 : Colors.blue.shade200,
+          ),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          text,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: isCurrentWord ? Colors.grey.shade700 : Colors.blue.shade700,
+          ),
+          textAlign: TextAlign.center,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+    );
+  }
+
+  // Select suggestion by text
+  void _selectSuggestionByText(String suggestionText) {
+    final suggestion = _suggestions.firstWhere(
+      (s) => s['name'] == suggestionText,
+      orElse: () => {},
+    );
+    if (suggestion.isNotEmpty) {
+      _selectSuggestion(suggestion);
+    }
   }
 
   void _onKeyTap(String key) {
@@ -541,109 +588,30 @@ class _AddNewItemScreenState extends State<AddNewItemScreen> {
                   ),
           ),
           
-          // Autocomplete suggestions area
-          if (_suggestions.isNotEmpty)
-            Container(
-              color: Colors.white,
-              child: Column(
-                children: [
-                  Container(
-                    height: 1,
-                    color: Colors.grey.shade300,
-                  ),
-                  ..._suggestions.map((suggestion) => Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      border: Border(
-                        bottom: BorderSide(
-                          color: Colors.grey.shade200,
-                          width: 0.5,
-                        ),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        // Text area - tap to fill input field
-                        Expanded(
-                          child: InkWell(
-                            onTap: () => _selectSuggestion(suggestion),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 12,
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.search,
-                                    size: 18,
-                                    color: Colors.grey.shade600,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Text(
-                                      suggestion['name'],
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        // Arrow button - tap to add directly
-                        InkWell(
-                          onTap: () => _addSuggestionDirectly(suggestion),
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            child: Icon(
-                              Icons.add_circle_outline,
-                              size: 20,
-                              color: const Color(0xFF7A8471),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  )),
-                ],
-              ),
-            ),
-          
-          // Show loading indicator when searching
-          if (_isSearching && _suggestions.isEmpty && _getCurrentWord(_itemNameController.text, _itemNameController.selection.end).length >= 2)
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.all(16),
-              child: Center(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          Colors.grey.shade400,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Searching...',
-                      style: TextStyle(
-                        color: Colors.grey.shade600,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
+          // WhatsApp-style persistent suggestion bar
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                // Current word being typed (left slot)
+                Expanded(
+                  child: _buildSuggestionChip(_getCurrentTypedWord(), true),
                 ),
-              ),
+                const SizedBox(width: 8),
+                // First suggestion (middle slot)
+                Expanded(
+                  child: _buildSuggestionChip(_getSuggestion(0), false),
+                ),
+                const SizedBox(width: 8),
+                // Second suggestion (right slot)
+                Expanded(
+                  child: _buildSuggestionChip(_getSuggestion(1), false),
+                ),
+              ],
             ),
+          ),
+          
           
           // Text display at top
           Container(
