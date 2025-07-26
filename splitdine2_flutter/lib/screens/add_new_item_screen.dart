@@ -4,6 +4,7 @@ import '../models/session.dart';
 import '../services/session_receipt_service.dart';
 import '../services/menu_service.dart';
 import '../services/auth_provider.dart';
+import '../services/guest_choice_service.dart';
 import '../models/session_receipt_item.dart';
 
 class AddNewItemScreen extends StatefulWidget {
@@ -27,6 +28,7 @@ class _AddNewItemScreenState extends State<AddNewItemScreen> {
   bool _isAdding = false;
   List<Map<String, dynamic>> _suggestions = [];
   int? _selectedSuggestionId;
+  bool _autoAssignToMe = true; // Toggle for auto-assigning items to current user
 
   @override
   void initState() {
@@ -229,6 +231,32 @@ class _AddNewItemScreenState extends State<AddNewItemScreen> {
     setState(() {
       _addedItems.removeAt(index);
     });
+  }
+
+  // Auto-assign all unassigned items to current user
+  Future<void> _autoAssignItemsToMe() async {
+    if (!_autoAssignToMe) return;
+    
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    if (authProvider.user == null) return;
+    
+    final guestChoiceService = GuestChoiceService();
+    
+    for (final item in _addedItems) {
+      if (item['itemId'] != null) {
+        try {
+          await guestChoiceService.assignItem(
+            sessionId: widget.session.id,
+            itemId: item['itemId'],
+            userId: authProvider.user!.id,
+            splitItem: false,
+          );
+        } catch (e) {
+          // Handle error silently for now - items can be assigned manually later
+          print('Failed to auto-assign item ${item['name']}: $e');
+        }
+      }
+    }
   }
 
   void _duplicateItem(int index) {
@@ -480,21 +508,70 @@ class _AddNewItemScreenState extends State<AddNewItemScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey.shade50,
-      appBar: AppBar(
-        title: Text(
-          _addedItems.isEmpty ? 'Add Items' : 'Add Items (${_addedItems.length})',
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
+    return PopScope(
+      onPopInvoked: (didPop) async {
+        if (didPop) {
+          // Auto-assign items before leaving if toggle is on
+          await _autoAssignItemsToMe();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.grey.shade50,
+        appBar: AppBar(
+          title: Text(
+            _addedItems.isEmpty ? 'Add Items' : 'Add Items (${_addedItems.length})',
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
           ),
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black87,
+          elevation: 1,
+          shadowColor: Colors.black12,
+          actions: [
+            // Auto-assign toggle
+            Container(
+              margin: const EdgeInsets.only(right: 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    _autoAssignToMe ? Icons.person : Icons.people,
+                    size: 18,
+                    color: _autoAssignToMe ? Colors.green.shade600 : Colors.grey.shade600,
+                  ),
+                  const SizedBox(width: 4),
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _autoAssignToMe = !_autoAssignToMe;
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _autoAssignToMe ? Colors.green.shade50 : Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: _autoAssignToMe ? Colors.green.shade300 : Colors.grey.shade300,
+                        ),
+                      ),
+                      child: Text(
+                        _autoAssignToMe ? 'Assign to me' : 'Unassigned',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: _autoAssignToMe ? Colors.green.shade700 : Colors.grey.shade700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
-        elevation: 1,
-        shadowColor: Colors.black12,
-      ),
       body: Column(
         children: [
           // Loading indicator
@@ -650,6 +727,7 @@ class _AddNewItemScreenState extends State<AddNewItemScreen> {
           _buildCustomKeyboard(),
         ],
       ),
+    ),
     );
   }
 }
@@ -845,8 +923,8 @@ class _EditItemDialogState extends State<_EditItemDialog> {
                 _buildNumberButton('7'),
                 _buildNumberButton('8'),
                 _buildNumberButton('9'),
-                _buildNumberButton('.'),
                 _buildNumberButton('0'),
+                _buildNumberButton('.'),
                 _buildBackspaceButton(),
               ],
             ),
