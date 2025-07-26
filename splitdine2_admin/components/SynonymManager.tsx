@@ -47,6 +47,13 @@ export default function SynonymManager({ menuItem }: SynonymManagerProps) {
     e.preventDefault();
     if (!newSynonym.trim()) return;
 
+    // Validate: only full words allowed (no spaces or phrases)
+    if (newSynonym.trim().includes(' ')) {
+      alert('Only full words are allowed. No spaces or phrases.');
+      setNewSynonym(''); // Clear the input field
+      return;
+    }
+
     try {
       const response = await menuApi.createSynonym(menuItem.id, newSynonym.trim());
       if (response.return_code === 'SUCCESS') {
@@ -62,6 +69,13 @@ export default function SynonymManager({ menuItem }: SynonymManagerProps) {
 
   const handleUpdate = async (synonymId: number) => {
     if (!editValue.trim()) return;
+
+    // Validate: only full words allowed (no spaces or phrases)
+    if (editValue.trim().includes(' ')) {
+      alert('Only full words are allowed. No spaces or phrases.');
+      cancelEdit(); // Cancel the edit and clear the form
+      return;
+    }
 
     try {
       const response = await menuApi.updateSynonym(menuItem.id, synonymId, editValue.trim());
@@ -112,8 +126,14 @@ export default function SynonymManager({ menuItem }: SynonymManagerProps) {
         <input
           type="text"
           value={newSynonym}
-          onChange={(e) => setNewSynonym(e.target.value)}
-          placeholder="Add a synonym"
+          onChange={(e) => {
+            const value = e.target.value;
+            // Prevent spaces from being entered
+            if (!value.includes(' ')) {
+              setNewSynonym(value);
+            }
+          }}
+          placeholder="Add a synonym (no spaces allowed)"
           className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
         />
         <button
@@ -138,7 +158,13 @@ export default function SynonymManager({ menuItem }: SynonymManagerProps) {
                   <input
                     type="text"
                     value={editValue}
-                    onChange={(e) => setEditValue(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      // Prevent spaces from being entered
+                      if (!value.includes(' ')) {
+                        setEditValue(value);
+                      }
+                    }}
                     className="flex-1 px-2 py-1 border border-gray-300 rounded"
                     autoFocus
                   />

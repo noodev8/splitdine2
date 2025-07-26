@@ -249,6 +249,15 @@ router.post('/items/:id/synonyms', authenticateToken, requireAdmin, async (req, 
       });
     }
 
+    // Validate: only full words allowed (no spaces or phrases)
+    if (synonym.trim().includes(' ')) {
+      return res.status(400).json({
+        return_code: 'INVALID_FORMAT',
+        message: 'Only full words are allowed. No spaces or phrases.',
+        timestamp: new Date().toISOString()
+      });
+    }
+
     // Check if menu item exists
     const menuItem = await pool.query(
       'SELECT id FROM menu_item WHERE id = $1',
@@ -311,6 +320,15 @@ router.put('/items/:itemId/synonyms/:synonymId', authenticateToken, requireAdmin
       return res.status(400).json({
         return_code: 'MISSING_FIELDS',
         message: 'Synonym is required',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Validate: only full words allowed (no spaces or phrases)
+    if (synonym.trim().includes(' ')) {
+      return res.status(400).json({
+        return_code: 'INVALID_FORMAT',
+        message: 'Only full words are allowed. No spaces or phrases.',
         timestamp: new Date().toISOString()
       });
     }
@@ -444,6 +462,15 @@ router.post('/map-synonym', authenticateToken, requireAdmin, async (req, res) =>
       return res.status(400).json({
         return_code: 'MISSING_FIELDS',
         message: 'Synonym is required',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Validate: only full words allowed (no spaces or phrases)
+    if (synonym.trim().includes(' ')) {
+      return res.status(400).json({
+        return_code: 'INVALID_FORMAT',
+        message: 'Only full words are allowed. No spaces or phrases.',
         timestamp: new Date().toISOString()
       });
     }

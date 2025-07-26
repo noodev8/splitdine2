@@ -36,6 +36,13 @@ export default function HomePage() {
   const handleSetupMenuItem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!properMenuName.trim()) return;
+
+    // Validate: only full words allowed (no spaces or phrases)
+    if (properMenuName.trim().includes(' ')) {
+      setError('Only full words are allowed. No spaces or phrases.');
+      setProperMenuName(''); // Clear the input
+      return;
+    }
     
     try {
       setLoading(true);
@@ -104,9 +111,13 @@ export default function HomePage() {
     }
   };
 
-  // Auto-uppercase input
+  // Auto-uppercase input with space prevention
   const handleMenuNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setProperMenuName(e.target.value.toUpperCase());
+    const value = e.target.value;
+    // Prevent spaces from being entered
+    if (!value.includes(' ')) {
+      setProperMenuName(value.toUpperCase());
+    }
   };
 
   return (
@@ -129,7 +140,7 @@ export default function HomePage() {
                     type="text"
                     value={properMenuName}
                     onChange={handleMenuNameChange}
-                    placeholder='e.g., "CAESAR SALAD", "CHICKEN WINGS", "GARLIC BREAD"'
+                    placeholder='e.g., "CAESAR", "CHICKEN", "GARLIC" (no spaces allowed)'
                     className="block w-full px-4 py-4 text-xl font-mono border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     autoFocus
                   />
