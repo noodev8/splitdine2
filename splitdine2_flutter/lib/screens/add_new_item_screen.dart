@@ -4,6 +4,7 @@ import '../models/session.dart';
 import '../services/session_receipt_service.dart';
 import '../services/menu_service.dart';
 import '../services/auth_provider.dart';
+import '../models/session_receipt_item.dart';
 
 class AddNewItemScreen extends StatefulWidget {
   final Session session;
@@ -20,7 +21,7 @@ class AddNewItemScreen extends StatefulWidget {
 class _AddNewItemScreenState extends State<AddNewItemScreen> {
   final TextEditingController _itemNameController = TextEditingController();
   final FocusNode _itemNameFocusNode = FocusNode();
-  final List<String> _addedItems = [];
+  final List<Map<String, dynamic>> _addedItems = []; // Store name, price, and itemId
   final MenuService _menuService = MenuService();
   
   bool _isAdding = false;
@@ -52,8 +53,12 @@ class _AddNewItemScreenState extends State<AddNewItemScreen> {
   void _onTextChanged() {
     final text = _itemNameController.text;
     
-    // Clear suggestions if text is too short
-    if (text.length < 3) {
+    // Get the current word being typed (word at cursor position)
+    final cursorPos = _itemNameController.selection.end;
+    final currentWord = _getCurrentWord(text, cursorPos);
+    
+    // Clear suggestions if no current word or too short (WhatsApp-style)
+    if (currentWord.isEmpty || currentWord.length < 2) {
       setState(() {
         _suggestions = [];
         _selectedSuggestionId = null;
@@ -61,12 +66,12 @@ class _AddNewItemScreenState extends State<AddNewItemScreen> {
       return;
     }
     
-    // Trigger search with debouncing
+    // Trigger search with debouncing - search only the current word
     setState(() {
       _isSearching = true;
     });
     
-    _menuService.searchMenuItems(text).then((result) {
+    _menuService.searchMenuItems(currentWord).then((result) {
       if (mounted) {
         setState(() {
           _isSearching = false;
@@ -80,8 +85,33 @@ class _AddNewItemScreenState extends State<AddNewItemScreen> {
     });
   }
 
+  // Helper function to get the current word being typed (WhatsApp-style)
+  String _getCurrentWord(String text, int cursorPos) {
+    if (text.isEmpty) return '';
+    
+    cursorPos = cursorPos.clamp(0, text.length);
+    
+    // If cursor is at position 0, no current word
+    if (cursorPos == 0) return '';
+    
+    // If character before cursor is a space, we're not inside a word
+    if (text[cursorPos - 1] == ' ') {
+      return '';
+    }
+    
+    // Find start of current word (go backwards until we hit a space or beginning)
+    int start = cursorPos - 1;
+    while (start > 0 && text[start - 1] != ' ') {
+      start--;
+    }
+    
+    // Current word is from start to cursor position (what's been typed so far)
+    String currentWord = text.substring(start, cursorPos);
+    return currentWord.trim();
+  }
+
   Future<void> _addItem([String? itemName, String? originalUserInput]) async {
-    final name = itemName ?? _itemNameController.text.trim();
+    final name = (itemName ?? _itemNameController.text).trim();
     if (name.isEmpty) return;
 
     setState(() {
@@ -92,7 +122,7 @@ class _AddNewItemScreenState extends State<AddNewItemScreen> {
       // Convert item to the format expected by the API
       final items = [{
         'name': name,
-        'price': 0.0,  // Start with 0.00 as specified
+        'price': 0.0,  // Will be updated when user sets price
       }];
 
       final result = await SessionReceiptService.addItemsFromReceipt(
@@ -114,9 +144,18 @@ class _AddNewItemScreenState extends State<AddNewItemScreen> {
           );
         }
         
+        // Get the item ID from the result for later price updates  
+        final itemId = result['items']?.isNotEmpty == true 
+            ? result['items'][0].id 
+            : null;
+        
         setState(() {
-          // Add to top of list (newest first)
-          _addedItems.insert(0, name);
+          // Add to top of list (newest first) with name, price, and itemId
+          _addedItems.insert(0, {
+            'name': name,
+            'price': 0.0,
+            'itemId': itemId,
+          });
           _itemNameController.clear();
           _isAdding = false;
           _suggestions = [];
@@ -155,8 +194,35 @@ class _AddNewItemScreenState extends State<AddNewItemScreen> {
   }
   
   void _selectSuggestion(Map<String, dynamic> suggestion) {
+    final text = _itemNameController.text;
+    final cursorPos = _itemNameController.selection.end.clamp(0, text.length);
+    
+    // Find current word boundaries
+    int start = cursorPos;
+    int end = cursorPos;
+    
+    // Move start backwards to find word start
+    while (start > 0 && text[start - 1] != ' ') {
+      start--;
+    }
+    
+    // Move end forwards to find word end
+    while (end < text.length && text[end] != ' ') {
+      end++;
+    }
+    
+    // Replace current word with suggestion and add space
+    final suggestionName = suggestion['name'] as String;
+    final newText = text.substring(0, start) + 
+                   suggestionName + ' ' +
+                   text.substring(end);
+    
     setState(() {
-      _itemNameController.text = suggestion['name'];
+      _itemNameController.text = newText;
+      // Position cursor after the inserted word and space
+      _itemNameController.selection = TextSelection.collapsed(
+        offset: start + suggestionName.length + 1,
+      );
       _selectedSuggestionId = suggestion['id'];
       _suggestions = [];
     });
@@ -186,25 +252,73 @@ class _AddNewItemScreenState extends State<AddNewItemScreen> {
   }
 
   void _duplicateItem(int index) {
-    final itemName = _addedItems[index];
-    _addItem(itemName);
+    final item = _addedItems[index];
+    _addItem(item['name']); // This will create a new database entry
+  }
+
+  void _showEditItemDialog(int index) {
+    final item = _addedItems[index];
+    showDialog(
+      context: context,
+      builder: (context) => _EditItemDialog(
+        itemName: item['name'],
+        initialPrice: item['price'],
+        onSave: (newName, newPrice) async {
+          // Update in database if we have an itemId
+          if (item['itemId'] != null) {
+            try {
+              await SessionReceiptService.updateItem(
+                itemId: item['itemId'],
+                sessionId: widget.session.id,
+                itemName: newName,
+                price: newPrice,
+              );
+            } catch (e) {
+              // Handle error silently for now
+              print('Failed to update item in database: $e');
+            }
+          }
+          
+          // Update local state
+          setState(() {
+            _addedItems[index] = {
+              'name': newName,
+              'price': newPrice,
+              'itemId': item['itemId'],
+            };
+          });
+        },
+      ),
+    );
   }
 
   void _onKeyTap(String key) {
+    final currentText = _itemNameController.text;
+    final currentSelection = _itemNameController.selection;
+    
     setState(() {
       if (key == 'SPACE') {
         _itemNameController.text += ' ';
+        _itemNameController.selection = TextSelection.collapsed(
+          offset: _itemNameController.text.length,
+        );
       } else if (key == 'BACKSPACE') {
-        if (_itemNameController.text.isNotEmpty) {
-          _itemNameController.text = _itemNameController.text.substring(
-            0, 
-            _itemNameController.text.length - 1
+        if (currentText.isNotEmpty) {
+          _itemNameController.text = currentText.substring(0, currentText.length - 1);
+          _itemNameController.selection = TextSelection.collapsed(
+            offset: _itemNameController.text.length,
           );
         }
       } else {
         _itemNameController.text += key;
+        _itemNameController.selection = TextSelection.collapsed(
+          offset: _itemNameController.text.length,
+        );
       }
     });
+    
+    // Trigger the word-based search after updating text
+    _onTextChanged();
   }
 
   Widget _buildCustomKeyboard() {
@@ -387,17 +501,18 @@ class _AddNewItemScreenState extends State<AddNewItemScreen> {
                           ),
                         ),
                         child: ListTile(
+                          onTap: () => _showEditItemDialog(index),
                           title: Text(
-                            _addedItems[index],
+                            _addedItems[index]['name'],
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
-                          subtitle: const Text(
-                            '£0.00',
+                          subtitle: Text(
+                            '£${_addedItems[index]['price'].toStringAsFixed(2)}',
                             style: TextStyle(
-                              color: Colors.grey,
+                              color: _addedItems[index]['price'] > 0 ? Colors.green.shade600 : Colors.grey,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -499,7 +614,7 @@ class _AddNewItemScreenState extends State<AddNewItemScreen> {
             ),
           
           // Show loading indicator when searching
-          if (_isSearching && _suggestions.isEmpty && _itemNameController.text.length >= 3)
+          if (_isSearching && _suggestions.isEmpty && _getCurrentWord(_itemNameController.text, _itemNameController.selection.end).length >= 2)
             Container(
               color: Colors.white,
               padding: const EdgeInsets.all(16),
@@ -566,6 +681,276 @@ class _AddNewItemScreenState extends State<AddNewItemScreen> {
           // Custom keyboard
           _buildCustomKeyboard(),
         ],
+      ),
+    );
+  }
+}
+
+// Edit Item Dialog Widget with Calculator
+class _EditItemDialog extends StatefulWidget {
+  final String itemName;
+  final double initialPrice;
+  final Function(String, double) onSave;
+
+  const _EditItemDialog({
+    required this.itemName,
+    required this.initialPrice,
+    required this.onSave,
+  });
+
+  @override
+  State<_EditItemDialog> createState() => _EditItemDialogState();
+}
+
+class _EditItemDialogState extends State<_EditItemDialog> {
+  late TextEditingController _nameController;
+  String _displayPrice = '';
+  bool _isFirstTap = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.itemName);
+    _displayPrice = widget.initialPrice > 0 
+        ? widget.initialPrice.toStringAsFixed(2) 
+        : '';
+    _isFirstTap = widget.initialPrice == 0; // Only clear on first tap if price is 0
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  void _onNumberTap(String number) {
+    setState(() {
+      // Clear display on first tap
+      if (_isFirstTap) {
+        _displayPrice = '';
+        _isFirstTap = false;
+      }
+
+      if (number == '.') {
+        if (!_displayPrice.contains('.')) {
+          _displayPrice = _displayPrice.isEmpty ? '0.' : '$_displayPrice.';
+        }
+      } else {
+        _displayPrice += number;
+      }
+    });
+  }
+
+  void _onBackspace() {
+    setState(() {
+      if (_displayPrice.isNotEmpty) {
+        _displayPrice = _displayPrice.substring(0, _displayPrice.length - 1);
+      }
+    });
+  }
+
+  void _onSave() {
+    final name = _nameController.text.trim();
+    final price = double.tryParse(_displayPrice) ?? 0.0;
+
+    if (name.isNotEmpty) {
+      // Truncate name if too long
+      final truncatedName = name.length > 30 ? '${name.substring(0, 27)}...' : name;
+      widget.onSave(truncatedName, price);
+      Navigator.of(context).pop();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.85,
+          maxWidth: 350,
+        ),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+            // Close button and title
+            Stack(
+              children: [
+                // Centered title
+                SizedBox(
+                  width: double.infinity,
+                  child: Text(
+                    'Edit Item',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                // Close button positioned on the right
+                Positioned(
+                  right: 0,
+                  top: -8, // Adjust vertical alignment
+                  child: IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close),
+                    iconSize: 20,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 32,
+                      minHeight: 32,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            // Item name field
+            TextField(
+              controller: _nameController,
+              textCapitalization: TextCapitalization.characters,
+              decoration: InputDecoration(
+                labelText: 'Item Name',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                filled: true,
+                fillColor: Colors.grey.shade50,
+              ),
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Price display
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: Colors.grey.shade200,
+                  width: 1,
+                ),
+              ),
+              child: Text(
+                '£${_displayPrice.isEmpty ? '0.00' : _displayPrice}',
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF6200EE),
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Number pad
+            GridView.count(
+              shrinkWrap: true,
+              crossAxisCount: 3,
+              childAspectRatio: 1.0,
+              mainAxisSpacing: 6,
+              crossAxisSpacing: 6,
+              children: [
+                _buildNumberButton('1'),
+                _buildNumberButton('2'),
+                _buildNumberButton('3'),
+                _buildNumberButton('4'),
+                _buildNumberButton('5'),
+                _buildNumberButton('6'),
+                _buildNumberButton('7'),
+                _buildNumberButton('8'),
+                _buildNumberButton('9'),
+                _buildNumberButton('.'),
+                _buildNumberButton('0'),
+                _buildBackspaceButton(),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            // Action buttons
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _onSave,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  elevation: 0,
+                  shadowColor: Colors.transparent,
+                  overlayColor: Colors.black.withValues(alpha: 0.05),
+                ),
+                child: const Text(
+                  'Save',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNumberButton(String number) {
+    return FilledButton.tonal(
+      onPressed: () => _onNumberTap(number),
+      style: FilledButton.styleFrom(
+        backgroundColor: Colors.grey.shade100,
+        foregroundColor: Colors.black87,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+      child: Text(
+        number,
+        style: const TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBackspaceButton() {
+    return FilledButton.tonal(
+      onPressed: _onBackspace,
+      style: FilledButton.styleFrom(
+        backgroundColor: Colors.grey.shade200,
+        foregroundColor: Colors.black87,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+      child: const Icon(
+        Icons.backspace_outlined,
+        color: Colors.black87,
       ),
     );
   }

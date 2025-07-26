@@ -65,7 +65,8 @@ const authenticateToken = async (req, res, next) => {
       id: user.id,
       email: user.email,
       display_name: user.display_name,
-      is_anonymous: user.is_anonymous
+      is_anonymous: user.is_anonymous,
+      admin: user.admin || false
     };
 
     next();
@@ -94,7 +95,8 @@ const optionalAuth = async (req, res, next) => {
           id: user.id,
           email: user.email,
           display_name: user.display_name,
-          is_anonymous: user.is_anonymous
+          is_anonymous: user.is_anonymous,
+          admin: user.admin || false
         };
       }
     }
@@ -201,11 +203,33 @@ const requireSessionParticipant = async (req, res, next) => {
   }
 };
 
+// Check if user is admin
+const requireAdmin = async (req, res, next) => {
+  try {
+    if (!req.user || !req.user.admin) {
+      return res.status(403).json({
+        return_code: 'UNAUTHORIZED',
+        message: 'Admin privileges required',
+        timestamp: new Date().toISOString()
+      });
+    }
+    next();
+  } catch (error) {
+    console.error('Admin check error:', error.message);
+    return res.status(500).json({
+      return_code: 'SERVER_ERROR',
+      message: 'Error checking admin permissions',
+      timestamp: new Date().toISOString()
+    });
+  }
+};
+
 module.exports = {
   generateToken,
   verifyToken,
   authenticateToken,
   optionalAuth,
   requireSessionHost,
-  requireSessionParticipant
+  requireSessionParticipant,
+  requireAdmin
 };

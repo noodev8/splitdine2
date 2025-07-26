@@ -264,25 +264,27 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
           padding: const EdgeInsets.all(32),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-          children: [
+            children: [
             // Icon stack for visual interest
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                Container(
-                  width: 120,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF7A8471).withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
+            Center(
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF7A8471).withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
                   ),
-                ),
-                Icon(
-                  Icons.receipt_long,
-                  size: 64,
-                  color: const Color(0xFF7A8471),
-                ),
-              ],
+                  Icon(
+                    Icons.receipt_long,
+                    size: 64,
+                    color: const Color(0xFF7A8471),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 24),
             Text(

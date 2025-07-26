@@ -19,8 +19,8 @@ class MenuService {
     // Set up the debounce timer
     _debounceTimer = Timer(debounce, () async {
       try {
-        // Only search if query is 3+ characters
-        if (query.trim().length < 3) {
+        // Only search if query is 2+ characters (WhatsApp-style)
+        if (query.trim().length < 2) {
           completer.complete({
             'success': true,
             'suggestions': [],
@@ -59,8 +59,8 @@ class MenuService {
   // Search without debouncing (for immediate results)
   Future<Map<String, dynamic>> searchMenuItemsNow(String query) async {
     try {
-      // Only search if query is 3+ characters
-      if (query.trim().length < 3) {
+      // Only search if query is 2+ characters (WhatsApp-style)
+      if (query.trim().length < 2) {
         return {
           'success': true,
           'suggestions': [],

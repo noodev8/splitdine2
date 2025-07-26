@@ -522,4 +522,76 @@ router.post('/reset-password', async (req, res) => {
   }
 });
 
+// Admin Login
+router.post('/admin-login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Validate required fields
+    if (!email || !password) {
+      return res.status(400).json({
+        return_code: 'MISSING_FIELDS',
+        message: 'Email and password are required',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Find user by email
+    const user = await userQueries.findByEmail(email);
+    if (!user) {
+      return res.status(401).json({
+        return_code: 'INVALID_CREDENTIALS',
+        message: 'Invalid email or password',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Check if user is admin
+    if (!user.admin) {
+      return res.status(403).json({
+        return_code: 'NOT_ADMIN',
+        message: 'Access denied. Admin privileges required.',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Verify password
+    const isValidPassword = await verifyPassword(password, user.password_hash);
+    if (!isValidPassword) {
+      return res.status(401).json({
+        return_code: 'INVALID_CREDENTIALS',
+        message: 'Invalid email or password',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Generate JWT token with admin flag
+    const token = generateToken(user.id, user.email);
+
+    // Update last active timestamp
+    await userQueries.updateLastActive(user.id);
+
+    res.json({
+      return_code: 'SUCCESS',
+      message: 'Admin login successful',
+      user: {
+        id: user.id,
+        email: user.email,
+        display_name: user.display_name,
+        admin: user.admin
+      },
+      token,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Admin login error:', error.message);
+    res.status(500).json({
+      return_code: 'SERVER_ERROR',
+      message: 'Login failed',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 module.exports = router;

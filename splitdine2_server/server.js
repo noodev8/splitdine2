@@ -75,6 +75,7 @@ const splitItemRoutes = require('./routes/split_items');
 const sessionReceiptRoutes = require('./routes/session_receipt');
 const guestChoicesRoutes = require('./routes/guest_choices');
 const menuRoutes = require('./routes/menuRoutes');
+const menuAdminRoutes = require('./routes/menu-admin');
 
 // Apply rate limiting to specific routes
 app.use('/api/auth', authLimiter);
@@ -87,6 +88,7 @@ app.use('/api/split-items', splitItemRoutes);
 app.use('/api/session_receipt', sessionReceiptRoutes);
 app.use('/api/guest_choices', guestChoicesRoutes);
 app.use('/api/menu', menuRoutes);
+app.use('/api/menu-admin', menuAdminRoutes);
 
 
 
