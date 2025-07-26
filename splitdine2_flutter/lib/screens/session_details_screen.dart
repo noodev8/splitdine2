@@ -400,6 +400,9 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
 
     if (mounted) {
       if (success) {
+        // Refresh the session list to ensure UI is updated
+        sessionProvider.refreshSessions();
+        
         navigator.pop(); // Go back to session lobby
         messenger.showSnackBar(
           SnackBar(
@@ -672,13 +675,29 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
 
     if (mounted) {
       if (success) {
-        navigator.pop(); // Go back to session lobby
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text('Host privileges transferred to ${newHost.displayName}'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        // Now leave the session after transferring host privileges
+        final leaveSuccess = await sessionProvider.leaveSession(widget.session.id);
+        
+        if (leaveSuccess) {
+          // Refresh the session list to ensure UI is updated
+          sessionProvider.refreshSessions();
+          
+          navigator.pop(); // Go back to session lobby
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text('Host privileges transferred to ${newHost.displayName}. You have left the session.'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          navigator.pop(); // Go back to session lobby  
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text('Host transferred but failed to leave session: ${sessionProvider.errorMessage}'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
       } else {
         messenger.showSnackBar(
           SnackBar(

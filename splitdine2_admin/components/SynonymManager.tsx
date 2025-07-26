@@ -34,7 +34,11 @@ export default function SynonymManager({ menuItem }: SynonymManagerProps) {
       setLoading(true);
       const response = await menuApi.getSynonyms(menuItem.id);
       if (response.return_code === 'SUCCESS') {
-        setSynonyms(response.data?.synonyms || []);
+        // Filter out synonyms that match the main menu item name
+        const filteredSynonyms = (response.data?.synonyms || []).filter(
+          (synonym: Synonym) => synonym.synonym.toUpperCase() !== menuItem.name.toUpperCase()
+        );
+        setSynonyms(filteredSynonyms);
       }
     } catch (err) {
       console.error('Failed to load synonyms:', err);
@@ -54,11 +58,22 @@ export default function SynonymManager({ menuItem }: SynonymManagerProps) {
       return;
     }
 
+    // Prevent adding the main menu item name as a synonym
+    if (newSynonym.trim().toUpperCase() === menuItem.name.toUpperCase()) {
+      alert('Cannot add the main menu item name as a synonym.');
+      setNewSynonym(''); // Clear the input field
+      return;
+    }
+
     try {
       const response = await menuApi.createSynonym(menuItem.id, newSynonym.trim());
       if (response.return_code === 'SUCCESS') {
         await loadSynonyms();
         setNewSynonym('');
+        // Auto-focus back to input after successful add
+        setTimeout(() => {
+          document.querySelector('input[placeholder="Add synonym"]')?.focus();
+        }, 100);
       } else {
         alert(response.message);
       }
@@ -73,6 +88,13 @@ export default function SynonymManager({ menuItem }: SynonymManagerProps) {
     // Validate: only full words allowed (no spaces or phrases)
     if (editValue.trim().includes(' ')) {
       alert('Only full words are allowed. No spaces or phrases.');
+      cancelEdit(); // Cancel the edit and clear the form
+      return;
+    }
+
+    // Prevent updating to the main menu item name
+    if (editValue.trim().toUpperCase() === menuItem.name.toUpperCase()) {
+      alert('Cannot use the main menu item name as a synonym.');
       cancelEdit(); // Cancel the edit and clear the form
       return;
     }
@@ -133,8 +155,11 @@ export default function SynonymManager({ menuItem }: SynonymManagerProps) {
               setNewSynonym(value);
             }
           }}
-          placeholder="Add a synonym (no spaces allowed)"
-          className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          placeholder="Add synonym"
+          className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 uppercase"
+          style={{ textTransform: 'uppercase' }}
+          spellCheck={false}
+          autoFocus
         />
         <button
           type="submit"
@@ -165,7 +190,9 @@ export default function SynonymManager({ menuItem }: SynonymManagerProps) {
                         setEditValue(value);
                       }
                     }}
-                    className="flex-1 px-2 py-1 border border-gray-300 rounded"
+                    className="flex-1 px-2 py-1 border border-gray-300 rounded uppercase"
+                    style={{ textTransform: 'uppercase' }}
+                    spellCheck={false}
                     autoFocus
                   />
                   <button
@@ -183,7 +210,7 @@ export default function SynonymManager({ menuItem }: SynonymManagerProps) {
                 </div>
               ) : (
                 <>
-                  <span>{synonym.synonym}</span>
+                  <span className="uppercase">{synonym.synonym}</span>
                   <div className="flex gap-2">
                     <button
                       onClick={() => startEdit(synonym)}

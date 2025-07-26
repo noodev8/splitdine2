@@ -469,38 +469,30 @@ class _AddNewItemScreenState extends State<AddNewItemScreen> {
       flex: flex,
       child: Padding(
         padding: const EdgeInsets.all(2.0),
-        child: Material(
-          color: backgroundColor ?? Colors.white,
-          borderRadius: BorderRadius.circular(6),
-          elevation: 1,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(6),
-            onTap: () {
-              if (key == 'CLEAR') {
-                setState(() {
-                  _itemNameController.clear();
-                });
-              } else if (key == 'SUBMIT') {
-                _addItem();
-              } else {
-                _onKeyTap(key);
-              }
-            },
-            child: Container(
-              height: 40,
-              alignment: Alignment.center,
-              child: icon != null
-                  ? Icon(icon, size: 18, color: textColor ?? Colors.grey.shade700)
-                  : Text(
-                      label ?? key,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: textColor ?? Colors.grey.shade700,
-                      ),
-                    ),
-            ),
-          ),
+        child: _AnimatedKey(
+          onTap: () {
+            if (key == 'CLEAR') {
+              setState(() {
+                _itemNameController.clear();
+              });
+            } else if (key == 'SUBMIT') {
+              _addItem();
+            } else {
+              _onKeyTap(key);
+            }
+          },
+          backgroundColor: backgroundColor ?? Colors.white,
+          textColor: textColor ?? Colors.grey.shade700,
+          child: icon != null
+              ? Icon(icon, size: 18, color: textColor ?? Colors.grey.shade700)
+              : Text(
+                  label ?? key,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: textColor ?? Colors.grey.shade700,
+                  ),
+                ),
         ),
       ),
     );
@@ -728,6 +720,81 @@ class _AddNewItemScreenState extends State<AddNewItemScreen> {
         ],
       ),
     ),
+    );
+  }
+}
+
+// Animated Key Widget for smooth press animations
+class _AnimatedKey extends StatefulWidget {
+  final VoidCallback onTap;
+  final Color backgroundColor;
+  final Color textColor;
+  final Widget child;
+
+  const _AnimatedKey({
+    required this.onTap,
+    required this.backgroundColor,
+    required this.textColor,
+    required this.child,
+  });
+
+  @override
+  State<_AnimatedKey> createState() => _AnimatedKeyState();
+}
+
+class _AnimatedKeyState extends State<_AnimatedKey>
+    with SingleTickerProviderStateMixin {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) {
+        setState(() {
+          _isPressed = true;
+        });
+      },
+      onTapUp: (_) {
+        setState(() {
+          _isPressed = false;
+        });
+        widget.onTap();
+      },
+      onTapCancel: () {
+        setState(() {
+          _isPressed = false;
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 100),
+        curve: Curves.easeInOut,
+        height: 40,
+        transform: Matrix4.identity()
+          ..scale(_isPressed ? 0.95 : 1.0), // Subtle scale animation
+        decoration: BoxDecoration(
+          color: _isPressed 
+              ? widget.backgroundColor.withValues(alpha: 0.8) // Slightly dimmed when pressed
+              : widget.backgroundColor,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: _isPressed 
+                ? Colors.blue.shade200 // Subtle border highlight when pressed
+                : Colors.grey.shade200,
+            width: _isPressed ? 1.5 : 1,
+          ),
+          boxShadow: _isPressed
+              ? [] // Remove shadow when pressed (pressed effect)
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    offset: const Offset(0, 1),
+                    blurRadius: 2,
+                  ),
+                ],
+        ),
+        alignment: Alignment.center,
+        child: widget.child,
+      ),
     );
   }
 }

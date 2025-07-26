@@ -286,13 +286,13 @@ router.post('/my-sessions', authenticateToken, async (req, res) => {
   try {
     const { query } = require('../config/database');
 
-    // Get sessions where user is host or participant
+    // Get sessions where user is host or participant (and hasn't left)
     const result = await query(`
       SELECT DISTINCT s.*,
              CASE WHEN s.organizer_id = $1 THEN true ELSE false END as is_host
       FROM session s
       LEFT JOIN session_guest sp ON s.id = sp.session_id
-      WHERE s.organizer_id = $1 OR sp.user_id = $1
+      WHERE s.organizer_id = $1 OR (sp.user_id = $1 AND sp.left_at IS NULL)
       ORDER BY s.updated_at DESC
     `, [req.user.id]);
 

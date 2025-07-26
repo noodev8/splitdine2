@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { menuApi } from '@/lib/api';
 import LogoutButton from '@/components/LogoutButton';
+import SynonymManager from '@/components/SynonymManager';
 
 interface MenuItem {
   id: number;
@@ -17,6 +18,8 @@ export default function HomePage() {
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null);
+  const [synonymMode, setSynonymMode] = useState(false);
+  const [selectedMenuItem, setSelectedMenuItem] = useState<MenuItem | null>(null);
 
   useEffect(() => {
     loadAllMenuItems();
@@ -56,15 +59,23 @@ export default function HomePage() {
       if (itemsResponse.return_code === 'SUCCESS') {
         let item = itemsResponse.data?.items.find(i => i.name === upperName);
         
-        if (!item) {
-          // Create new menu item
-          const response = await menuApi.createMenuItem(upperName);
-          if (response.return_code === 'SUCCESS') {
-            // Refresh items list to get the new item
-            const newItemsResponse = await menuApi.getMenuItems();
-            if (newItemsResponse.return_code === 'SUCCESS') {
-              item = newItemsResponse.data?.items.find(i => i.name === upperName);
-            }
+        if (item) {
+          // Item already exists - switch to synonym management mode
+          setSelectedMenuItem(item);
+          setSynonymMode(true);
+          setProperMenuName(''); // Clear the input
+          setSuccess('');
+          setLoading(false);
+          return;
+        }
+        
+        // Create new menu item
+        const response = await menuApi.createMenuItem(upperName);
+        if (response.return_code === 'SUCCESS') {
+          // Refresh items list to get the new item
+          const newItemsResponse = await menuApi.getMenuItems();
+          if (newItemsResponse.return_code === 'SUCCESS') {
+            item = newItemsResponse.data?.items.find(i => i.name === upperName);
           }
         }
         
@@ -120,6 +131,18 @@ export default function HomePage() {
     }
   };
 
+  // Go back to main workflow from synonym management
+  const handleBackToMain = () => {
+    setSynonymMode(false);
+    setSelectedMenuItem(null);
+    setSuccess('');
+    setError('');
+    // Focus back on main input
+    setTimeout(() => {
+      document.getElementById('menu-name-input')?.focus();
+    }, 100);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -128,8 +151,30 @@ export default function HomePage() {
           <LogoutButton />
         </div>
 
-        {/* Main content grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Conditional content based on mode */}
+        {synonymMode && selectedMenuItem ? (
+          /* Synonym Management Mode */
+          <div className="space-y-6">
+            <div className="bg-white shadow rounded-lg p-6">
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">{selectedMenuItem.name}</h2>
+                </div>
+                <button
+                  onClick={handleBackToMain}
+                  className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                >
+                  ← Back to Main
+                </button>
+              </div>
+              
+              
+              <SynonymManager menuItem={selectedMenuItem} />
+            </div>
+          </div>
+        ) : (
+          /* Main Workflow */
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Entry form */}
           <div className="lg:col-span-2">
             <div className="bg-white shadow rounded-lg p-6">
@@ -140,8 +185,10 @@ export default function HomePage() {
                     type="text"
                     value={properMenuName}
                     onChange={handleMenuNameChange}
-                    placeholder='e.g., "CAESAR", "CHICKEN", "GARLIC" (no spaces allowed)'
-                    className="block w-full px-4 py-4 text-xl font-mono border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder='Menu item name'
+                    className="block w-full px-4 py-4 text-xl font-mono border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase"
+                    style={{ textTransform: 'uppercase' }}
+                    spellCheck={false}
                     autoFocus
                   />
                 </div>
@@ -215,7 +262,8 @@ export default function HomePage() {
               </div>
             )}
           </div>
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
