@@ -6,10 +6,10 @@ const nextConfig = {
   // basePath: '/admin',  // TEMPORARILY DISABLED FOR LOCAL DEV
   
   // Enable standalone output for easier deployment
-  output: 'standalone',
+  // output: 'standalone',
   
   // Ensure trailing slashes work correctly
-  trailingSlash: true,
+  // trailingSlash: true,
   
   // Production optimizations
   compress: true,

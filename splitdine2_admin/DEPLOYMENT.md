@@ -1,10 +1,10 @@
 # SplitDine Admin - Deployment Guide
 
-Deploy the Next.js admin interface to splitdine.noodev8.com/admin/
+Deploy the Next.js admin interface to admin.splitdine.noodev8.com
 
 ## Setup
 
-- **URL**: https://splitdine.noodev8.com/admin/
+- **URL**: https://admin.splitdine.noodev8.com/
 - **Port**: 3011
 - **API**: Uses existing production API on port 3010
 
@@ -32,7 +32,7 @@ nano .env
 Add this content:
 ```ini
 NEXT_PUBLIC_API_URL=https://splitdine.noodev8.com/api
-NEXT_PUBLIC_ADMIN_LOGIN_REDIRECT=/admin/
+NEXT_PUBLIC_ADMIN_LOGIN_REDIRECT=/
 NEXT_PUBLIC_SESSION_TIMEOUT=3600000
 NEXT_PUBLIC_APP_NAME=SplitDine Admin
 NEXT_PUBLIC_APP_VERSION=1.0.0
@@ -60,14 +60,27 @@ After=network.target
 Type=simple
 User=your-username
 WorkingDirectory=/apps/production/splitdine2_admin
-ExecStart=/usr/bin/npm start
+ExecStart=/apps/production/splitdine2_admin/start.sh
 Restart=on-failure
 RestartSec=10
 Environment=NODE_ENV=production
+Environment=PORT=3011
 
 [Install]
 WantedBy=multi-user.target
 ```
+
+Also create `/apps/production/splitdine2_admin/start.sh`:
+```bash
+#!/bin/bash
+cd /apps/production/splitdine2_admin
+export PATH="/root/.nvm/versions/node/v22.17.0/bin:$PATH"
+export PORT=3011
+export HOST=0.0.0.0
+npm start
+```
+
+Make it executable: `chmod +x /apps/production/splitdine2_admin/start.sh`
 
 ### 6. Start service
 ```bash
