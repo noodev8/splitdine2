@@ -34,6 +34,11 @@ class _GuestChoicesScreenState extends State<GuestChoicesScreen> with WidgetsBin
   // Track guest choices and shared items
   Map<int, List<int>> _itemAssignments = {}; // itemId -> list of userIds
   final Set<int> _sharedItems = {}; // Set of item IDs that are marked as shared
+  
+  // Track confirmed/hidden items (front-end only for bill reconciliation)
+  final Set<int> _confirmedItems = {}; // Set of item IDs that are confirmed/ticked off
+  bool _reconciliationMode = false; // Toggle reconciliation mode on/off
+  bool _hideConfirmedItems = false; // Toggle to hide confirmed items
 
   // Animation controllers for participant chips
   late Map<String, AnimationController> _chipAnimationControllers;
@@ -157,6 +162,33 @@ class _GuestChoicesScreenState extends State<GuestChoicesScreen> with WidgetsBin
         shadowColor: Colors.black12,
         actions: [
           IconButton(
+            icon: Icon(_reconciliationMode ? Icons.receipt_long : Icons.fact_check_outlined),
+            onPressed: () {
+              setState(() {
+                _reconciliationMode = !_reconciliationMode;
+                // Clean up when leaving reconciliation mode
+                if (!_reconciliationMode) {
+                  _hideConfirmedItems = false;
+                  _confirmedItems.clear(); // Clear all confirmations
+                }
+              });
+            },
+            tooltip: _reconciliationMode ? 'Exit bill reconciliation' : 'Check bill against receipt',
+            style: IconButton.styleFrom(
+              backgroundColor: _reconciliationMode ? Colors.orange.shade100 : null,
+            ),
+          ),
+          if (_reconciliationMode)
+            IconButton(
+              icon: Icon(_hideConfirmedItems ? Icons.visibility : Icons.visibility_off),
+              onPressed: () {
+                setState(() {
+                  _hideConfirmedItems = !_hideConfirmedItems;
+                });
+              },
+              tooltip: _hideConfirmedItems ? 'Show confirmed items' : 'Hide confirmed items',
+            ),
+          IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: (_isProcessing || _isLoading) ? null : _initializeData,
             tooltip: 'Refresh',
@@ -212,8 +244,10 @@ class _GuestChoicesScreenState extends State<GuestChoicesScreen> with WidgetsBin
                       : ListView(
                           padding: const EdgeInsets.all(16),
                           children: [
-                            // Existing items
-                            ..._existingItems.map((item) => _buildSessionReceiptItemCard(item)),
+                            // Existing items (filtered if hiding confirmed)
+                            ..._existingItems
+                                .where((item) => !_hideConfirmedItems || !_confirmedItems.contains(item.id))
+                                .map((item) => _buildSessionReceiptItemCard(item)),
                           ],
                         ),
                 ),
@@ -325,23 +359,60 @@ class _GuestChoicesScreenState extends State<GuestChoicesScreen> with WidgetsBin
     final isShared = _sharedItems.contains(item.id);
     final splitPrice = isShared && itemAssignments.isNotEmpty ? item.price / itemAssignments.length : item.price;
     final isAssigned = itemAssignments.isNotEmpty;
+    final isConfirmed = _confirmedItems.contains(item.id);
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 2,
-      color: isAssigned ? Colors.blue.shade50 : Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: isAssigned ? Colors.blue.shade200 : Colors.grey.shade300,
-          width: 1,
-        ),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => _showEditItemDialog(item),
-          borderRadius: BorderRadius.circular(12),
+    // Determine card appearance based on state
+    Color cardColor;
+    Color borderColor;
+    double opacity = 1.0;
+    
+    if (isConfirmed && _reconciliationMode) {
+      cardColor = Colors.green.shade50;
+      borderColor = Colors.green.shade300;
+      opacity = 0.8;
+    } else if (isAssigned) {
+      cardColor = Colors.blue.shade50;
+      borderColor = Colors.blue.shade200;
+    } else {
+      cardColor = Colors.white;
+      borderColor = Colors.grey.shade300;
+    }
+
+    return Stack(
+      children: [
+        Opacity(
+          opacity: opacity,
+          child: Card(
+            margin: const EdgeInsets.only(bottom: 16),
+            elevation: 2,
+            color: cardColor,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(
+                color: borderColor,
+                width: isConfirmed ? 2 : 1,
+              ),
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  if (_reconciliationMode) {
+                    // In reconciliation mode, tap toggles confirmation
+                    setState(() {
+                      if (isConfirmed) {
+                        _confirmedItems.remove(item.id);
+                      } else {
+                        _confirmedItems.add(item.id);
+                      }
+                    });
+                  } else {
+                    // Normal mode, tap edits item
+                    _showEditItemDialog(item);
+                  }
+                },
+                onLongPress: () => _showItemOptionsDialog(item),
+                borderRadius: BorderRadius.circular(12),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -425,74 +496,6 @@ class _GuestChoicesScreenState extends State<GuestChoicesScreen> with WidgetsBin
                       ],
                     ),
                   ),
-                  // Action buttons row
-                  PopupMenuButton<String>(
-                  onSelected: (value) {
-                    switch (value) {
-                      case 'edit':
-                        _showEditItemDialog(item);
-                        break;
-                      case 'copy':
-                        _copyItem(item);
-                        break;
-                      case 'toggle_type':
-                        _toggleItemType(item);
-                        break;
-                      case 'delete':
-                        _deleteItem(item);
-                        break;
-                    }
-                  },
-                  itemBuilder: (BuildContext context) => [
-                    const PopupMenuItem<String>(
-                      value: 'edit',
-                      child: ListTile(
-                        dense: true,
-                        leading: Icon(Icons.edit, size: 20),
-                        title: Text('Edit Item'),
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                    const PopupMenuItem<String>(
-                      value: 'copy',
-                      child: ListTile(
-                        dense: true,
-                        leading: Icon(Icons.copy, size: 20),
-                        title: Text('Copy Item'),
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                    const PopupMenuDivider(),
-                    PopupMenuItem<String>(
-                      value: 'toggle_type',
-                      child: ListTile(
-                        dense: true,
-                        leading: Icon(
-                          isShared ? Icons.person : Icons.group,
-                          size: 20,
-                          color: isShared ? Colors.grey.shade700 : Colors.orange.shade700,
-                        ),
-                        title: Text(isShared ? 'Make Individual' : 'Make Shared'),
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                    const PopupMenuDivider(),
-                    const PopupMenuItem<String>(
-                      value: 'delete',
-                      child: ListTile(
-                        dense: true,
-                        leading: Icon(Icons.delete, color: Colors.red, size: 20),
-                        title: Text('Delete Item', style: TextStyle(color: Colors.red)),
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                  ],
-                      icon: Icon(
-                        Icons.more_vert,
-                        color: Colors.grey.shade600,
-                        size: 20,
-                      ),
-                    ),
                 ],
               ),
 
@@ -506,7 +509,36 @@ class _GuestChoicesScreenState extends State<GuestChoicesScreen> with WidgetsBin
             ),
           ),
         ),
-      ),
+            ),
+          ),
+        ),
+        // Corner badge for confirmed items (only show in reconciliation mode)
+        if (isConfirmed && _reconciliationMode)
+          Positioned(
+            bottom: 8,
+            right: 8,
+            child: Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                color: Colors.green.shade600,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.2),
+                    blurRadius: 3,
+                    offset: const Offset(1, 1),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.check,
+                color: Colors.white,
+                size: 16,
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -1335,6 +1367,145 @@ class _GuestChoicesScreenState extends State<GuestChoicesScreen> with WidgetsBin
   // Show dialog for re-scan options when items already exist
 
   // Clear existing items
+
+  void _showItemOptionsDialog(SessionReceiptItem item) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        final isShared = _sharedItems.contains(item.id);
+        return AlertDialog(
+          title: Text(item.itemName),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.edit),
+                title: const Text('Edit Item'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _showEditItemDialog(item);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.copy),
+                title: const Text('Copy Item'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _copyItem(item);
+                },
+              ),
+              ListTile(
+                leading: Icon(isShared ? Icons.person : Icons.group),
+                title: Text(isShared ? 'Make Individual' : 'Make Shared'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _toggleItemType(item);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete, color: Colors.red),
+                title: const Text('Delete Item', style: TextStyle(color: Colors.red)),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _deleteItem(item);
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildReconciliationStatus() {
+    final totalItems = _existingItems.length;
+    final confirmedItems = _confirmedItems.length;
+    final remainingItems = totalItems - confirmedItems;
+    
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.orange.shade200),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.fact_check,
+                size: 16,
+                color: Colors.orange.shade700,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Bill reconciliation mode: Tap to confirm • Long press to edit',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.orange.shade700,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '$confirmedItems/$totalItems items confirmed',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.orange.shade600,
+                  ),
+                ),
+              ),
+              if (remainingItems > 0) ...[
+                Text(
+                  '$remainingItems remaining',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.orange.shade800,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ] else ...[
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.check_circle,
+                      size: 14,
+                      color: Colors.green.shade600,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Complete!',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.green.shade600,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // Edit Item Dialog Widget with Calculator
