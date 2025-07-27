@@ -382,7 +382,7 @@ router.get('/verify-email', async (req, res) => {
     }
 
     // Mark email as verified and clear token
-    await userQueries.verifyEmail(user.id);
+    await userQueries.markEmailVerified(user.id);
 
     res.json({
       return_code: 'SUCCESS',
