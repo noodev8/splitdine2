@@ -414,92 +414,127 @@ class _GuestChoicesScreenState extends State<GuestChoicesScreen> with WidgetsBin
                 onLongPress: () => _showItemOptionsDialog(item),
                 borderRadius: BorderRadius.circular(12),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header row with item name, price, and actions
+              // Prominent item name section
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Leading accent bar
+                  Container(
+                    width: 4,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: isAssigned ? Colors.blue.shade400 : Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  
+                  // Item content
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Item name with shared tag
+                        // Item name - make it prominent
+                        Text(
+                          item.itemName,
+                          style: const TextStyle(
+                            fontSize: 19,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black87,
+                            height: 1.2,
+                            letterSpacing: -0.2,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        
+                        const SizedBox(height: 8),
+                        
+                        // Price section with visual emphasis
                         Row(
                           children: [
-                            Expanded(
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.green.shade50,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: Colors.green.shade200, width: 1),
+                              ),
                               child: Text(
-                                item.itemName,
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.black87,
+                                '£${item.price.toStringAsFixed(2)}',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.green.shade700,
+                                  fontFamily: 'monospace',
                                 ),
-                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
+                            
                             if (isShared) ...[
+                              const SizedBox(width: 12),
+                              Icon(
+                                Icons.arrow_forward,
+                                size: 16,
+                                color: Colors.grey.shade500,
+                              ),
                               const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey.shade200,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  'SHARED',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.grey.shade700,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        // Price information - stack vertically for shared items
-                        if (isShared) ...[
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '£${item.price.toStringAsFixed(2)} total',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.grey.shade600,
-                                ),
-                              ),
                               Text(
                                 '£${splitPrice.toStringAsFixed(2)} each',
-                                style: const TextStyle(
-                                  fontSize: 16,
+                                style: TextStyle(
+                                  fontSize: 14,
                                   fontWeight: FontWeight.w600,
-                                  color: Color(0xFF7A8471),
+                                  color: Colors.grey.shade700,
+                                  fontFamily: 'monospace',
                                 ),
                               ),
                             ],
-                          ),
-                        ] else ...[
-                          Text(
-                            '£${item.price.toStringAsFixed(2)}',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF7A8471),
-                            ),
-                          ),
-                        ],
+                            
+                            const Spacer(),
+                            
+                            // Shared badge - more prominent
+                            if (isShared)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.amber.shade50,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.amber.shade300, width: 1),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.groups,
+                                      size: 14,
+                                      color: Colors.amber.shade700,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'SHARED',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.amber.shade700,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
                 ],
               ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 18),
 
             // Participants section
             _buildParticipantsSection(item),
@@ -515,8 +550,8 @@ class _GuestChoicesScreenState extends State<GuestChoicesScreen> with WidgetsBin
         // Corner badge for confirmed items (only show in reconciliation mode)
         if (isConfirmed && _reconciliationMode)
           Positioned(
-            bottom: 8,
-            right: 8,
+            bottom: 12,
+            right: 12,
             child: Container(
               width: 24,
               height: 24,
