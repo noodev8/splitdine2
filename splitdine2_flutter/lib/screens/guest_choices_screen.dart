@@ -155,6 +155,13 @@ class _GuestChoicesScreenState extends State<GuestChoicesScreen> with WidgetsBin
         foregroundColor: Colors.black87,
         elevation: 1,
         shadowColor: Colors.black12,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: (_isProcessing || _isLoading) ? null : _initializeData,
+            tooltip: 'Refresh',
+          ),
+        ],
       ),
       body: _isProcessing || _isLoading
         ? Center(

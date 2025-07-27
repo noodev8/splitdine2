@@ -234,6 +234,13 @@ class _PaymentSummaryScreenState extends State<PaymentSummaryScreen> {
         foregroundColor: Colors.black87,
         elevation: 1,
         shadowColor: Colors.black12,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _isLoading ? null : _loadPaymentSummary,
+            tooltip: 'Refresh',
+          ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
