@@ -72,7 +72,8 @@ export default function SynonymManager({ menuItem }: SynonymManagerProps) {
         setNewSynonym('');
         // Auto-focus back to input after successful add
         setTimeout(() => {
-          document.querySelector('input[placeholder="Add synonym"]')?.focus();
+          const input = document.querySelector('input[placeholder="Add synonym"]') as HTMLInputElement;
+          input?.focus();
         }, 100);
       } else {
         alert(response.message);
