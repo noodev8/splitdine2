@@ -547,40 +547,45 @@ router.post('/forgot-password', async (req, res) => {
   }
 });
 
-// Verify Reset Token (GET request from email link)
+// Verify Reset Token and Show Reset Form (GET request from email link)
 router.get('/reset-password', async (req, res) => {
   try {
     const { token } = req.query;
 
     if (!token) {
-      return res.status(400).json({
-        return_code: 'MISSING_TOKEN',
-        message: 'Reset token is required',
-        timestamp: new Date().toISOString()
-      });
+      const html = renderVerificationPage(
+        'error', 
+        'Reset Failed', 
+        'No reset token provided. Please check your email link and try again.'
+      );
+      return res.status(400).send(html);
     }
 
     // Verify token exists and is valid
     const user = await userQueries.findByAuthToken(token);
     
     if (!user || !token.startsWith('reset_')) {
-      return res.status(400).json({
-        return_code: 'INVALID_TOKEN',
-        message: 'Invalid or expired reset token',
-        timestamp: new Date().toISOString()
-      });
+      const html = renderVerificationPage(
+        'error', 
+        'Reset Failed', 
+        'This password reset link is invalid or has expired. Please request a new password reset.'
+      );
+      return res.status(400).send(html);
     }
 
-    // Token is valid - redirect to frontend reset password page with token
-    res.redirect(`${process.env.EMAIL_VERIFICATION_URL}/reset-password?token=${token}`);
+    // Token is valid - serve the reset password form
+    const templatePath = path.join(__dirname, '..', 'views', 'reset-password.html');
+    const html = fs.readFileSync(templatePath, 'utf8');
+    res.send(html);
 
   } catch (error) {
     console.error('Reset token verification error:', error.message);
-    res.status(500).json({
-      return_code: 'SERVER_ERROR',
-      message: 'Failed to verify reset token',
-      timestamp: new Date().toISOString()
-    });
+    const html = renderVerificationPage(
+      'error', 
+      'Reset Failed', 
+      'An unexpected error occurred. Please try again or contact support.'
+    );
+    res.status(500).send(html);
   }
 });
 
