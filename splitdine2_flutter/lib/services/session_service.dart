@@ -350,4 +350,30 @@ class SessionService {
       return {'success': false, 'message': 'Network error: $e'};
     }
   }
+
+  // Update session permissions (host only)
+  Future<Map<String, dynamic>> updatePermissions(int sessionId, Map<String, bool> permissions) async {
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await http.post(
+        Uri.parse('$baseUrl/sessions/permissions/update'),
+        headers: headers,
+        body: jsonEncode({
+          'session_id': sessionId,
+          'permissions': permissions,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (data['return_code'] == 'SUCCESS') {
+        final session = Session.fromJson(data['session']);
+        return {'success': true, 'session': session};
+      } else {
+        return {'success': false, 'message': data['message']};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
 }

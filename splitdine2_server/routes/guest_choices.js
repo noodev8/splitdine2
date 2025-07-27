@@ -36,6 +36,29 @@ router.post('/assign', authenticateToken, requireSessionParticipant, async (req,
       });
     }
 
+    // Check allocation permissions
+    const { sessionQueries } = require('../utils/database');
+    const session = await sessionQueries.findById(req.sessionId);
+    if (!session) {
+      return res.status(404).json({
+        return_code: 'SESSION_NOT_FOUND',
+        message: 'Session not found',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Check if user is host
+    const isHost = session.organizer_id === req.user.id;
+    
+    // Check permission if not host
+    if (!isHost && session.allow_guests_allocate === false) {
+      return res.status(403).json({
+        return_code: 'PERMISSION_DENIED',
+        message: 'The host has restricted allocating items to participants',
+        timestamp: new Date().toISOString()
+      });
+    }
+
     const receiptItem = itemCheck.rows[0];
 
     // Check if assignment already exists
@@ -111,6 +134,29 @@ router.post('/unassign', authenticateToken, requireSessionParticipant, async (re
       return res.status(400).json({
         return_code: 'MISSING_FIELDS',
         message: 'Item ID and user_id are required',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Check allocation permissions
+    const { sessionQueries } = require('../utils/database');
+    const session = await sessionQueries.findById(req.sessionId);
+    if (!session) {
+      return res.status(404).json({
+        return_code: 'SESSION_NOT_FOUND',
+        message: 'Session not found',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Check if user is host
+    const isHost = session.organizer_id === req.user.id;
+    
+    // Check permission if not host
+    if (!isHost && session.allow_guests_allocate === false) {
+      return res.status(403).json({
+        return_code: 'PERMISSION_DENIED',
+        message: 'The host has restricted allocating items to participants',
         timestamp: new Date().toISOString()
       });
     }

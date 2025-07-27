@@ -1,0 +1,16 @@
+Host can set permissions at any time for a session. Any locked permissions will be made obvious that it is locked by the host if/when trying to access any
+
+1 - Alow invites
+If invites are not allowed, the guests see the options but get a message when trying to add a guest. For the session code, they get XXXXXX instead of the actual number
+
+2 - Guest Choices
+Allow the guest to add items (Put the restriction in the copy item option as well)
+Allow guest to set an item price
+Allow guest to edit item (name or set to shared/individual)
+
+3 - Allocations
+Allow a guest to allocate people to an item (restriction includes themeselves where the host takes total control)
+
+The host will need a new screen to manage these permission and be aware of them, when a session is first created
+
+

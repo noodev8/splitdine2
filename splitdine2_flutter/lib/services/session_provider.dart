@@ -170,6 +170,11 @@ class SessionProvider with ChangeNotifier {
     }
   }
 
+  // Alias for updateSession for clarity
+  void updateCurrentSession(Session updatedSession) {
+    updateSession(updatedSession);
+  }
+
   // Remove session from local list
   void removeSession(int sessionId) {
     _sessions.removeWhere((session) => session.id == sessionId);

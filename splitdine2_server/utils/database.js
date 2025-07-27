@@ -132,12 +132,28 @@ const userQueries = {
 const sessionQueries = {
   // Create new session
   create: async (sessionData) => {
-    const { organizer_id, session_name, location, session_date, session_time, description, food_type, join_code } = sessionData;
+    const { 
+      organizer_id, session_name, location, session_date, session_time, 
+      description, food_type, join_code,
+      allow_invites, allow_guests_add_items, allow_guests_edit_prices,
+      allow_guests_edit_items, allow_guests_allocate
+    } = sessionData;
+    
     const result = await query(
-      `INSERT INTO session (organizer_id, session_name, location, session_date, session_time, description, food_type, join_code)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `INSERT INTO session (
+        organizer_id, session_name, location, session_date, session_time, 
+        description, food_type, join_code,
+        allow_invites, allow_guests_add_items, allow_guests_edit_prices,
+        allow_guests_edit_items, allow_guests_allocate
+      )
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
        RETURNING *`,
-      [organizer_id, session_name, location, session_date, session_time, description, food_type, join_code]
+      [
+        organizer_id, session_name, location, session_date, session_time, 
+        description, food_type, join_code,
+        allow_invites ?? true, allow_guests_add_items ?? true, allow_guests_edit_prices ?? true,
+        allow_guests_edit_items ?? true, allow_guests_allocate ?? true
+      ]
     );
     return result.rows[0];
   },
@@ -191,6 +207,25 @@ const sessionQueries = {
        WHERE id = $6
        RETURNING *`,
       [item_amount, tax_amount, service_charge, extra_charge, total_amount, sessionId]
+    );
+    return result.rows[0];
+  },
+
+  // Update session permissions
+  updatePermissions: async (sessionId, permissions) => {
+    const { 
+      allow_invites, allow_guests_add_items, allow_guests_edit_prices,
+      allow_guests_edit_items, allow_guests_allocate
+    } = permissions;
+    
+    const result = await query(
+      `UPDATE session
+       SET allow_invites = $1, allow_guests_add_items = $2, allow_guests_edit_prices = $3,
+           allow_guests_edit_items = $4, allow_guests_allocate = $5, updated_at = NOW()
+       WHERE id = $6
+       RETURNING *`,
+      [allow_invites, allow_guests_add_items, allow_guests_edit_prices, 
+       allow_guests_edit_items, allow_guests_allocate, sessionId]
     );
     return result.rows[0];
   },

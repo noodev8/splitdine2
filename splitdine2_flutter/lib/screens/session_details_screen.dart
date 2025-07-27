@@ -9,6 +9,7 @@ import '../services/session_service.dart';
 import 'payment_summary_screen.dart';
 import 'receipt_scan_screen.dart';
 import 'add_guest_screen.dart';
+import 'host_permissions_screen.dart';
 
 class SessionDetailsScreen extends StatefulWidget {
   final Session session;
@@ -59,6 +60,8 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                 _copyJoinCode(context);
               } else if (value == 'add_guest') {
                 _navigateToAddGuest(context);
+              } else if (value == 'permissions') {
+                _navigateToPermissions(context);
               } else if (value == 'leave') {
                 _leaveSession(context);
               } else if (value == 'leave_host') {
@@ -84,6 +87,17 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                       Icon(Icons.person_add),
                       SizedBox(width: 8),
                       Text('Add Guest'),
+                    ],
+                  ),
+                ),
+              if (widget.session.isHost)
+                const PopupMenuItem<String>(
+                  value: 'permissions',
+                  child: Row(
+                    children: [
+                      Icon(Icons.security),
+                      SizedBox(width: 8),
+                      Text('Permissions'),
                     ],
                   ),
                 ),
@@ -307,7 +321,11 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Share this code with others to join:'),
+              Text(
+                (widget.session.allowInvites || widget.session.isHost)
+                    ? 'Share this code with others to join:'
+                    : 'The host has disabled invitations for this session.',
+              ),
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(16),
@@ -320,7 +338,9 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      widget.session.joinCode,
+                      widget.session.allowInvites || widget.session.isHost 
+                          ? widget.session.joinCode 
+                          : 'XXXXXX',
                       style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -329,16 +349,18 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                       ),
                     ),
                     IconButton(
-                      onPressed: () {
-                        Clipboard.setData(ClipboardData(text: widget.session.joinCode));
-                        Navigator.of(context).pop();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Session code copied to clipboard'),
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
-                      },
+                      onPressed: (widget.session.allowInvites || widget.session.isHost)
+                          ? () {
+                              Clipboard.setData(ClipboardData(text: widget.session.joinCode));
+                              Navigator.of(context).pop();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Session code copied to clipboard'),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                            }
+                          : null,
                       icon: const Icon(Icons.copy),
                       tooltip: 'Copy to clipboard',
                     ),
@@ -381,6 +403,14 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => AddGuestScreen(session: widget.session),
+      ),
+    );
+  }
+
+  void _navigateToPermissions(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => HostPermissionsScreen(session: widget.session),
       ),
     );
   }
@@ -776,15 +806,25 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
         ),
       ),
       child: InkWell(
-        onTap: () {
-          Clipboard.setData(ClipboardData(text: widget.session.joinCode));
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Code copied'),
-              duration: Duration(seconds: 1),
-            ),
-          );
-        },
+        onTap: (widget.session.allowInvites || widget.session.isHost)
+            ? () {
+                Clipboard.setData(ClipboardData(text: widget.session.joinCode));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Code copied'),
+                    duration: Duration(seconds: 1),
+                  ),
+                );
+              }
+            : () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('The host has disabled invitations'),
+                    backgroundColor: Colors.orange,
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              },
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -798,7 +838,9 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
               ),
               const SizedBox(height: 12),
               Text(
-                widget.session.joinCode,
+                (widget.session.allowInvites || widget.session.isHost)
+                    ? widget.session.joinCode
+                    : 'XXXXXX',
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -810,7 +852,9 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                'Tap to copy',
+                (widget.session.allowInvites || widget.session.isHost)
+                    ? 'Tap to copy'
+                    : 'Invites disabled',
                 style: TextStyle(
                   fontSize: 12,
                   color: Colors.grey.shade600,

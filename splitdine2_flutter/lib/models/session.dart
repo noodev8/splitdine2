@@ -19,6 +19,11 @@ class Session {
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool isHost;
+  final bool allowInvites;
+  final bool allowGuestsAddItems;
+  final bool allowGuestsEditPrices;
+  final bool allowGuestsEditItems;
+  final bool allowGuestsAllocate;
 
   Session({
     required this.id,
@@ -41,6 +46,11 @@ class Session {
     required this.createdAt,
     required this.updatedAt,
     required this.isHost,
+    this.allowInvites = true,
+    this.allowGuestsAddItems = true,
+    this.allowGuestsEditPrices = true,
+    this.allowGuestsEditItems = true,
+    this.allowGuestsAllocate = true,
   });
 
   // Check if session is upcoming (date >= today)
@@ -99,6 +109,11 @@ class Session {
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
       isHost: json['is_host'] as bool? ?? false,
+      allowInvites: json['allow_invites'] as bool? ?? true,
+      allowGuestsAddItems: json['allow_guests_add_items'] as bool? ?? true,
+      allowGuestsEditPrices: json['allow_guests_edit_prices'] as bool? ?? true,
+      allowGuestsEditItems: json['allow_guests_edit_items'] as bool? ?? true,
+      allowGuestsAllocate: json['allow_guests_allocate'] as bool? ?? true,
     );
   }
 
@@ -124,6 +139,11 @@ class Session {
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
       'is_host': isHost,
+      'allow_invites': allowInvites,
+      'allow_guests_add_items': allowGuestsAddItems,
+      'allow_guests_edit_prices': allowGuestsEditPrices,
+      'allow_guests_edit_items': allowGuestsEditItems,
+      'allow_guests_allocate': allowGuestsAllocate,
     };
   }
 
@@ -148,6 +168,11 @@ class Session {
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? isHost,
+    bool? allowInvites,
+    bool? allowGuestsAddItems,
+    bool? allowGuestsEditPrices,
+    bool? allowGuestsEditItems,
+    bool? allowGuestsAllocate,
   }) {
     return Session(
       id: id ?? this.id,
@@ -170,6 +195,11 @@ class Session {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isHost: isHost ?? this.isHost,
+      allowInvites: allowInvites ?? this.allowInvites,
+      allowGuestsAddItems: allowGuestsAddItems ?? this.allowGuestsAddItems,
+      allowGuestsEditPrices: allowGuestsEditPrices ?? this.allowGuestsEditPrices,
+      allowGuestsEditItems: allowGuestsEditItems ?? this.allowGuestsEditItems,
+      allowGuestsAllocate: allowGuestsAllocate ?? this.allowGuestsAllocate,
     );
   }
 

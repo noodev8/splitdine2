@@ -23,6 +23,28 @@ router.post('/add-item', authenticateToken, requireSessionParticipant, async (re
       });
     }
 
+    // Check permissions for adding items
+    const session = await sessionQueries.findById(parseInt(session_id));
+    if (!session) {
+      return res.status(404).json({
+        return_code: 'SESSION_NOT_FOUND',
+        message: 'Session not found',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Check if user is host
+    const isHost = session.organizer_id === req.user.id;
+    
+    // Check permission if not host
+    if (!isHost && session.allow_guests_add_items === false) {
+      return res.status(403).json({
+        return_code: 'PERMISSION_DENIED',
+        message: 'The host has restricted adding new items',
+        timestamp: new Date().toISOString()
+      });
+    }
+
     // Validate price is a number
     const numericPrice = parseFloat(price);
     if (isNaN(numericPrice) || numericPrice < 0) {
@@ -96,6 +118,16 @@ router.post('/add-items-bulk', authenticateToken, requireSessionParticipant, asy
       return res.status(404).json({
         return_code: 'SESSION_NOT_FOUND',
         message: 'Session not found',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Check permissions for adding items
+    const isHost = session.organizer_id === req.user.id;
+    if (!isHost && session.allow_guests_add_items === false) {
+      return res.status(403).json({
+        return_code: 'PERMISSION_DENIED',
+        message: 'The host has restricted adding new items',
         timestamp: new Date().toISOString()
       });
     }
@@ -259,6 +291,40 @@ router.post('/update-item', authenticateToken, requireSessionParticipant, async 
         message: 'Session receipt item not found',
         timestamp: new Date().toISOString()
       });
+    }
+
+    // Get session to check permissions
+    const session = await sessionQueries.findById(existingItem.session_id);
+    if (!session) {
+      return res.status(404).json({
+        return_code: 'SESSION_NOT_FOUND',
+        message: 'Session not found',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Check if user is host
+    const isHost = session.organizer_id === req.user.id;
+    
+    // Check permissions based on what's being updated
+    if (!isHost) {
+      // Check if editing items is allowed
+      if (session.allow_guests_edit_items === false && item_name.trim() !== existingItem.item_name) {
+        return res.status(403).json({
+          return_code: 'PERMISSION_DENIED',
+          message: 'The host has restricted editing item names',
+          timestamp: new Date().toISOString()
+        });
+      }
+      
+      // Check if editing prices is allowed
+      if (session.allow_guests_edit_prices === false && numericPrice !== existingItem.price) {
+        return res.status(403).json({
+          return_code: 'PERMISSION_DENIED',
+          message: 'The host has restricted editing prices',
+          timestamp: new Date().toISOString()
+        });
+      }
     }
 
     const updateData = {

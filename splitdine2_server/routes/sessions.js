@@ -82,7 +82,13 @@ router.post('/create', authenticateToken, async (req, res) => {
         service_charge: newSession.service_charge,
         created_at: newSession.created_at,
         updated_at: newSession.updated_at,
-        is_host: true
+        is_host: true,
+        // Include permission fields
+        allow_invites: newSession.allow_invites ?? true,
+        allow_guests_add_items: newSession.allow_guests_add_items ?? true,
+        allow_guests_edit_prices: newSession.allow_guests_edit_prices ?? true,
+        allow_guests_edit_items: newSession.allow_guests_edit_items ?? true,
+        allow_guests_allocate: newSession.allow_guests_allocate ?? true
       },
       timestamp: new Date().toISOString()
     });
@@ -156,7 +162,8 @@ router.post('/join', authenticateToken, async (req, res) => {
         session_date: session.session_date,
         session_time: session.session_time,
         description: session.description,
-        join_code: session.join_code,
+        // Hide join code if invites not allowed and user is not host
+        join_code: (session.allow_invites !== false || isHost) ? session.join_code : 'XXXXXX',
         receipt_processed: session.receipt_processed,
         total_amount: session.total_amount,
         tax_amount: session.tax_amount,
@@ -164,7 +171,13 @@ router.post('/join', authenticateToken, async (req, res) => {
         service_charge: session.service_charge,
         created_at: session.created_at,
         updated_at: session.updated_at,
-        is_host: isHost
+        is_host: isHost,
+        // Include permission fields
+        allow_invites: session.allow_invites ?? true,
+        allow_guests_add_items: session.allow_guests_add_items ?? true,
+        allow_guests_edit_prices: session.allow_guests_edit_prices ?? true,
+        allow_guests_edit_items: session.allow_guests_edit_items ?? true,
+        allow_guests_allocate: session.allow_guests_allocate ?? true
       },
       participants,
       timestamp: new Date().toISOString()
@@ -228,7 +241,8 @@ router.post('/details', authenticateToken, async (req, res) => {
         session_date: session.session_date,
         session_time: session.session_time,
         description: session.description,
-        join_code: session.join_code,
+        // Hide join code if invites not allowed and user is not host
+        join_code: (session.allow_invites !== false || isHost) ? session.join_code : 'XXXXXX',
         receipt_processed: session.receipt_processed,
         total_amount: session.total_amount,
         tax_amount: session.tax_amount,
@@ -236,7 +250,13 @@ router.post('/details', authenticateToken, async (req, res) => {
         service_charge: session.service_charge,
         created_at: session.created_at,
         updated_at: session.updated_at,
-        is_host: isHost
+        is_host: isHost,
+        // Include permission fields
+        allow_invites: session.allow_invites ?? true,
+        allow_guests_add_items: session.allow_guests_add_items ?? true,
+        allow_guests_edit_prices: session.allow_guests_edit_prices ?? true,
+        allow_guests_edit_items: session.allow_guests_edit_items ?? true,
+        allow_guests_allocate: session.allow_guests_allocate ?? true
       },
       participants,
       timestamp: new Date().toISOString()
@@ -685,6 +705,104 @@ router.post('/update-bill-totals', authenticateToken, async (req, res) => {
     res.status(500).json({
       return_code: 'SERVER_ERROR',
       message: 'Failed to update bill totals',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+/**
+ * Update session permissions
+ * 
+ * Request:
+ * {
+ *   "session_id": number,
+ *   "permissions": {
+ *     "allow_invites": boolean,
+ *     "allow_guests_add_items": boolean,
+ *     "allow_guests_edit_prices": boolean,
+ *     "allow_guests_edit_items": boolean,
+ *     "allow_guests_allocate": boolean
+ *   }
+ * }
+ * 
+ * Response:
+ * {
+ *   "return_code": "SUCCESS" | "SESSION_NOT_FOUND" | "UNAUTHORIZED" | error codes,
+ *   "message": string,
+ *   "session": { session object with updated permissions } (on success),
+ *   "timestamp": ISO string
+ * }
+ */
+router.post('/permissions/update', authenticateToken, async (req, res) => {
+  try {
+    const { session_id, permissions } = req.body;
+
+    // Validate required fields
+    if (!session_id || !permissions) {
+      return res.status(400).json({
+        return_code: 'MISSING_FIELDS',
+        message: 'Session ID and permissions object are required',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Find session
+    const session = await sessionQueries.findById(session_id);
+    if (!session) {
+      return res.status(404).json({
+        return_code: 'SESSION_NOT_FOUND',
+        message: 'Session not found',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Check if current user is the host
+    if (session.organizer_id !== req.user.id) {
+      return res.status(403).json({
+        return_code: 'UNAUTHORIZED',
+        message: 'Only the session host can update permissions',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Update permissions
+    const updatedSession = await sessionQueries.updatePermissions(session_id, permissions);
+
+    res.json({
+      return_code: 'SUCCESS',
+      message: 'Permissions updated successfully',
+      session: {
+        id: updatedSession.id,
+        organizer_id: updatedSession.organizer_id,
+        session_name: updatedSession.session_name,
+        location: updatedSession.location,
+        session_date: updatedSession.session_date,
+        session_time: updatedSession.session_time,
+        description: updatedSession.description,
+        join_code: updatedSession.join_code,
+        receipt_processed: updatedSession.receipt_processed,
+        total_amount: updatedSession.total_amount,
+        tax_amount: updatedSession.tax_amount,
+        tip_amount: updatedSession.tip_amount,
+        service_charge: updatedSession.service_charge,
+        created_at: updatedSession.created_at,
+        updated_at: updatedSession.updated_at,
+        is_host: true,
+        // Include permission fields
+        allow_invites: updatedSession.allow_invites,
+        allow_guests_add_items: updatedSession.allow_guests_add_items,
+        allow_guests_edit_prices: updatedSession.allow_guests_edit_prices,
+        allow_guests_edit_items: updatedSession.allow_guests_edit_items,
+        allow_guests_allocate: updatedSession.allow_guests_allocate
+      },
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Update permissions error:', error);
+    res.status(500).json({
+      return_code: 'SERVER_ERROR',
+      message: 'Failed to update permissions',
       timestamp: new Date().toISOString()
     });
   }
