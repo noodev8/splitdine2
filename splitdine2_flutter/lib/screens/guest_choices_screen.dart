@@ -237,6 +237,7 @@ class _GuestChoicesScreenState extends State<GuestChoicesScreen> with WidgetsBin
                   _buildErrorMessage(),
                 ],
 
+
                 // Items list
                 Expanded(
                   child: _existingItems.isEmpty
@@ -253,7 +254,7 @@ class _GuestChoicesScreenState extends State<GuestChoicesScreen> with WidgetsBin
                 ),
               ],
             ),
-      bottomNavigationBar: Container(
+      bottomNavigationBar: widget.session.isPast ? null : Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -406,12 +407,12 @@ class _GuestChoicesScreenState extends State<GuestChoicesScreen> with WidgetsBin
                         _confirmedItems.add(item.id);
                       }
                     });
-                  } else {
-                    // Normal mode, tap edits item
+                  } else if (!widget.session.isPast) {
+                    // Normal mode, tap edits item (only for non-past sessions)
                     _showEditItemDialog(item);
                   }
                 },
-                onLongPress: () => _showItemOptionsDialog(item),
+                onLongPress: widget.session.isPast ? null : () => _showItemOptionsDialog(item),
                 borderRadius: BorderRadius.circular(12),
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -1015,7 +1016,7 @@ class _GuestChoicesScreenState extends State<GuestChoicesScreen> with WidgetsBin
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeInOut,
             child: ElevatedButton(
-              onPressed: () {
+              onPressed: widget.session.isPast ? null : () {
                 // Trigger bounce animation on selection
                 _animateChipSelection(participantKey);
                 _toggleParticipantAssignment(item, participant, !isSelected);

@@ -87,6 +87,14 @@ class Session {
     return sessionName?.isNotEmpty == true ? sessionName! : location;
   }
 
+  // Check if session is in the past (date has passed)
+  bool get isPast {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final sessionDay = DateTime(sessionDate.year, sessionDate.month, sessionDate.day);
+    return sessionDay.isBefore(today);
+  }
+
   factory Session.fromJson(Map<String, dynamic> json) {
     return Session(
       id: json['id'] as int,

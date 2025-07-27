@@ -79,7 +79,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                   ],
                 ),
               ),
-              if (widget.session.isHost)
+              if (widget.session.isHost && !widget.session.isPast)
                 const PopupMenuItem<String>(
                   value: 'add_guest',
                   child: Row(
@@ -90,7 +90,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                     ],
                   ),
                 ),
-              if (widget.session.isHost)
+              if (widget.session.isHost && !widget.session.isPast)
                 const PopupMenuItem<String>(
                   value: 'permissions',
                   child: Row(
@@ -230,7 +230,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                 _buildActionCard(
                   icon: Icons.receipt,
                   title: 'The Bill',
-                  subtitle: 'Manage items',
+                  subtitle: widget.session.isPast ? 'View items' : 'Manage items',
                   onTap: () => _navigateToGuestChoices(context),
                 ),
                 // Payment Summary Card
@@ -242,13 +242,14 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                 ),
                 // Session Code Card
                 _buildSessionCodeCard(),
-                // Add Guest Card (available to everyone)
-                _buildActionCard(
-                  icon: Icons.person_add,
-                  title: 'Add Guest',
-                  subtitle: 'Invite someone',
-                  onTap: () => _navigateToAddGuest(context),
-                ),
+                // Add Guest Card (only for non-past sessions)
+                if (!widget.session.isPast)
+                  _buildActionCard(
+                    icon: Icons.person_add,
+                    title: 'Add Guest',
+                    subtitle: 'Invite someone',
+                    onTap: () => _navigateToAddGuest(context),
+                  ),
               ],
             ),
 
