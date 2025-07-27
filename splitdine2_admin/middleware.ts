@@ -5,14 +5,16 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get('adminToken');
   const pathname = request.nextUrl.pathname;
   
-  // Handle paths
+  // Handle paths - Next.js automatically strips basePath from pathname
   const isLoginPage = pathname === '/login';
 
   if (!token && !isLoginPage) {
+    // Next.js will automatically prepend basePath to the redirect URL
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
   if (token && isLoginPage) {
+    // Next.js will automatically prepend basePath to the redirect URL
     return NextResponse.redirect(new URL('/', request.url));
   }
 
