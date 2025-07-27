@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:splitdine2_flutter/services/auth_provider.dart';
 import 'package:splitdine2_flutter/screens/login_screen.dart';
-import 'package:splitdine2_flutter/screens/session_lobby_screen.dart';
+import 'package:splitdine2_flutter/screens/session_list_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -31,7 +31,7 @@ class _SplashScreenState extends State<SplashScreen> {
     if (mounted) {
       if (authProvider.isLoggedIn) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const SessionLobbyScreen()),
+          MaterialPageRoute(builder: (context) => const SessionListScreen()),
         );
       } else {
         Navigator.of(context).pushReplacement(

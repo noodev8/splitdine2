@@ -7,19 +7,19 @@ import '../services/session_service.dart';
 import '../services/guest_choice_service.dart';
 import 'add_new_item_screen.dart';
 
-class ReceiptScanScreen extends StatefulWidget {
+class GuestChoicesScreen extends StatefulWidget {
   final Session session;
 
-  const ReceiptScanScreen({
+  const GuestChoicesScreen({
     super.key,
     required this.session,
   });
 
   @override
-  State<ReceiptScanScreen> createState() => _ReceiptScanScreenState();
+  State<GuestChoicesScreen> createState() => _GuestChoicesScreenState();
 }
 
-class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindingObserver, TickerProviderStateMixin {
+class _GuestChoicesScreenState extends State<GuestChoicesScreen> with WidgetsBindingObserver, TickerProviderStateMixin {
   static const int maxItemNameLength = 30;
 
   final SessionService _sessionService = SessionService();
@@ -42,7 +42,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
   @override
   void initState() {
     super.initState();
-    print('[DEBUG] ReceiptScanScreen initState called');
+    print('[DEBUG] GuestChoicesScreen initState called');
     WidgetsBinding.instance.addObserver(this);
     _chipAnimationControllers = {};
     _chipScaleAnimations = {};
@@ -51,7 +51,7 @@ class _ReceiptScanScreenState extends State<ReceiptScanScreen> with WidgetsBindi
 
   @override
   void dispose() {
-    print('[DEBUG] ReceiptScanScreen dispose called');
+    print('[DEBUG] GuestChoicesScreen dispose called');
     WidgetsBinding.instance.removeObserver(this);
     // Clean up animation controllers
     for (final controller in _chipAnimationControllers.values) {

@@ -8,14 +8,14 @@ import 'login_screen.dart';
 import 'session_details_screen.dart';
 import 'profile_screen.dart';
 
-class SessionLobbyScreen extends StatefulWidget {
-  const SessionLobbyScreen({super.key});
+class SessionListScreen extends StatefulWidget {
+  const SessionListScreen({super.key});
 
   @override
-  State<SessionLobbyScreen> createState() => _SessionLobbyScreenState();
+  State<SessionListScreen> createState() => _SessionListScreenState();
 }
 
-class _SessionLobbyScreenState extends State<SessionLobbyScreen> {
+class _SessionListScreenState extends State<SessionListScreen> {
   @override
   void initState() {
     super.initState();

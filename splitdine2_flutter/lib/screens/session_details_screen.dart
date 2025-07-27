@@ -7,7 +7,7 @@ import '../services/session_provider.dart';
 import '../services/session_service.dart';
 
 import 'payment_summary_screen.dart';
-import 'receipt_scan_screen.dart';
+import 'guest_choices_screen.dart';
 import 'add_guest_screen.dart';
 import 'host_permissions_screen.dart';
 
@@ -229,9 +229,9 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                 // Receipt Card
                 _buildActionCard(
                   icon: Icons.receipt,
-                  title: 'Receipt',
+                  title: 'The Bill',
                   subtitle: 'Manage items',
-                  onTap: () => _navigateToReceiptScan(context),
+                  onTap: () => _navigateToGuestChoices(context),
                 ),
                 // Payment Summary Card
                 _buildActionCard(
@@ -391,10 +391,10 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
   }
 
 
-  void _navigateToReceiptScan(BuildContext context) {
+  void _navigateToGuestChoices(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => ReceiptScanScreen(session: widget.session),
+        builder: (context) => GuestChoicesScreen(session: widget.session),
       ),
     );
   }
