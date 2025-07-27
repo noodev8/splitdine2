@@ -5,11 +5,36 @@ const { hashPassword, verifyPassword, validatePassword } = require('../utils/pas
 const { generateToken, authenticateToken } = require('../middleware/auth');
 const { sendVerificationEmail, sendPasswordResetEmail } = require('../services/emailService');
 const { generateToken: generateAuthToken, getTokenExpiry } = require('../utils/tokenUtils');
+const fs = require('fs');
+const path = require('path');
 
 /**
  * Authentication Routes
  * All routes use POST method and return standardized JSON responses
  */
+
+// Helper function to render email verification HTML
+const renderVerificationPage = (type, title, message, showButton = true) => {
+  const templatePath = path.join(__dirname, '..', 'views', 'email-verification.html');
+  let template = fs.readFileSync(templatePath, 'utf8');
+  
+  const icons = {
+    success: '✓',
+    error: '✗',
+    already_verified: 'ℹ'
+  };
+  
+  const content = `
+    <div class="icon ${type}">
+      ${icons[type] || icons.success}
+    </div>
+    <h1>${title}</h1>
+    <p>${message}</p>
+    ${showButton ? `<a href="${process.env.EMAIL_VERIFICATION_URL}" class="button">Continue to SplitDine</a>` : ''}
+  `;
+  
+  return template.replace('{{CONTENT}}', content);
+};
 
 // User Registration
 router.post('/register', async (req, res) => {
@@ -345,58 +370,70 @@ router.get('/verify-email', async (req, res) => {
     const { token } = req.query;
 
     if (!token) {
-      return res.status(400).json({
-        return_code: 'MISSING_TOKEN',
-        message: 'Verification token is required',
-        timestamp: new Date().toISOString()
-      });
+      const html = renderVerificationPage(
+        'error', 
+        'Verification Failed', 
+        'No verification token provided. Please check your email link and try again.',
+        false
+      );
+      return res.status(400).send(html);
     }
 
     // Find user by token
     const user = await userQueries.findByAuthToken(token);
     
     if (!user) {
-      return res.status(400).json({
-        return_code: 'INVALID_TOKEN',
-        message: 'Invalid or expired verification token',
-        timestamp: new Date().toISOString()
-      });
+      const html = renderVerificationPage(
+        'error', 
+        'Verification Failed', 
+        'This verification link is invalid or has expired. Please request a new verification email.',
+        true
+      );
+      return res.status(400).send(html);
     }
 
     // Check if token is for email verification
     if (!token.startsWith('verify_')) {
-      return res.status(400).json({
-        return_code: 'INVALID_TOKEN',
-        message: 'Invalid verification token',
-        timestamp: new Date().toISOString()
-      });
+      const html = renderVerificationPage(
+        'error', 
+        'Verification Failed', 
+        'This verification link is not valid. Please check your email and try again.',
+        true
+      );
+      return res.status(400).send(html);
     }
 
     // Check if already verified
     if (user.email_verified) {
-      return res.json({
-        return_code: 'ALREADY_VERIFIED',
-        message: 'Email is already verified',
-        timestamp: new Date().toISOString()
-      });
+      const html = renderVerificationPage(
+        'already_verified', 
+        'Already Verified', 
+        'Your email address has already been verified. You can now use all features of SplitDine.',
+        true
+      );
+      return res.send(html);
     }
 
     // Mark email as verified and clear token
     await userQueries.markEmailVerified(user.id);
 
-    res.json({
-      return_code: 'SUCCESS',
-      message: 'Email verified successfully',
-      timestamp: new Date().toISOString()
-    });
+    const html = renderVerificationPage(
+      'success', 
+      'Email Verified!', 
+      'Thank you! Your email address has been successfully verified. You can now access all features of SplitDine.',
+      true
+    );
+    res.send(html);
 
   } catch (error) {
     console.error('Email verification error:', error.message);
-    res.status(500).json({
-      return_code: 'SERVER_ERROR',
-      message: 'Email verification failed',
-      timestamp: new Date().toISOString()
-    });
+    const html = renderVerificationPage(
+      'error', 
+      'Verification Failed', 
+      'An unexpected error occurred while verifying your email. Please try again or contact support.',
+      true
+    );
+    res.status(500).send(html);
   }
 });
 
