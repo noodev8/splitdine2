@@ -339,6 +339,67 @@ router.post('/delete-account', authenticateToken, async (req, res) => {
 });
 
 
+// Verify Email (GET request from email link)
+router.get('/verify-email', async (req, res) => {
+  try {
+    const { token } = req.query;
+
+    if (!token) {
+      return res.status(400).json({
+        return_code: 'MISSING_TOKEN',
+        message: 'Verification token is required',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Find user by token
+    const user = await userQueries.findByAuthToken(token);
+    
+    if (!user) {
+      return res.status(400).json({
+        return_code: 'INVALID_TOKEN',
+        message: 'Invalid or expired verification token',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Check if token is for email verification
+    if (!token.startsWith('verify_')) {
+      return res.status(400).json({
+        return_code: 'INVALID_TOKEN',
+        message: 'Invalid verification token',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Check if already verified
+    if (user.email_verified) {
+      return res.json({
+        return_code: 'ALREADY_VERIFIED',
+        message: 'Email is already verified',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Mark email as verified and clear token
+    await userQueries.verifyEmail(user.id);
+
+    res.json({
+      return_code: 'SUCCESS',
+      message: 'Email verified successfully',
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Email verification error:', error.message);
+    res.status(500).json({
+      return_code: 'SERVER_ERROR',
+      message: 'Email verification failed',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // Resend Verification Email
 router.post('/resend-verification', async (req, res) => {
   try {
@@ -451,6 +512,43 @@ router.post('/forgot-password', async (req, res) => {
     res.status(500).json({
       return_code: 'SERVER_ERROR',
       message: 'Failed to process password reset request',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Verify Reset Token (GET request from email link)
+router.get('/reset-password', async (req, res) => {
+  try {
+    const { token } = req.query;
+
+    if (!token) {
+      return res.status(400).json({
+        return_code: 'MISSING_TOKEN',
+        message: 'Reset token is required',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Verify token exists and is valid
+    const user = await userQueries.findByAuthToken(token);
+    
+    if (!user || !token.startsWith('reset_')) {
+      return res.status(400).json({
+        return_code: 'INVALID_TOKEN',
+        message: 'Invalid or expired reset token',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Token is valid - redirect to frontend reset password page with token
+    res.redirect(`${process.env.EMAIL_VERIFICATION_URL}/reset-password?token=${token}`);
+
+  } catch (error) {
+    console.error('Reset token verification error:', error.message);
+    res.status(500).json({
+      return_code: 'SERVER_ERROR',
+      message: 'Failed to verify reset token',
       timestamp: new Date().toISOString()
     });
   }

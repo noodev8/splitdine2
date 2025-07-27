@@ -25,11 +25,10 @@ Add to your `.env` file:
 ```env
 # Resend API configuration
 RESEND_API_KEY=re_your_api_key_here
-FRONTEND_URL=https://your-frontend-domain.com
-EMAIL_VERIFICATION_URL=https://your-api-domain.com
+EMAIL_VERIFICATION_URL=https://email.noodev8.com
 
 # Email configuration
-EMAIL_FROM=no-reply@your-domain.com
+EMAIL_FROM=no-reply@email.noodev8.com
 EMAIL_NAME=Your App Name
 ```
 
