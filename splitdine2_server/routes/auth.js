@@ -14,7 +14,7 @@ const path = require('path');
  */
 
 // Helper function to render email verification HTML
-const renderVerificationPage = (type, title, message, showButton = true) => {
+const renderVerificationPage = (type, title, message) => {
   const templatePath = path.join(__dirname, '..', 'views', 'email-verification.html');
   let template = fs.readFileSync(templatePath, 'utf8');
   
@@ -30,7 +30,6 @@ const renderVerificationPage = (type, title, message, showButton = true) => {
     </div>
     <h1>${title}</h1>
     <p>${message}</p>
-    ${showButton ? `<a href="${process.env.EMAIL_VERIFICATION_URL}" class="button">Continue to SplitDine</a>` : ''}
   `;
   
   return template.replace('{{CONTENT}}', content);
@@ -373,8 +372,7 @@ router.get('/verify-email', async (req, res) => {
       const html = renderVerificationPage(
         'error', 
         'Verification Failed', 
-        'No verification token provided. Please check your email link and try again.',
-        false
+        'No verification token provided. Please check your email link and try again.'
       );
       return res.status(400).send(html);
     }
@@ -386,8 +384,7 @@ router.get('/verify-email', async (req, res) => {
       const html = renderVerificationPage(
         'error', 
         'Verification Failed', 
-        'This verification link is invalid or has expired. Please request a new verification email.',
-        true
+        'This verification link is invalid or has expired. Please request a new verification email.'
       );
       return res.status(400).send(html);
     }
@@ -397,8 +394,7 @@ router.get('/verify-email', async (req, res) => {
       const html = renderVerificationPage(
         'error', 
         'Verification Failed', 
-        'This verification link is not valid. Please check your email and try again.',
-        true
+        'This verification link is not valid. Please check your email and try again.'
       );
       return res.status(400).send(html);
     }
@@ -408,8 +404,7 @@ router.get('/verify-email', async (req, res) => {
       const html = renderVerificationPage(
         'already_verified', 
         'Already Verified', 
-        'Your email address has already been verified. You can now use all features of SplitDine.',
-        true
+        'Your email address has already been verified. You can now use all features of SplitDine.'
       );
       return res.send(html);
     }
@@ -420,8 +415,7 @@ router.get('/verify-email', async (req, res) => {
     const html = renderVerificationPage(
       'success', 
       'Email Verified!', 
-      'Thank you! Your email address has been successfully verified. You can now access all features of SplitDine.',
-      true
+      'Thank you! Your email address has been successfully verified. You can now access all features of SplitDine.'
     );
     res.send(html);
 
@@ -430,8 +424,7 @@ router.get('/verify-email', async (req, res) => {
     const html = renderVerificationPage(
       'error', 
       'Verification Failed', 
-      'An unexpected error occurred while verifying your email. Please try again or contact support.',
-      true
+      'An unexpected error occurred while verifying your email. Please try again or contact support.'
     );
     res.status(500).send(html);
   }
