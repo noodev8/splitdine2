@@ -37,6 +37,16 @@ class _HostPermissionsScreenState extends State<HostPermissionsScreen> {
     _allowGuestsAllocate = widget.session.allowGuestsAllocate;
   }
 
+  void _lockAllPermissions() {
+    setState(() {
+      _allowInvites = false;
+      _allowGuestsAddItems = false;
+      _allowGuestsEditPrices = false;
+      _allowGuestsEditItems = false;
+      _allowGuestsAllocate = false;
+    });
+  }
+
   Future<void> _updatePermissions() async {
     setState(() {
       _isLoading = true;
@@ -148,8 +158,8 @@ class _HostPermissionsScreenState extends State<HostPermissionsScreen> {
           child: Switch.adaptive(
             value: value,
             onChanged: onChanged,
-            activeColor: Colors.grey.shade600,
-            activeTrackColor: Colors.grey.shade300,
+            activeColor: Colors.green.shade600,
+            activeTrackColor: Colors.green.shade200,
             inactiveThumbColor: Colors.grey.shade400,
             inactiveTrackColor: Colors.grey.shade200,
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -218,6 +228,31 @@ class _HostPermissionsScreenState extends State<HostPermissionsScreen> {
                           ),
                         ),
                       ],
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Lock All button
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: _lockAllPermissions,
+                      icon: const Icon(Icons.lock, size: 18),
+                      label: const Text(
+                        'Lock All Permissions',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        side: BorderSide(color: Colors.grey.shade400),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
                     ),
                   ),
                   
